@@ -1,1 +1,95 @@
-/* Add styles here */
+/* /* Cores Base: Cyan (#00FFFF) e Âmbar (#FFBF00) */
+:root {
+    --bg-dark: #0a0c10;
+    --cyan: #00FFFF;
+    --ambar: #FFBF00;
+    --text-light: #e0e0e0;
+    --gray-steel: #4a4a4a;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 800px;
+    text-align: center;
+}
+
+/* Simulação do Logo enquanto não subimos a imagem */
+.logo-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 3rem;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    margin-bottom: 40px;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+.logo-text span {
+    color: var(--text-light);
+    font-weight: 700;
+}
+
+h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2.2rem;
+    color: var(--text-light);
+}
+
+p {
+    color: #a0a0a0;
+    margin-bottom: 30px;
+}
+
+/* Caixa de Busca Cyber */
+.search-box {
+    display: flex;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--gray-steel);
+}
+
+input {
+    flex: 1;
+    background: #1a1d23;
+    border: 1px solid var(--cyan);
+    padding: 15px;
+    color: white;
+    border-radius: 4px;
+    outline: none;
+}
+
+button {
+    background-color: var(--ambar);
+    color: #000;
+    border: none;
+    padding: 15px 30px;
+    font-weight: bold;
+    font-family: 'Rajdhani', sans-serif;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: 0.3s;
+}
+
+button:hover {
+    background-color: #e6ac00;
+    box-shadow: 0 0 15px rgba(255, 191, 0, 0.5);
+}
+
+footer {
+    margin-top: 50px;
+    font-size: 0.8rem;
+    color: var(--gray-steel);
+}Add styles here */
