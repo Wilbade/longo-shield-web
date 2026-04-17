@@ -61,7 +61,7 @@ async function iniciarDiagnostico() {
                             : "<strong>Atenção:</strong> Sua empresa está vulnerável. Atacantes podem usar seu domínio para disparar e-mails falsos em seu nome."}
                     </p>
                     
-                    <button onclick="window.location.href='https://wa.me/5511999999999'" 
+                    <button onclick="window.location.href='https://wa.me/5511995314831'" 
                             style="width: 100%; margin-top: 20px; background: #FFBF00; color: #000; border: none; padding: 15px; font-weight: bold; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: 0.3s;">
                         Solicitar Plano de Mitigação
                     </button>
