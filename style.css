@@ -1,4 +1,4 @@
-/* /* Cores Base: Cyan (#00FFFF) e Âmbar (#FFBF00) */
+/* Cores Base: Cyan (#00FFFF) e Âmbar (#FFBF00) */
 :root {
     --bg-dark: #0a0c10;
     --cyan: #00FFFF;
@@ -7,50 +7,79 @@
     --gray-steel: #4a4a4a;
 }
 
+/* Configuração Geral - Removido o centralizador que grudava no topo */
 body {
     background-color: var(--bg-dark);
     color: var(--text-light);
     font-family: 'Roboto', sans-serif;
     margin: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
+    padding: 0;
+    line-height: 1.6;
 }
 
 .container {
     width: 90%;
-    max-width: 800px;
-    text-align: center;
+    max-width: 1000px; /* Aumentei um pouco para os serviços respirarem */
+    margin: 0 auto;
+    padding-bottom: 50px;
 }
 
-/* Simulação do Logo enquanto não subimos a imagem */
-.logo-text {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 3rem;
-    letter-spacing: 2px;
-    color: var(--cyan);
+/* --- NAVEGAÇÃO (Ajuste de Respiro) --- */
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 40px 0; /* Aumentei o espaço no topo e embaixo do logo */
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
     margin-bottom: 40px;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 }
 
-.logo-text span {
-    color: var(--text-light);
-    font-weight: 700;
+.logo-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.main-logo {
+    height: 60px; /* Tamanho otimizado */
+    width: auto;
+    transition: 0.3s ease;
+}
+
+.main-logo:hover {
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
+}
+
+.btn-contato {
+    color: var(--cyan);
+    text-decoration: none;
+    border: 2px solid var(--cyan); /* Borda mais forte para autoridade */
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: 0.3s;
+}
+
+.btn-contato:hover {
+    background: var(--cyan);
+    color: var(--bg-dark);
+}
+
+/* --- HERO SECTION --- */
+.hero {
+    text-align: center;
+    padding: 40px 0;
 }
 
 h2 {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 2.2rem;
+    font-size: 2.8rem;
     color: var(--text-light);
+    margin-bottom: 15px;
 }
 
-p {
-    color: #a0a0a0;
-    margin-bottom: 30px;
-}
-
-/* Caixa de Busca Cyber */
+/* --- CAIXA DE BUSCA CYBER --- */
 .search-box {
     display: flex;
     gap: 10px;
@@ -58,6 +87,7 @@ p {
     padding: 20px;
     border-radius: 8px;
     border: 1px solid var(--gray-steel);
+    margin: 30px 0;
 }
 
 input {
@@ -88,80 +118,76 @@ button:hover {
     box-shadow: 0 0 15px rgba(255, 191, 0, 0.5);
 }
 
-footer {
-    margin-top: 50px;
-    font-size: 0.8rem;
-    color: var(--gray-steel);
-}Add styles here */
-/* Estilos Adicionais para a Landing Page */
-nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 0;
-    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-}
+/* --- SERVIÇOS --- */
+.services { margin-top: 80px; text-align: center; }
 
-.btn-contato {
-    color: var(--cyan);
-    text-decoration: none;
-    border: 1px solid var(--cyan);
-    padding: 8px 15px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.services { margin-top: 80px; }
 .service-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
-    margin-top: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+    margin-top: 40px;
 }
 
 .service-card {
     background: rgba(255, 255, 255, 0.03);
-    padding: 30px;
+    padding: 40px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     transition: 0.3s;
 }
 
-.service-card:hover { border-color: var(--cyan); }
-.service-card .icon { font-size: 2rem; display: block; margin-bottom: 15px; }
+.service-card:hover { 
+    border-color: var(--cyan); 
+    background: rgba(0, 255, 255, 0.02);
+}
 
+.service-card .icon { font-size: 2.5rem; display: block; margin-bottom: 20px; }
+
+/* --- SOBRE --- */
 .about {
     margin-top: 80px;
-    padding: 40px;
+    padding: 60px 40px;
     background: linear-gradient(90deg, rgba(0,255,255,0.05) 0%, rgba(0,0,0,0) 100%);
     border-radius: 8px;
-}
-.logo-wrapper {
-    display: flex;
-    align-items: center;
+    text-align: left;
 }
 
-.main-logo {
-    height: 50px; /* Altura ideal para o menu */
-    width: auto;
-    transition: 0.3s ease;
+/* --- FOOTER --- */
+footer {
+    margin-top: 100px;
+    padding: 40px 0;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.85rem;
+    color: var(--gray-steel);
 }
 
-.main-logo:hover {
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
-}
-/* Ajuste para o logo não ficar grudado no mobile */
+/* --- RESULTADO DO DIAGNÓSTICO --- */
+.result-hidden { display: none; }
+#resultArea { margin-top: 30px; }
+
+/* --- AJUSTE MOBILE --- */
 @media (max-width: 600px) {
     nav {
         flex-direction: column;
-        gap: 20px;
-        padding: 30px 15px; /* Mais espaço nas laterais e topo */
-        text-align: center;
+        padding: 50px 0 30px 0; /* Muito respiro no topo do celular */
+        gap: 25px;
     }
+    
     .main-logo {
-        height: 60px;
+        height: 70px; /* Logo maior no mobile para destaque */
     }
+
     .btn-contato {
         width: 100%;
+        text-align: center;
     }
+
+    h2 { font-size: 1.8rem; }
+
+    .search-box {
+        flex-direction: column;
+    }
+
+    .service-card { padding: 30px; }
 }
