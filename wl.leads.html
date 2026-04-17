@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WL Leads - Painel de Controle</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            justify-content: flex-start; 
+            flex-direction: column; 
+            padding: 40px 20px;
+            background-color: #0a0c10;
+        }
+        .admin-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+            color: #e0e0e0;
+        }
+        th, td { 
+            padding: 15px; 
+            border-bottom: 1px solid rgba(255,255,255,0.05); 
+            text-align: left; 
+        }
+        th { 
+            background: rgba(0, 255, 255, 0.1); 
+            color: var(--cyan); 
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        tr:hover { background: rgba(0, 255, 255, 0.02); }
+        .badge { 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.8rem; 
+            font-weight: bold; 
+        }
+        .critico { background: #FF4444; color: white; }
+        .aplus { background: #00FF00; color: black; }
+        
+        .refresh-btn {
+            background: var(--ambar);
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-family: 'Rajdhani', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 1100px;">
+        <h2 style="color: var(--cyan); margin-bottom: 5px;">🚀 WL Leads</h2>
+        <p style="margin-bottom: 30px;">Monitoramento de consultas em tempo real - Longo Shield</p>
+        
+        <button class="refresh-btn" onclick="carregarLeads()">🔄 Atualizar Base</button>
+
+        <div class="admin-card">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Domínio Consultado</th>
+                        <th>Status</th>
+                        <th>Localização</th>
+                        <th>IP do Prospect</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaLeads">
+                    <tr>
+                        <td colspan="5" style="text-align: center;">Carregando inteligência...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Configurações do seu Supabase
+        const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function carregarLeads() {
+            const corpoTabela = document.getElementById('tabelaLeads');
+            
+            const { data, error } = await _supabase
+                .from('leads')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Erro:', error);
+                corpoTabela.innerHTML = `<tr><td colspan="5" style="color: red;">Erro ao acessar banco: ${error.message}</td></tr>`;
+                return;
+            }
+
+            corpoTabela.innerHTML = '';
+
+            if (data.length === 0) {
+                corpoTabela.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum lead encontrado ainda.</td></tr>`;
+                return;
+            }
+
+            data.forEach(lead => {
+                const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
+                const classeScore = lead.score === 'A+' ? 'aplus' : 'critico';
+                
+                corpoTabela.innerHTML += `
+                    <tr>
+                        <td style="font-size: 0.85rem; color: #888;">${dataHora}</td>
+                        <td style="font-weight: bold; color: var(--cyan); font-size: 1.1rem;">${lead.dominio}</td>
+                        <td><span class="badge ${classeScore}">${lead.score}</span></td>
+                        <td>${lead.localizacao}</td>
+                        <td style="font-family: monospace; color: #666;">${lead.ip_usuario}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Executa ao carregar a página
+        carregarLeads();
+    </script>
+</body>
+</html>
