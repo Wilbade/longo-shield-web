@@ -45,7 +45,7 @@ async function iniciarDiagnostico() {
             resultArea.innerHTML = `
                 <div style="text-align: left; background: rgba(0,0,0,0.5); padding: 25px; border-left: 4px solid #FFBF00; border-radius: 8px; position: relative; overflow: hidden;">
                     
-                    <img src="img/escudo_shield.png" alt="Shield" style="position: absolute; top: 10px; right: 10px; height: 50px; opacity: 0.8;">
+                    <img src="./img/escudo_shield.png" alt="Shield" style="position: absolute; top: 10px; right: 10px; height: 50px; opacity: 0.8;">
                     
                     <h3 style="color: #FFBF00; margin-top: 0; font-family: 'Rajdhani', sans-serif;">Relatório de Blindagem: ${dominio}</h3>
                     
