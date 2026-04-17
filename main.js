@@ -40,34 +40,34 @@ async function iniciarDiagnostico() {
             ? `<span style="color: #00FF00;">✅ Configurado</span>` 
             : `<span style="color: #FF4444;">❌ Não encontrado / Vulnerável</span>`;
 
-        // Delay proposital de 1.5s para criar impacto visual no diagnóstico
-        setTimeout(() => {
-            resultArea.innerHTML = `
-                <div style="text-align: left; background: rgba(0,0,0,0.5); padding: 25px; border-left: 4px solid #FFBF00; border-radius: 8px; position: relative; overflow: hidden;">
-                    
-                    <img src="img/escudo_shiel.png" alt="Shield" style="position: absolute; top: 15px; right: 15px; height: 55px; width: auto; z-index: 10; display: block !important;">
-                    
-                    <h3 style="color: #FFBF00; margin-top: 0; font-family: 'Rajdhani', sans-serif;">Relatório de Blindagem: ${dominio}</h3>
-                    
-                    <p style="margin: 10px 0;">🛡️ <strong>Protocolo DMARC:</strong> ${statusDmarc}</p>
-                    <p style="margin: 10px 0;">🔒 <strong>Status Anti-Spoofing:</strong> ${temDmarc ? 'Protegido contra falsificação' : 'Risco crítico de fraude de e-mail'}</p>
-                    <p style="margin: 10px 0; font-size: 0.85rem; color: #888;">📡 Fonte: Google DNS Resolver API (8.8.8.8)</p>
-                    
-                    <hr style="border: 0.5px solid #333; margin: 15px 0;">
-                    
-                    <p style="color: #e0e0e0; font-size: 0.95rem; line-height: 1.4;">
-                        ${temDmarc 
-                            ? "Sua proteção básica está ativa. Recomendamos uma análise de resiliência profunda em sua infraestrutura de borda." 
-                            : "<strong>Atenção:</strong> Sua empresa está vulnerável. Atacantes podem usar seu domínio para disparar e-mails falsos em seu nome."}
-                    </p>
-                    
-                    <button onclick="window.open('https://wa.me/5511995314831', '_blank')" ...>
-                            style="width: 100%; margin-top: 20px; background: #FFBF00; color: #000; border: none; padding: 15px; font-weight: bold; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: 0.3s;">
-                        Solicitar Plano de Mitigação
-                    </button>
-                </div>
-            `;
-        }, 1500);
+// Delay proposital de 1.5s para criar impacto visual no diagnóstico
+setTimeout(() => {
+    resultArea.innerHTML = `
+        <div style="text-align: left; background: rgba(0,0,0,0.5); padding: 25px; border-left: 4px solid #FFBF00; border-radius: 8px; position: relative; overflow: hidden;">
+            
+            <img src="img/escudo_shiel.png" alt="Shield" style="position: absolute; top: 15px; right: 15px; height: 55px; width: auto; z-index: 10; display: block !important;">
+            
+            <h3 style="color: #FFBF00; margin-top: 0; font-family: 'Rajdhani', sans-serif;">Relatório de Blindagem: ${dominio}</h3>
+            
+            <p style="margin: 10px 0;">🛡️ <strong>Protocolo DMARC:</strong> ${statusDmarc}</p>
+            <p style="margin: 10px 0;">🔒 <strong>Status Anti-Spoofing:</strong> ${temDmarc ? 'Protegido contra falsificação' : 'Risco crítico de fraude de e-mail'}</p>
+            <p style="margin: 10px 0; font-size: 0.85rem; color: #888;">📡 Fonte: Google DNS Resolver API (8.8.8.8)</p>
+            
+            <hr style="border: 0.5px solid #333; margin: 15px 0;">
+            
+            <p style="color: #e0e0e0; font-size: 0.95rem; line-height: 1.4;">
+                ${temDmarc 
+                    ? "Sua proteção básica está ativa. Recomendamos uma análise de resiliência profunda em sua infraestrutura de borda." 
+                    : "<strong>Atenção:</strong> Sua empresa está vulnerável. Atacantes podem usar seu domínio para disparar e-mails falsos em seu nome."}
+            </p>
+            
+            <button onclick="window.open('https://wa.me/5511995314831', '_blank')" 
+                    style="width: 100%; margin-top: 20px; background: #FFBF00; color: #000; border: none; padding: 15px; font-weight: bold; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; cursor: pointer; border-radius: 4px; transition: 0.3s;">
+                Solicitar Plano de Mitigação
+            </button>
+        </div>
+    `;
+}, 1500);
 
     } catch (error) {
         resultArea.innerHTML = `<p style="color: #FF4444; padding: 20px;">Ocorreu um erro na conexão com os servidores de varredura. Tente novamente.</p>`;
