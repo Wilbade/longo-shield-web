@@ -150,3 +150,18 @@ nav {
 .main-logo:hover {
     filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
 }
+/* Ajuste para o logo não ficar grudado no mobile */
+@media (max-width: 600px) {
+    nav {
+        flex-direction: column;
+        gap: 20px;
+        padding: 30px 15px; /* Mais espaço nas laterais e topo */
+        text-align: center;
+    }
+    .main-logo {
+        height: 60px;
+    }
+    .btn-contato {
+        width: 100%;
+    }
+}
