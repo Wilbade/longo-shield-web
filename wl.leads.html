@@ -36,9 +36,7 @@
             color: var(--cyan); 
             font-family: 'Rajdhani', sans-serif;
             text-transform: uppercase;
-            letter-spacing: 1px;
         }
-        tr:hover { background: rgba(0, 255, 255, 0.02); }
         .badge { 
             padding: 4px 8px; 
             border-radius: 4px; 
@@ -59,12 +57,27 @@
             margin-bottom: 20px;
             font-family: 'Rajdhani', sans-serif;
         }
+        #loginArea {
+            text-align: center;
+            margin-top: 100px;
+        }
+        #mainContent {
+            display: none; /* Escondido por padrão */
+        }
     </style>
 </head>
 <body>
-    <div class="container" style="max-width: 1100px;">
+
+    <div id="loginArea">
+        <h2 style="color: var(--cyan);">Acesso Restrito</h2>
+        <p style="color: #888;">Digite a senha de administrador</p>
+        <input type="password" id="passInput" style="padding: 10px; border-radius: 4px; border: 1px solid var(--cyan); background: #000; color: #fff; margin-top: 10px;">
+        <button onclick="verificarSenha()" class="refresh-btn" style="margin-top: 10px;">Entrar</button>
+    </div>
+
+    <div id="mainContent" class="container" style="max-width: 1100px;">
         <h2 style="color: var(--cyan); margin-bottom: 5px;">🚀 WL Leads</h2>
-        <p style="margin-bottom: 30px;">Monitoramento de consultas em tempo real - Longo Shield</p>
+        <p style="margin-bottom: 30px;">Base de Inteligência Longo Shield</p>
         
         <button class="refresh-btn" onclick="carregarLeads()">🔄 Atualizar Base</button>
 
@@ -80,19 +93,45 @@
                     </tr>
                 </thead>
                 <tbody id="tabelaLeads">
-                    <tr>
-                        <td colspan="5" style="text-align: center;">Carregando inteligência...</td>
-                    </tr>
+                    <tr><td colspan="5" style="text-align: center;">Carregando dados...</td></tr>
                 </tbody>
             </table>
         </div>
+        <button onclick="logout()" style="background:none; border:none; color:#555; cursor:pointer; margin-top:20px; text-decoration:underline;">Sair do Painel</button>
     </div>
 
     <script>
-        // Configurações do seu Supabase
         const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // Verifica se já logou antes
+        window.onload = () => {
+            if (localStorage.getItem('longo_shield_admin') === 'true') {
+                mostrarPainel();
+            }
+        };
+
+        function verificarSenha() {
+            const senha = document.getElementById('passInput').value;
+            if (senha === 'longo2026') {
+                localStorage.setItem('longo_shield_admin', 'true');
+                mostrarPainel();
+            } else {
+                alert("Senha incorreta!");
+            }
+        }
+
+        function mostrarPainel() {
+            document.getElementById('loginArea').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            carregarLeads();
+        }
+
+        function logout() {
+            localStorage.removeItem('longo_shield_admin');
+            location.reload();
+        }
 
         async function carregarLeads() {
             const corpoTabela = document.getElementById('tabelaLeads');
@@ -103,18 +142,11 @@
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.error('Erro:', error);
-                corpoTabela.innerHTML = `<tr><td colspan="5" style="color: red;">Erro ao acessar banco: ${error.message}</td></tr>`;
+                corpoTabela.innerHTML = `<tr><td colspan="5" style="color: red;">Erro: ${error.message}</td></tr>`;
                 return;
             }
 
             corpoTabela.innerHTML = '';
-
-            if (data.length === 0) {
-                corpoTabela.innerHTML = `<tr><td colspan="5" style="text-align: center;">Nenhum lead encontrado ainda.</td></tr>`;
-                return;
-            }
-
             data.forEach(lead => {
                 const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
                 const classeScore = lead.score === 'A+' ? 'aplus' : 'critico';
@@ -130,9 +162,6 @@
                 `;
             });
         }
-
-        // Executa ao carregar a página
-        carregarLeads();
     </script>
 </body>
 </html>
