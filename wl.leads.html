@@ -13,6 +13,7 @@
             padding: 40px 20px;
             background-color: #0a0c10;
         }
+        .container { max-width: 1200px; }
         .admin-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(0, 255, 255, 0.1);
@@ -88,7 +89,7 @@
                         <th>Data/Hora</th>
                         <th>Domínio Consultado</th>
                         <th>Status</th>
-                        <th>Localização</th>
+                        <th>SSL</th> <th>Localização</th>
                         <th>IP do Prospect</th>
                     </tr>
                 </thead>
@@ -148,19 +149,22 @@
 
             corpoTabela.innerHTML = '';
             data.forEach(lead => {
-                const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
-                const classeScore = lead.score === 'A+' ? 'aplus' : 'critico';
-                
-                corpoTabela.innerHTML += `
-                    <tr>
-                        <td style="font-size: 0.85rem; color: #888;">${dataHora}</td>
-                        <td style="font-weight: bold; color: var(--cyan); font-size: 1.1rem;">${lead.dominio}</td>
-                        <td><span class="badge ${classeScore}">${lead.score}</span></td>
-                        <td>${lead.localizacao}</td>
-                        <td style="font-family: monospace; color: #666;">${lead.ip_usuario}</td>
-                    </tr>
-                `;
-            });
+    const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
+    const classeScore = lead.score === 'A+' ? 'aplus' : 'critico';
+    
+    // Puxa o SSL ou coloca "N/A" se for um lead antigo
+    const sslInfo = lead.status_ssl || 'Antigo';
+
+    corpoTabela.innerHTML += `
+        <tr>
+            <td style="font-size: 0.85rem; color: #888;">${dataHora}</td>
+            <td style="font-weight: bold; color: var(--cyan); font-size: 1.1rem;">${lead.dominio}</td>
+            <td><span class="badge ${classeScore}">${lead.score}</span></td>
+            <td>${sslInfo}</td> <td>${lead.localizacao}</td>
+            <td style="font-family: monospace; color: #666;">${lead.ip_usuario}</td>
+        </tr>
+    `;
+});
         }
     </script>
 </body>
