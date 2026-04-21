@@ -3,20 +3,26 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 2. FUNÇÃO VIRUS TOTAL
+// 2. FUNÇÃO SEGURA (CHAMA A EDGE FUNCTION DO SUPABASE)
 async function checkReputation(domain) {
-    const apiKey = '54ef70fd11931f567f1ec29156709771e2f5656deb88d29fa5e14b3ed70307a6'; 
     try {
-        const response = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
-            headers: { 'x-apikey': apiKey }
+        // Chamada para a tua Edge Function segura
+        const { data, error } = await _supabase.functions.invoke('check-reputation', {
+            body: { domain: domain }
         });
-        const data = await response.json();
-        if (data.data?.attributes?.last_analysis_stats) {
+
+        if (error) throw error;
+
+        // Processa os resultados que vêm do VirusTotal através do Supabase
+        if (data?.data?.attributes?.last_analysis_stats) {
             const stats = data.data.attributes.last_analysis_stats;
             return stats.malicious + stats.suspicious; 
         }
         return 0;
-    } catch (error) { return 0; }
+    } catch (error) {
+        console.error("Erro na consulta de reputação segura:", error);
+        return 0;
+    }
 }
 
 // 3. FUNÇÃO CAPTURA LEAD
