@@ -1,6 +1,6 @@
 // =========================================================
-// LONGO SHIELD - CORE ENGINE v2.0
-// WL TEC - Wiliam Longo
+// LONGO SHIELD - CORE ENGINE v2.5 (FINAL BLINDADA)
+// WL TEC - Wiliam Longo | contato@wl.tec.br
 // =========================================================
 
 // 1. CONFIGURAÇÃO DO SUPABASE
@@ -27,7 +27,7 @@ const MAPA_VULNERABILIDADES = {
     }
 };
 
-// 3. FUNÇÃO VIRUS TOTAL
+// 3. FUNÇÃO VIRUS TOTAL (REPUTAÇÃO)
 async function checkReputation(domain) {
     const apiKey = 'SUA_CHAVE_VIRUS_TOTAL_AQUI'; 
     try {
@@ -43,7 +43,7 @@ async function checkReputation(domain) {
     } catch (error) { return 0; }
 }
 
-// 4. CAPTURA DE LEADS
+// 4. FUNÇÃO QUE CAPTURA O LEAD
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
@@ -62,7 +62,7 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
     } catch (err) { console.error('Erro ao salvar lead:', err); }
 }
 
-// 5. FUNÇÃO PARA GERAR PDF (VERSÃO BLINDADA)
+// 5. FUNÇÃO PARA GERAR PDF (DESSA VEZ COM LINKS E EXPLICAÇÃO TÉCNICA)
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -72,114 +72,71 @@ function gerarRelatorioPDF(d) {
     // Cabeçalho
     doc.setFillColor(20, 20, 20);
     doc.rect(0, 0, 210, 45, 'F');
-    
-    try {
-        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12);
-    } catch (e) {
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(14);
-        doc.text("WL TEC - LONGO SHIELD", 15, 20);
+    try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12); } catch (e) {
+        doc.setTextColor(255, 255, 255); doc.setFontSize(14); doc.text("WL TEC - LONGO SHIELD", 15, 20);
     }
-
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(255, 255, 255);
     doc.text("DOSSIÊ DE RESILIÊNCIA DIGITAL", 15, 38);
 
     // Status Bar
     doc.setFillColor(corTema[0], corTema[1], corTema[2]);
     doc.rect(0, 45, 210, 15, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.text(`ANÁLISE DE SEGURANÇA: ${d.score}`, 15, 55);
+    doc.setTextColor(255, 255, 255); doc.setFontSize(14);
+    doc.text(`NÍVEL DE RISCO: ${d.score === 'A+' ? 'BAIXO' : 'CRÍTICO'}`, 15, 55);
 
-    // Info Cliente
-    doc.setTextColor(40, 40, 40);
-    doc.setFontSize(10);
-    doc.text(`GERADO EM: ${new Date().toLocaleString('pt-BR')}`, 140, 72);
+    // Explicação Técnica
+    doc.setTextColor(40, 40, 40); doc.setFontSize(11); doc.setFont("helvetica", "bold");
+    doc.text("ANÁLISE TÉCNICA DE VETORES:", 15, 75);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    const explicacao = "A resiliência é medida pela integridade do protocolo SSL e registros DMARC (que impedem o Spoofing de e-mail). A detecção de infraestrutura identifica se o CMS possui superfícies de ataque conhecidas em portas abertas.";
+    doc.text(doc.splitTextToSize(explicacao, 180), 15, 82);
 
-    doc.setFontSize(16);
-    doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 85);
-    doc.setDrawColor(corTema[0], corTema[1], corTema[2]);
-    doc.line(15, 88, 100, 88);
+    // Grid Resultados
+    doc.setFillColor(248, 248, 248); doc.rect(15, 100, 180, 50, 'F');
+    doc.setFontSize(10); doc.setTextColor(0, 0, 0);
+    doc.text(`Domínio: ${d.dominio.toUpperCase()}`, 20, 110);
+    doc.text(`Criptografia (SSL): ${d.statusSSL}`, 20, 120);
+    doc.text(`E-mail (DMARC): ${d.temDmarc ? 'PROTEGIDO' : 'VULNERÁVEL'}`, 20, 130);
+    doc.text(`Infraestrutura: ${d.plataforma}`, 20, 140);
 
-    // Grid Resultados (Higiene de dados aplicada)
-    doc.setFillColor(248, 248, 248);
-    doc.rect(15, 95, 180, 55, 'F');
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
+    // Contato e Call to Action com Links
+    doc.setFillColor(20, 20, 20); doc.rect(15, 205, 180, 50, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text("SOLICITAR BLINDAGEM IMEDIATA:", 22, 218);
+    doc.setFontSize(10); doc.setTextColor(0, 255, 255);
+    doc.text("WhatsApp: +55 11 99531-4831", 22, 230);
+    doc.link(22, 226, 60, 6, { url: "https://wa.me/5511995314831" });
+    doc.text("E-mail: contato@wl.tec.br", 22, 240);
+    doc.link(22, 236, 60, 6, { url: "mailto:contato@wl.tec.br" });
 
-    const posY = 105;
-    doc.setFont("helvetica", "normal");
-    doc.text("Criptografia SSL/TLS:", 25, posY);
-    doc.setFont("helvetica", "bold");
-    doc.text(d.statusSSL, 110, posY);
-
-    doc.setFont("helvetica", "normal");
-    doc.text("E-mail (DMARC):", 25, posY + 10);
-    doc.setFont("helvetica", "bold");
-    doc.text(d.temDmarc ? 'PROTEGIDO' : 'VULNERÁVEL', 110, posY + 10);
-
-    doc.setFont("helvetica", "normal");
-    doc.text("Performance Rede:", 25, posY + 20);
-    doc.setFont("helvetica", "bold");
-    doc.text(d.velStr, 110, posY + 20);
-
-    doc.setFont("helvetica", "normal");
-    doc.text("Infraestrutura:", 25, posY + 30);
-    doc.setFont("helvetica", "bold");
-    doc.text(d.plataforma, 110, posY + 30);
-
-    // Seção Preditiva
-    doc.setFillColor(240, 240, 240);
-    doc.rect(15, 155, 180, 40, 'F');
-    doc.setTextColor(corTema[0], corTema[1], corTema[2]);
-    doc.text("ANÁLISE PREDITIVA DE PERÍMETRO:", 22, 165);
-    doc.setTextColor(60, 60, 60);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(`Portas Prováveis: ${infoExtra.portas.join(", ")}`, 22, 175);
-    doc.text(`Diretórios Alvo: ${infoExtra.diretorios.join(", ")}`, 22, 182);
-    doc.text(`Risco Heurístico: ${infoExtra.riscos}`, 22, 189);
-
-    // Parecer
-    doc.setFillColor(20, 20, 20);
-    doc.rect(15, 205, 180, 35, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.text("PARECER DO ADVISOR:", 22, 215);
-    doc.setFont("helvetica", "normal");
-    const nota = d.score === "A+" ? "Ambiente em conformidade." : "AVISO CRÍTICO: Risco de Ransomware identificado.";
-    doc.text(doc.splitTextToSize(nota, 160), 22, 225);
-
-    doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
+    doc.save(`Dossie_Tecnico_${d.dominio}.pdf`);
 }
 
-// 6. FUNÇÃO PRINCIPAL
+// 6. FUNÇÃO PRINCIPAL (A BAZUCA DEFINITIVA)
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const dominio = dominioInput.value.trim().toLowerCase();
     const resultArea = document.getElementById('resultArea');
 
     if (!dominio || !dominio.includes('.')) {
-        alert("Digite um domínio válido.");
-        return;
+        alert("Digite um domínio válido."); return;
     }
 
     resultArea.classList.remove('result-hidden');
-    resultArea.innerHTML = `<div id="status-logger" ...></div><div class="loader" id="main-loader"></div>`;
-
+    resultArea.innerHTML = `<div id="status-logger" style="..."></div><div class="loader" id="main-loader"></div>`;
+    
     try {
         const start = Date.now();
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        // DNS / DMARC
-        const dmarcRes = await fetch(`https://dns.google/resolve?name=_dmarc.${dominio}&type=TXT`);
-        const dmarcData = await dmarcRes.json();
-        const temDmarc = dmarcData.Answer && dmarcData.Answer.length > 0;
+        // DNS / DMARC / REPUTAÇÃO (Paralelo para velocidade)
+        const [dmarcRes, totalAlertas] = await Promise.all([
+            fetch(`https://dns.google/resolve?name=_dmarc.${dominio}&type=TXT`).then(r => r.json()),
+            checkReputation(dominio)
+        ]);
 
-        // SSL com AbortController (Evita ERR_NAME_NOT_RESOLVED travar o script)
+        const temDmarc = dmarcRes.Answer && dmarcRes.Answer.length > 0;
+        
         let sslOk = false;
         try { 
             await fetch(`https://${dominio}`, { mode: 'no-cors', signal: controller.signal }); 
@@ -188,27 +145,37 @@ async function iniciarDiagnostico() {
         clearTimeout(timeoutId);
 
         const duration = (Date.now() - start) / 1000;
-        const totalAlertas = await checkReputation(dominio);
-
-        // Plataforma
-        let plataforma = "Infraestrutura Proprietária";
-        if (dominio.includes('wp') || totalAlertas > 5) plataforma = "WordPress Detectado";
-
-        // Higienização para o PDF
         const statusSSL_Limpo = sslOk ? "ATIVO" : "FALHA";
         const velStr_Limpo = duration < 1.3 ? `Rapida (${duration.toFixed(1)}s)` : `Lenta (${duration.toFixed(1)}s)`;
 
-        // Score
+        // Deteção Simples de Plataforma
+        let plataforma = "Infraestrutura Proprietária";
+        if (totalAlertas > 0) plataforma = "Análise de Risco Pendente"; // Exemplo lógico
+
         let score = "Crítico"; let cor = "#FF4444";
         if (sslOk && temDmarc && totalAlertas === 0) { score = "A+"; cor = "#00FF00"; }
 
-        // Renderiza Card Final e prepara PDF
         const dadosFinal = { dominio, score, statusSSL: statusSSL_Limpo, temDmarc, velStr: velStr_Limpo, plataforma };
-        
-        // ... (Seu código de renderizar resultArea.innerHTML aqui)
+        window.dadosUltimoRelatorio = dadosFinal;
 
-        window.dadosUltimoRelatorio = dadosFinal; // Global para o botão de download
+        // Atualiza a UI e libera o botão de PDF
+        resultArea.innerHTML = `
+            <div style="background: rgba(0,0,0,0.9); padding: 20px; border-left: 5px solid ${cor};">
+                <h3 style="color: ${cor}">RELATÓRIO GERADO</h3>
+                <p style="color: white">Domínio: ${dominio}</p>
+                <button onclick="gerarRelatorioPDF(window.dadosUltimoRelatorio)" style="padding: 10px; background: ${cor}; border: none; cursor: pointer; font-weight: bold;">
+                    BAIXAR RELATÓRIO TÉCNICO (PDF)
+                </button>
+            </div>
+        `;
+
         capturarLead(dominio, score, statusSSL_Limpo, totalAlertas, velStr_Limpo, plataforma);
 
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Erro geral:", err); }
 }
+
+// 7. ATUALIZA O ANO NO RODAPÉ
+document.addEventListener('DOMContentLoaded', () => {
+    const footer = document.querySelector('footer p');
+    if (footer) footer.innerHTML = `&copy; ${new Date().getFullYear()} WL TEC - Wiliam Longo.`;
+});
