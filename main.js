@@ -119,7 +119,7 @@ function gerarRelatorioPDF(d) {
     doc.setTextColor(255, 255, 255);
     doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
 
-    // Conteúdo
+    // Conteúdo Principal
     doc.setTextColor(40, 40, 40);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
@@ -134,7 +134,7 @@ function gerarRelatorioPDF(d) {
     doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Nenhuma Ameaca Encontrada'}`, 25, 107);
     doc.text(`- Motor de Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 117);
 
-    // Advisor Notes
+    // Nova Seção: Notas Técnicas do Advisor
     doc.setFont("helvetica", "bold");
     doc.text("NOTAS TECNICAS DO ADVISOR:", 15, 140);
     doc.setFontSize(9);
@@ -147,9 +147,9 @@ function gerarRelatorioPDF(d) {
     ];
     doc.text(notas, 15, 150);
 
-    // --- RODAPÉ ANTERIOR RESTAURADO (BARRA ESCURA) ---
+    // --- RODAPÉ PREMIUM (BARRA ESCURA) ---
     doc.setFillColor(30, 30, 30);
-    doc.rect(0, 260, 210, 37, 'F'); // Barra escura no fundo
+    doc.rect(0, 260, 210, 37, 'F'); 
     
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
@@ -158,7 +158,7 @@ function gerarRelatorioPDF(d) {
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 255, 255); // Ciano para os links
+    doc.setTextColor(0, 255, 255); // Ciano para os links clicáveis
     
     doc.text("contato@wl.tec.br", 15, 282);
     doc.link(15, 278, 40, 6, { url: 'mailto:contato@wl.tec.br' });
