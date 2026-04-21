@@ -163,7 +163,7 @@ function gerarRelatorioPDF(d) {
     
     // Tenta carregar seu logo branco para o topo
     try {
-        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 10, 45, 12);
+        doc.addImage("img/logo_shield_preto.png", "PNG", 15, 10, 45, 12);
     } catch (e) {
         doc.setTextColor(255, 255, 255);
         doc.text("WL TEC - LONGO SHIELD", 15, 15);
