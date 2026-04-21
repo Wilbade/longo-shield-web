@@ -149,18 +149,95 @@ async function iniciarDiagnostico() {
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    
-    doc.setFillColor(0, 0, 0);
-    doc.rect(0, 0, 210, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.text("WL TEC - DOSSIÊ DE RESILIÊNCIA DIGITAL", 20, 20);
+    const corTema = d.score === "A+" ? [0, 180, 0] : [220, 0, 0];
 
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Relatório para: ${d.dominio}`, 20, 50);
-    doc.text(`Score: ${d.score}`, 20, 60);
-    doc.text(`SSL: ${d.statusSSL}`, 20, 70);
-    doc.text(`Velocidade: ${d.velStr}`, 20, 80);
-    doc.text(`Infraestrutura: ${d.plataforma}`, 20, 90);
+    // 1. FUNDO E MARCA D'ÁGUA (Escudo no fundo)
+    // Vamos colocar o escudo bem clarinho no centro
+    doc.setGAlpha(0.05); // Deixa bem transparente
+    doc.addImage("img/escudo_shiel.png", "PNG", 55, 100, 100, 110);
+    doc.setGAlpha(1); // Volta a opacidade normal
+
+    // 2. CABEÇALHO COM LOGO
+    doc.setFillColor(20, 20, 20); // Preto elegante
+    doc.rect(0, 0, 210, 45, 'F');
     
-    doc.save(`Dossie_${d.dominio}.pdf`);
+    // Tenta carregar seu logo branco para o topo
+    try {
+        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 10, 45, 12);
+    } catch (e) {
+        doc.setTextColor(255, 255, 255);
+        doc.text("WL TEC - LONGO SHIELD", 15, 15);
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(255, 255, 255);
+    doc.text("DOSSIÊ DE RESILIÊNCIA DIGITAL", 15, 35);
+
+    // 3. BARRA DE STATUS COLORIDA
+    doc.setFillColor(corTema[0], corTema[1], corTema[2]);
+    doc.rect(0, 45, 210, 15, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.text(`ANÁLISE DE SEGURANÇA: ${d.score}`, 15, 55);
+
+    // 4. INFORMAÇÕES DO CLIENTE
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(10);
+    doc.text(`GERADO EM: ${new Date().toLocaleString('pt-BR')}`, 140, 70);
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Domínio Analisado: ${d.dominio}`, 15, 85);
+    doc.setDrawColor(corTema[0], corTema[1], corTema[2]);
+    doc.setLineWidth(1);
+    doc.line(15, 88, 80, 88);
+
+    // 5. GRID DE RESULTADOS (Visual em boxes)
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    
+    // SSL
+    doc.text("Protocolo de Criptografia (SSL):", 15, 105);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${d.statusSSL}`, 100, 105);
+
+    // DMARC
+    doc.setFont("helvetica", "normal");
+    doc.text("Perímetro de E-mail (DMARC):", 15, 115);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${d.temDmarc ? 'PROTEGIDO' : 'VULNERÁVEL'}`, 100, 115);
+
+    // Velocidade
+    doc.setFont("helvetica", "normal");
+    doc.text("Performance de Resposta:", 15, 125);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${d.velStr.replace('🚀', '').trim()}`, 100, 125);
+
+    // Infra
+    doc.setFont("helvetica", "normal");
+    doc.text("Infraestrutura Detectada:", 15, 135);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${d.plataforma}`, 100, 135);
+
+    // 6. CONCLUSÃO TÉCNICA
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, 155, 180, 35, 'F');
+    doc.setTextColor(60, 60, 60);
+    doc.setFont("helvetica", "bold");
+    doc.text("PARECER DO ADVISOR:", 20, 165);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    const nota = d.score === "A+" 
+        ? "A infraestrutura apresenta conformidade com os padrões de segurança. Recomenda-se apenas monitoramento preventivo."
+        : "AVISO: Foram detectadas brechas críticas de segurança. Existe risco iminente de sequestro de dados e interrupção operacional. Recomenda-se mitigação imediata.";
+    doc.text(doc.splitTextToSize(nota, 170), 20, 175);
+
+    // 7. RODAPÉ
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text("WL TEC - Consultoria em Infraestrutura e Blindagem Digital", 105, 285, { align: "center" });
+
+    // 8. SALVAR
+    doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
 }
