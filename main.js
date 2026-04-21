@@ -145,27 +145,29 @@ async function iniciarDiagnostico() {
     }
 }
 
-// 5. FUNÇÃO PARA GERAR PDF (EXTERNA) - VERSÃO CORRIGIDA
+// 5. FUNÇÃO PARA GERAR PDF (EXTERNA) - VERSÃO BLINDADA
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const corTema = d.score === "A+" ? [0, 180, 0] : [220, 0, 0];
 
-    // 1. MARCA D'ÁGUA (Correção: Removido setGAlpha que causava erro)
+    // 1. MARCA D'ÁGUA (Design de Auditoria)
     try {
+        // Criamos o estado de transparência sem usar o setGAlpha
         const gState = new doc.GState({ opacity: 0.05 });
         doc.setGState(gState);
+        
+        // Adiciona o escudo no fundo
         doc.addImage("img/escudo_shiel.png", "PNG", 55, 100, 100, 110);
         
-        const gStateNormal = new doc.GState({ opacity: 1 });
-        doc.setGState(gStateNormal);
+        // Restaura a opacidade para 100% para o restante do documento
+        doc.setGState(new doc.GState({ opacity: 1 }));
     } catch (e) {
-        console.warn("Aviso: Marca d'água não carregada.", e);
-        // Se a imagem falhar, o código continua para não travar o PDF
+        console.warn("Aviso: Marca d'água ignorada para evitar erro de execução.", e);
     }
 
-    // 2. CABEÇALHO COM LOGO
-    doc.setFillColor(20, 20, 20); // Preto elegante
+    // 2. CABEÇALHO EXECUTIVO
+    doc.setFillColor(20, 20, 20); // Preto WL TEC
     doc.rect(0, 0, 210, 45, 'F');
     
     try {
@@ -187,6 +189,8 @@ function gerarRelatorioPDF(d) {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
     doc.text(`ANÁLISE DE SEGURANÇA: ${d.score}`, 15, 55);
+
+    // --- O restante do código do PDF continua aqui embaixo ---
 
     // 4. INFORMAÇÕES DO CLIENTE
     doc.setTextColor(40, 40, 40);
