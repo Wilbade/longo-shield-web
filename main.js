@@ -3,25 +3,27 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 2. FUNÇÃO SEGURA (CHAMA A EDGE FUNCTION DO SUPABASE)
+// 2. FUNÇÃO SEGURA (CHAMA A SUA EDGE FUNCTION NO SUPABASE)
 async function checkReputation(domain) {
     try {
-        // Chamada para a tua Edge Function segura
-        const { data, error } = await _supabase.functions.invoke('check-reputation', {
+        console.log("Iniciando consulta de reputação segura via Edge Function...");
+        
+        // Chamamos a sua função 'rapid-worker' que você criou
+        const { data, error } = await _supabase.functions.invoke('rapid-worker', {
             body: { domain: domain }
         });
 
         if (error) throw error;
 
-        // Processa os resultados que vêm do VirusTotal através do Supabase
+        // A função devolve os dados processados do VirusTotal
         if (data?.data?.attributes?.last_analysis_stats) {
             const stats = data.data.attributes.last_analysis_stats;
             return stats.malicious + stats.suspicious; 
         }
         return 0;
     } catch (error) {
-        console.error("Erro na consulta de reputação segura:", error);
-        return 0;
+        console.error("Aviso: Falha na consulta segura (CORS ou Timeout):", error);
+        return 0; // Retorna limpo para não travar a experiência do usuário
     }
 }
 
@@ -84,7 +86,7 @@ async function iniciarDiagnostico() {
         const duration = (Date.now() - start) / 1000;
         const totalAlertas = await checkReputation(dominio);
 
-        // Detecção WP
+        // 5. Detecção WP
         let plataforma = "Infraestrutura Proprietária";
         if (dominio.includes('santini') || dominio.includes('abravidros')) {
             plataforma = "WordPress Detectado";
@@ -94,14 +96,14 @@ async function iniciarDiagnostico() {
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `🚀 Rápida (${duration.toFixed(1)}s)`;
 
-        // Grava no Banco
+        // 6. Grava no Banco
         await capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
-        // Limpa e mostra Resultado
+        // 7. Limpa e mostra Resultado
         document.getElementById('main-loader').remove();
         logger.style.display = 'none';
 
-        // FINALIZAÇÃO E EXIBIÇÃO DO CARD COM DESIGN PREMIUM
+        // 8. FINALIZAÇÃO E EXIBIÇÃO DO CARD COM DESIGN PREMIUM
         resultArea.innerHTML = `
         <div style="text-align: left; background: rgba(0,0,0,0.95); padding: 30px; border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; animation: fadeIn 0.6s ease-out;">
             
