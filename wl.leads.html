@@ -27,29 +27,32 @@
             border-collapse: collapse; 
             margin-top: 20px; 
             color: #e0e0e0;
+            min-width: 900px; /* Garante que não esmague no mobile */
         }
         th, td { 
-            padding: 15px; 
+            padding: 12px 15px; 
             border-bottom: 1px solid rgba(255,255,255,0.05); 
             text-align: left; 
         }
         th { 
             background: rgba(0, 255, 255, 0.1); 
-            color: var(--cyan); 
+            color: #00FFFF; 
             font-family: 'Rajdhani', sans-serif;
             text-transform: uppercase;
+            font-size: 0.8rem;
         }
         .badge { 
             padding: 4px 8px; 
             border-radius: 4px; 
-            font-size: 0.8rem; 
+            font-size: 0.75rem; 
             font-weight: bold; 
         }
         .critico { background: #FF4444; color: white; }
         .aplus { background: #00FF00; color: black; }
+        .alerta { background: #FFFF00; color: black; }
         
         .refresh-btn {
-            background: var(--ambar);
+            background: #FFB300;
             color: black;
             border: none;
             padding: 10px 20px;
@@ -59,26 +62,21 @@
             margin-bottom: 20px;
             font-family: 'Rajdhani', sans-serif;
         }
-        #loginArea {
-            text-align: center;
-            margin-top: 100px;
-        }
-        #mainContent {
-            display: none; /* Escondido por padrão */
-        }
+        #loginArea { text-align: center; margin-top: 100px; }
+        #mainContent { display: none; }
     </style>
 </head>
 <body>
 
     <div id="loginArea">
-        <h2 style="color: var(--cyan);">Acesso Restrito</h2>
+        <h2 style="color: #00FFFF;">Acesso Restrito</h2>
         <p style="color: #888;">Digite a senha de administrador</p>
-        <input type="password" id="passInput" style="padding: 10px; border-radius: 4px; border: 1px solid var(--cyan); background: #000; color: #fff; margin-top: 10px;">
+        <input type="password" id="passInput" style="padding: 10px; border-radius: 4px; border: 1px solid #00FFFF; background: #000; color: #fff; margin-top: 10px;">
         <button onclick="verificarSenha()" class="refresh-btn" style="margin-top: 10px;">Entrar</button>
     </div>
 
-    <div id="mainContent" class="container" style="max-width: 1100px;">
-        <h2 style="color: var(--cyan); margin-bottom: 5px;">🚀 WL Leads</h2>
+    <div id="mainContent" class="container">
+        <h2 style="color: #00FFFF; margin-bottom: 5px;">🚀 WL Leads</h2>
         <p style="margin-bottom: 30px;">Base de Inteligência Longo Shield</p>
         
         <button class="refresh-btn" onclick="carregarLeads()">🔄 Atualizar Base</button>
@@ -88,17 +86,17 @@
                 <thead>
                     <tr>
                         <th>Data/Hora</th>
-                        <th>Domínio Consultado</th>
+                        <th>Domínio</th>
                         <th>Status</th>
-                        <th>SSL</th> <th>Localização</th>
-                        <th>IP do Prospect</th>
-                        <th>Reputação (VT)</th>
+                        <th>SSL</th>
+                        <th>Reputação</th>
                         <th>Velocidade</th>
                         <th>Plataforma</th>
+                        <th>IP/Local</th>
                     </tr>
                 </thead>
                 <tbody id="tabelaLeads">
-                    <tr><td colspan="9" style="text-align: center;">Carregando dados...</td></tr>
+                    <tr><td colspan="8" style="text-align: center;">Carregando dados...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -110,11 +108,8 @@
         const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Verifica se já logou antes
         window.onload = () => {
-            if (localStorage.getItem('longo_shield_admin') === 'true') {
-                mostrarPainel();
-            }
+            if (localStorage.getItem('longo_shield_admin') === 'true') { mostrarPainel(); }
         };
 
         function verificarSenha() {
@@ -122,9 +117,7 @@
             if (senha === 'longo2026') {
                 localStorage.setItem('longo_shield_admin', 'true');
                 mostrarPainel();
-            } else {
-                alert("Senha incorreta!");
-            }
+            } else { alert("Senha incorreta!"); }
         }
 
         function mostrarPainel() {
@@ -133,42 +126,40 @@
             carregarLeads();
         }
 
-        function logout() {
-            localStorage.removeItem('longo_shield_admin');
-            location.reload();
-        }
+        function logout() { localStorage.removeItem('longo_shield_admin'); location.reload(); }
 
         async function carregarLeads() {
             const corpoTabela = document.getElementById('tabelaLeads');
-            
             const { data, error } = await _supabase
                 .from('leads')
                 .select('*')
                 .order('created_at', { ascending: false });
 
             if (error) {
-                corpoTabela.innerHTML = `<tr><td colspan="5" style="color: red;">Erro: ${error.message}</td></tr>`;
+                corpoTabela.innerHTML = `<tr><td colspan="8" style="color: red;">Erro: ${error.message}</td></tr>`;
                 return;
             }
 
             corpoTabela.innerHTML = '';
             data.forEach(lead => {
-    const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
-    const classeScore = lead.score === 'A+' ? 'aplus' : 'critico';
-    
-    // Puxa o SSL ou coloca "N/A" se for um lead antigo
-    const sslInfo = lead.status_ssl || 'Antigo';
+                const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
+                let classeScore = 'critico';
+                if(lead.score === 'A+') classeScore = 'aplus';
+                if(lead.score === 'Alerta' || lead.score === 'B') classeScore = 'alerta';
 
-    corpoTabela.innerHTML += `
-        <tr>
-            <td style="font-size: 0.85rem; color: #888;">${dataHora}</td>
-            <td style="font-weight: bold; color: var(--cyan); font-size: 1.1rem;">${lead.dominio}</td>
-            <td><span class="badge ${classeScore}">${lead.score}</span></td>
-            <td>${sslInfo}</td> <td>${lead.localizacao}</td>
-            <td style="font-family: monospace; color: #666;">${lead.ip_usuario}</td>
-        </tr>
-    `;
-});
+                corpoTabela.innerHTML += `
+                    <tr>
+                        <td style="font-size: 0.75rem; color: #777;">${dataHora}</td>
+                        <td style="font-weight: bold; color: #00FFFF;">${lead.dominio}</td>
+                        <td><span class="badge ${classeScore}">${lead.score}</span></td>
+                        <td style="font-size: 0.85rem;">${lead.status_ssl || '---'}</td>
+                        <td style="font-size: 0.85rem;">${lead.reputacao || '✅ Limpo'}</td>
+                        <td style="font-size: 0.85rem;">${lead.velocidade || '---'}</td>
+                        <td style="font-size: 0.85rem;">${lead.plataforma || '---'}</td>
+                        <td style="font-size: 0.75rem; color: #666;">${lead.ip_usuario}<br>${lead.localizacao}</td>
+                    </tr>
+                `;
+            });
         }
     </script>
 </body>
