@@ -5,7 +5,7 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // 2. FUNÇÃO VIRUS TOTAL
 async function checkReputation(domain) {
-    const apiKey = 'SUA_CHAVE_VIRUS_TOTAL_AQUI'; '54ef70fd11931f567f1ec29156709771e2f5656deb88d29fa5e14b3ed70307a6'
+    const apiKey = '54ef70fd11931f567f1ec29156709771e2f5656deb88d29fa5e14b3ed70307a6'; 
     try {
         const response = await fetch(`https://www.virustotal.com/api/v3/domains/${domain}`, {
             headers: { 'x-apikey': apiKey }
