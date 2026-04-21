@@ -128,41 +128,46 @@ async function iniciarDiagnostico() {
         const velStr = duration < 1.3 ? "🚀 Rápida" : `⚠️ Lenta (${duration.toFixed(1)}s)`;
         const statusSSL = sslOk ? "✅ Ativo" : "❌ Falha";
 
-        // SALVAR NO SUPABASE
+       // 7. SALVAR NO SUPABASE (Com proteção para não travar a tela)
+       try {
         await capturarLead(dominio, score, statusSSL, totalAlertas, velStr, plataforma);
-
-        document.getElementById('main-loader').remove();
-        
-        resultArea.innerHTML += `
-            <div style="text-align: left; background: rgba(0,0,0,0.95); padding: 25px; border-left: 5px solid ${cor}; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-top: 20px;">
-                <div style="background: ${cor}; color: #000; padding: 4px 12px; border-radius: 4px; font-weight: bold; display: inline-block; margin-bottom: 15px;">STATUS DE RESILIÊNCIA: ${score}</div>
-                <h3 style="color: ${cor}; margin-top: 0; font-family: 'Rajdhani', sans-serif;">RELATÓRIO TÉCNICO: ${dominio}</h3>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; color: #fff; font-size: 0.9rem;">
-                    <div>🛡️ E-mail (DMARC): ${temDmarc ? '✅ OK' : '❌ Falha'}</div>
-                    <div>🔒 Criptografia SSL: ${statusSSL}</div>
-                    <div>⚡ Resposta Server: ${velStr}</div>
-                    <div>🦠 Reputação Global: ${totalAlertas > 0 ? '🚨 Risco' : '✅ Limpo'}</div>
-                    <div style="grid-column: span 2; border: 1px solid #333; padding: 10px; margin-top: 5px; border-radius: 4px;">
-                        💻 Plataforma Identificada: <span style="color: ${cor}; font-weight: bold;">${plataforma}</span>
-                    </div>
-                </div>
-
-                <hr style="border: 0.5px solid #333; margin: 20px 0;">
-                <p style="color: #bbb; font-size: 0.85rem; line-height: 1.4;">
-                    ${score === 'A+' 
-                        ? 'Infraestrutura em conformidade. Recomenda-se monitoramento de patches.' 
-                        : '<strong>Furo no Casco Detectado:</strong> Vulnerabilidades críticas identificadas. Risco iminente de sequestro de dados.'}
-                </p>
-                
-                <button onclick="window.open('https://wa.me/5511995314831', '_blank')"
-                        style="width: 100%; background: ${cor}; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; margin-top: 15px;">
-                    Solicitar Advisor de Resiliência
-                </button>
-            </div>
-        `;
-    } catch (error) {
-        console.error(error);
-        resultArea.innerHTML = `<p style="color: #FF4444; padding: 20px;">Falha na varredura. Verifique a URL.</p>`;
+    } catch (dbError) {
+        console.error("Lead não salvo, mas gerando relatório...", dbError);
     }
-}
+
+    // 8. FINALIZAÇÃO E EXIBIÇÃO DO CARD
+    const loader = document.getElementById('main-loader');
+    if (loader) loader.remove();
+    
+    // Remove os logs para dar lugar ao relatório final
+    const logger = document.getElementById('status-logger');
+    if (logger) logger.style.display = 'none';
+
+    resultArea.innerHTML = `
+        <div style="text-align: left; background: rgba(0,0,0,0.95); padding: 25px; border-left: 5px solid ${cor}; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); animation: fadeIn 0.5s ease-in;">
+            <div style="background: ${cor}; color: #000; padding: 4px 12px; border-radius: 4px; font-weight: bold; display: inline-block; margin-bottom: 15px; font-family: sans-serif;">STATUS DE RESILIÊNCIA: ${score}</div>
+            <h3 style="color: ${cor}; margin-top: 0; font-family: 'Rajdhani', sans-serif;">RELATÓRIO TÉCNICO: ${dominio}</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; color: #fff; font-size: 0.9rem;">
+                <div>🛡️ E-mail (DMARC): ${temDmarc ? '✅ OK' : '❌ Falha'}</div>
+                <div>🔒 Criptografia SSL: ${statusSSL}</div>
+                <div>⚡ Resposta Server: ${velStr}</div>
+                <div>🦠 Reputação Global: ${totalAlertas > 0 ? '🚨 Risco' : '✅ Limpo'}</div>
+                <div style="grid-column: span 2; border: 1px solid #333; padding: 10px; margin-top: 5px; border-radius: 4px;">
+                    💻 Plataforma Identificada: <span style="color: ${cor}; font-weight: bold;">${plataforma}</span>
+                </div>
+            </div>
+
+            <hr style="border: 0.5px solid #333; margin: 20px 0;">
+            <p style="color: #bbb; font-size: 0.85rem; line-height: 1.4;">
+                ${score === 'A+' 
+                    ? 'Infraestrutura em conformidade. Recomenda-se monitoramento preventivo de patches.' 
+                    : '<strong>Furo no Casco Detectado:</strong> Vulnerabilidades críticas identificadas. Risco iminente de sequestro de dados (Ransomware).'}
+            </p>
+            
+            <button onclick="window.open('https://wa.me/5511995314831', '_blank')"
+                    style="width: 100%; background: ${cor}; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; border-radius: 4px; text-transform: uppercase; margin-top: 15px; font-family: 'Rajdhani', sans-serif;">
+                Solicitar Advisor de Resiliência
+            </button>
+        </div>
+    `;
