@@ -145,32 +145,35 @@ async function iniciarDiagnostico() {
     }
 }
 
-// 5. FUNÇÃO PARA GERAR PDF (EXTERNA)
+// 5. FUNÇÃO PARA GERAR PDF (EXTERNA) - VERSÃO CORRIGIDA
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const corTema = d.score === "A+" ? [0, 180, 0] : [220, 0, 0];
 
-    // 1. FUNDO E MARCA D'ÁGUA (Escudo no fundo)
-    // Vamos colocar o escudo bem clarinho no centro
-    doc.setGAlpha(0.05); // Deixa bem transparente
-    const gState = new doc.GState({opacity: 0.05});
-    doc.setGState(gState);
-    doc.addImage("img/escudo_shiel.png", "PNG", 55, 100, 100, 110);
-    // Volta a opacidade normal
-    const gStateNormal = new doc.GState({opacity: 1});
-    doc.setGState(gStateNormal); 
+    // 1. MARCA D'ÁGUA (Correção: Removido setGAlpha que causava erro)
+    try {
+        const gState = new doc.GState({ opacity: 0.05 });
+        doc.setGState(gState);
+        doc.addImage("img/escudo_shiel.png", "PNG", 55, 100, 100, 110);
+        
+        const gStateNormal = new doc.GState({ opacity: 1 });
+        doc.setGState(gStateNormal);
+    } catch (e) {
+        console.warn("Aviso: Marca d'água não carregada.", e);
+        // Se a imagem falhar, o código continua para não travar o PDF
+    }
 
     // 2. CABEÇALHO COM LOGO
     doc.setFillColor(20, 20, 20); // Preto elegante
     doc.rect(0, 0, 210, 45, 'F');
     
-    // Tenta carregar seu logo branco para o topo
     try {
-        doc.addImage("img/logo_shield_preto.png", "PNG", 15, 10, 45, 12);
+        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 10, 45, 12);
     } catch (e) {
         doc.setTextColor(255, 255, 255);
-        doc.text("WL TEC - LONGO SHIELD", 15, 15);
+        doc.setFontSize(14);
+        doc.text("WL TEC - LONGO SHIELD", 15, 20);
     }
 
     doc.setFont("helvetica", "bold");
