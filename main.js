@@ -8,7 +8,7 @@ const limparParaPDF = (str) => {
     return str.replace(/[^\x00-\x7F]/g, "").trim(); 
 };
 
-// 2. FUNÇÃO SEGURA (EDGE FUNCTION)
+// 2. FUNÇÃO SEGURA (VIA EDGE FUNCTION)
 async function checkReputation(domain) {
     try {
         const { data, error } = await _supabase.functions.invoke('rapid-worker', {
@@ -20,7 +20,7 @@ async function checkReputation(domain) {
     } catch (error) { return 0; }
 }
 
-// 3. FUNÇÃO CAPTURA LEAD
+// 3. CAPTURA DE LEAD
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
@@ -35,7 +35,7 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
     } catch (err) { console.error('Erro lead:', err); }
 }
 
-// 4. FUNÇÃO BAZUCA (INTERFÁCE MODERNA DA PRINT 1)
+// 4. FUNÇÃO BAZUCA (DESIGN MODERNO RESTAURADO - PRINT 1)
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const resultArea = document.getElementById('resultArea');
@@ -43,11 +43,10 @@ async function iniciarDiagnostico() {
 
     const dominio = dominioInput.value.trim().toLowerCase();
     resultArea.classList.remove('result-hidden');
-    resultArea.innerHTML = `<div id="status-logger" style="padding: 20px; color: #00FFFF; font-family: monospace; text-align: left; background: rgba(0,0,0,0.7); border-radius: 8px; border: 1px solid #00FFFF33;"></div><div class="loader" id="main-loader" style="margin-top: 15px;"></div>`;
+    resultArea.innerHTML = `<div id="status-logger" style="padding: 20px; color: #00FFFF; font-family: monospace; text-align: left; background: rgba(0,0,0,0.7); border-radius: 8px;"></div><div class="loader" id="main-loader" style="margin-top: 15px;"></div>`;
     
     const logger = document.getElementById('status-logger');
-    const logs = ["> Estabelecendo Handshake...", "> Auditando Certificados SSL...", "> Verificando DMARC...", "> Reputation Scan..."];
-
+    const logs = ["> DNS Handshake...", "> SSL Audit...", "> Malware Scan...", "> DNA Infrastructure..."];
     for (const log of logs) {
         const p = document.createElement('p'); p.innerText = log; logger.appendChild(p);
         await new Promise(r => setTimeout(r, 400)); 
@@ -76,7 +75,7 @@ async function iniciarDiagnostico() {
         document.getElementById('main-loader').remove();
         logger.style.display = 'none';
 
-        // RESTAURANDO DESIGN MODERNO (PRINT 1)
+        // --- INTERFACE MODERNA (LAYOUT DA PRINT 1) ---
         resultArea.innerHTML = `
         <div style="text-align: left; background: rgba(10,10,10,0.95); padding: 30px; border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; animation: fadeIn 0.6s ease-out;">
             <img src="img/escudo_shiel.png" style="position: absolute; top: 20px; right: 20px; height: 60px; opacity: 0.9; filter: drop-shadow(0 0 10px ${cor}44);">
@@ -123,7 +122,7 @@ async function iniciarDiagnostico() {
     } catch (error) { resultArea.innerHTML = "Erro na varredura."; }
 }
 
-// 5. FUNÇÃO PDF - DESIGN PREMIUM + EXPLICAÇÃO TÉCNICA + CONTATOS CLICÁVEIS
+// 5. FUNÇÃO PDF - DESIGN PREMIUM + GLOSSÁRIO TÉCNICO COMPLETO + CONTATOS CLICÁVEIS
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -137,38 +136,41 @@ function gerarRelatorioPDF(d) {
     }
     doc.setFontSize(10); doc.setTextColor(180, 180, 180); doc.text("RELATORIO TECNICO DE RESILIENCIA DIGITAL", 15, 33);
 
-    // Barra de Status Colorida
+    // Barra de Status
     doc.setFillColor(corTema[0], corTema[1], corTema[2]);
     doc.rect(0, 40, 210, 12, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
 
-    // Corpo do Relatório
+    // Corpo
     doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.setFont("helvetica", "bold");
-    doc.text(`Analise de Perimetro: ${d.dominio.toUpperCase()}`, 15, 70);
-    doc.setFillColor(248, 248, 248); doc.rect(15, 75, 180, 50, 'F');
+    doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 65);
+    
+    doc.setFillColor(248, 248, 248); doc.rect(15, 70, 180, 50, 'F');
     doc.setFontSize(11); doc.setFont("helvetica", "normal");
-    doc.text(`- Protocolo SSL/TLS: ${d.sslOk ? 'Ativo e Criptografado' : 'FALHA CRITICA'}`, 25, 87);
-    doc.text(`- Protecao de E-mail (DMARC): ${d.temDmarc ? 'Seguro' : 'VULNERAVEL'}`, 25, 97);
-    doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 107);
-    doc.text(`- Motor de Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 117);
+    doc.text(`- Protocolo SSL/TLS: ${d.sslOk ? 'Ativo' : 'FALHA CRITICA'}`, 25, 82);
+    doc.text(`- Configuracao DMARC: ${d.temDmarc ? 'Protegido' : 'VULNERAVEL'}`, 25, 92);
+    doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 102);
+    doc.text(`- Motor de Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 112);
 
-    // Notas Técnicas (Glossário)
-    doc.setFont("helvetica", "bold"); doc.text("POR QUE ESTES ITENS SAO CRITICOS?", 15, 140);
-    doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(100, 100, 100);
-    const notas = [
-        "SSL: Garante que os dados dos seus clientes nao sejam interceptados por hackers.",
-        "DMARC: Camada de seguranca que impede que usem seu e-mail para golpes (Spoofing).",
-        "Reputacao: Verifica se o seu site possui virus ou esta em listas negras globais."
+    // --- GLOSSÁRIO TÉCNICO (O QUE VOCÊ PEDIU) ---
+    doc.setFont("helvetica", "bold");
+    doc.text("NOTAS DO ADVISOR (GLOSSARIO):", 15, 135);
+    doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(80, 80, 80);
+    
+    const glossario = [
+        "SSL (Secure Sockets Layer): Protege a troca de informacoes entre o usuario e seu servidor.",
+        "DMARC: Camada de seguranca que impede que criminosos enviem e-mails falsos em seu nome (Spoofing).",
+        "Reputacao: Analise em 60+ bases globais em busca de malwares ou atividades suspeitas no dominio."
     ];
-    doc.text(notas, 15, 150);
+    doc.text(glossario, 15, 145);
 
-    // Parecer do Advisor
+    // Parecer do Especialista
     doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(15, 175, 180, 25, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.text("PARECER DO ESPECIALISTA:", 20, 184);
-    const parecer = d.score === "A+" ? "Ambiente em conformidade." : "RISCO DETECTADO: Recomendamos mitigacao imediata.";
+    const parecer = d.score === "A+" ? "Ambiente em conformidade. Hardening preventivo recomendado." : "ALERTA CRITICO: Vulnerabilidades detectadas. Risco de perda de dados e Ransomware.";
     doc.text(doc.splitTextToSize(parecer, 170), 20, 192);
 
-    // --- RODAPÉ BLACK PREMIUM (O QUE VOCÊ PEDIU) ---
+    // --- RODAPÉ BLACK PREMIUM (CONTATOS CLICÁVEIS) ---
     doc.setFillColor(30, 30, 30); doc.rect(0, 260, 210, 37, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.setFont("helvetica", "bold");
     doc.text("WL TEC - CONSULTORIA EM CIBERSEGURANCA", 15, 272);
