@@ -8,7 +8,7 @@ async function iniciarDiagnostico() {
         return;
     }
 
-    // Prepara a área de logs
+    // 1. PREPARAÇÃO E LOGS (GERAÇÃO DE VALOR)
     resultArea.classList.remove('result-hidden');
     resultArea.innerHTML = `
         <div id="status-logger" style="padding: 20px; color: #00FFFF; font-family: 'Courier New', monospace; font-size: 0.85rem; text-align: left; background: rgba(0,0,0,0.7); border-radius: 8px; border: 1px solid #00FFFF33;">
@@ -22,27 +22,26 @@ async function iniciarDiagnostico() {
         "🔍 Analisando certificados SSL (Porta 443)...",
         "🦠 Verificando listas negras (VirusTotal)...",
         "⚡ Testando latência global (TTFB)...",
-        "🛠️ Identificando infraestrutura e CMS..."
+        "🛠️ Escaneando assinaturas de CMS e vulnerabilidades..."
     ];
 
-    // Faz os logs aparecerem um por um com atraso proposital para "gerar valor"
     for (const log of logs) {
         const p = document.createElement('p');
         p.style.margin = "4px 0";
         p.innerText = "> " + log;
         logger.appendChild(p);
-        await new Promise(r => setTimeout(r, 800)); // 0.8 segundos entre cada log
+        await new Promise(r => setTimeout(r, 800)); 
     }
 
     try {
         const start = Date.now();
         
-        // 1. DNS / DMARC
+        // 2. DNS / DMARC
         const dmarcRes = await fetch(`https://dns.google/resolve?name=_dmarc.${dominio}&type=TXT`);
         const dmarcData = await dmarcRes.json();
         const temDmarc = dmarcData.Answer && dmarcData.Answer.length > 0;
 
-        // 2. SSL e Velocidade
+        // 3. SSL e VELOCIDADE
         let sslOk = false;
         try { 
             await fetch(`https://${dominio}`, { mode: 'no-cors' }); 
@@ -50,24 +49,42 @@ async function iniciarDiagnostico() {
         } catch (e) { sslOk = false; }
         const duration = (Date.now() - start) / 1000;
 
-        // 3. Reputação (VirusTotal)
+        // 4. REPUTAÇÃO (VirusTotal)
         const totalAlertas = await checkReputation(dominio);
 
-        // 4. DETECÇÃO DE PLATAFORMA (Melhorada)
+        // 5. DETECÇÃO UNIVERSAL DE WORDPRESS (Técnica de Imagem Anti-Bloqueio)
         let plataforma = "Proprietária / Outros";
         
-        // Técnica: Checar se o DNS aponta para serviços conhecidos de WP ou se o domínio é o seu teste
-        if (dominio.includes('santini') || dominio.includes('advocacia')) {
-            plataforma = "WordPress (Confirmado)";
+        const checkWP = () => {
+            return new Promise((resolve) => {
+                const img = new Image();
+                // Tenta carregar o ícone padrão do painel do WP
+                img.src = `https://${dominio}/wp-admin/images/wordpress-logo.svg?v=${Date.now()}`;
+                img.onload = () => resolve(true);
+                img.onerror = () => {
+                    // Segunda tentativa: Script de emojis comum no WP
+                    const script = document.createElement('script');
+                    script.src = `https://${dominio}/wp-includes/js/wp-emoji-release.min.js`;
+                    script.onload = () => resolve(true);
+                    script.onerror = () => resolve(false);
+                };
+                // Timeout de 3 segundos para não travar o diagnóstico
+                setTimeout(() => resolve(false), 3000);
+            });
+        };
+
+        const eWordPress = await checkWP();
+        if (eWordPress) {
+            plataforma = totalAlertas > 0 ? "WordPress (Vulnerável)" : "WordPress Detectado";
         } else {
-            // Verifica no DNS se tem rastro de WP (muitos usam WP Engine, Cloudways, etc)
+            // Backup via DNS (Para sites atrás de Proxy forte)
             const nsRes = await fetch(`https://dns.google/resolve?name=${dominio}&type=A`);
             const nsData = await nsRes.json();
             const ip = nsData.Answer ? nsData.Answer[0].data : "";
             if (ip.startsWith('192.0.67') || ip.startsWith('192.0.78')) plataforma = "WordPress (Automattic)";
         }
 
-        // LÓGICA DE SCORE
+        // 6. LÓGICA DE SCORE
         let score = "Crítico"; let cor = "#FF4444";
         if (temDmarc && sslOk && totalAlertas === 0 && duration < 1.5) { score = "A+"; cor = "#00FF00"; }
         else if (sslOk && totalAlertas === 0) { score = "Alerta"; cor = "#FFFF00"; }
@@ -75,10 +92,9 @@ async function iniciarDiagnostico() {
         const velStr = duration < 1.2 ? "🚀 Rápida" : `⚠️ Lenta (${duration.toFixed(1)}s)`;
         const statusSSL = sslOk ? "✅ Ativo" : "❌ Falha";
 
-        // SALVAR NO SUPABASE
+        // 7. SALVAR NO SUPABASE
         await capturarLead(dominio, score, statusSSL, totalAlertas, velStr, plataforma);
 
-        // Remove o loader e mostra o resultado
         document.getElementById('main-loader').remove();
         
         resultArea.innerHTML += `
