@@ -154,8 +154,12 @@ function gerarRelatorioPDF(d) {
     // 1. FUNDO E MARCA D'ÁGUA (Escudo no fundo)
     // Vamos colocar o escudo bem clarinho no centro
     doc.setGAlpha(0.05); // Deixa bem transparente
+    const gState = new doc.GState({opacity: 0.05});
+    doc.setGState(gState);
     doc.addImage("img/escudo_shiel.png", "PNG", 55, 100, 100, 110);
-    doc.setGAlpha(1); // Volta a opacidade normal
+    // Volta a opacidade normal
+    const gStateNormal = new doc.GState({opacity: 1});
+    doc.setGState(gStateNormal); 
 
     // 2. CABEÇALHO COM LOGO
     doc.setFillColor(20, 20, 20); // Preto elegante
