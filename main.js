@@ -145,33 +145,19 @@ async function iniciarDiagnostico() {
     }
 }
 
-// 5. FUNÇÃO PARA GERAR PDF (EXTERNA) - VERSÃO BLINDADA
+// 5. FUNÇÃO PARA GERAR PDF (EXTERNA) - VERSÃO FINAL BLINDADA WL TEC
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    const corTema = d.score === "A+" ? [0, 180, 0] : [220, 0, 0];
+    const corTema = d.score === "A+" ? [0, 150, 0] : [180, 0, 0];
 
-    // 1. MARCA D'ÁGUA (Design de Auditoria)
-    try {
-        // Criamos o estado de transparência sem usar o setGAlpha
-        const gState = new doc.GState({ opacity: 0.05 });
-        doc.setGState(gState);
-        
-        // Adiciona o escudo no fundo
-        doc.addImage("img/escudo_shiel.png", "PNG", 55, 100, 100, 110);
-        
-        // Restaura a opacidade para 100% para o restante do documento
-        doc.setGState(new doc.GState({ opacity: 1 }));
-    } catch (e) {
-        console.warn("Aviso: Marca d'água ignorada para evitar erro de execução.", e);
-    }
-
-    // 2. CABEÇALHO EXECUTIVO
+    // 1. CABEÇALHO EXECUTIVO
     doc.setFillColor(20, 20, 20); // Preto WL TEC
     doc.rect(0, 0, 210, 45, 'F');
     
+    // Tenta colocar o logo, se falhar usa texto
     try {
-        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 10, 45, 12);
+        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12);
     } catch (e) {
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(14);
@@ -181,74 +167,80 @@ function gerarRelatorioPDF(d) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(255, 255, 255);
-    doc.text("DOSSIÊ DE RESILIÊNCIA DIGITAL", 15, 35);
+    doc.text("DOSSIÊ DE RESILIÊNCIA DIGITAL", 15, 38);
 
-    // 3. BARRA DE STATUS COLORIDA
+    // 2. BARRA DE STATUS COLORIDA
     doc.setFillColor(corTema[0], corTema[1], corTema[2]);
     doc.rect(0, 45, 210, 15, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
     doc.text(`ANÁLISE DE SEGURANÇA: ${d.score}`, 15, 55);
 
-    // --- O restante do código do PDF continua aqui embaixo ---
-
-    // 4. INFORMAÇÕES DO CLIENTE
+    // 3. INFORMAÇÕES DO DIAGNÓSTICO
     doc.setTextColor(40, 40, 40);
     doc.setFontSize(10);
-    doc.text(`GERADO EM: ${new Date().toLocaleString('pt-BR')}`, 140, 70);
+    doc.text(`GERADO EM: ${new Date().toLocaleString('pt-BR')}`, 140, 72);
 
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text(`Domínio Analisado: ${d.dominio}`, 15, 85);
+    doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 85);
     doc.setDrawColor(corTema[0], corTema[1], corTema[2]);
     doc.setLineWidth(1);
-    doc.line(15, 88, 80, 88);
+    doc.line(15, 88, 100, 88);
 
-    // 5. GRID DE RESULTADOS (Visual em boxes)
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
+    // 4. GRID DE RESULTADOS (Substituímos a transparência por um fundo cinza sólido)
+    doc.setFillColor(248, 248, 248);
+    doc.rect(15, 95, 180, 60, 'F');
     
-    // SSL
-    doc.text("Protocolo de Criptografia (SSL):", 15, 105);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${d.statusSSL}`, 100, 105);
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    
+    const posY = 108;
+    const spacing = 10;
 
-    // DMARC
     doc.setFont("helvetica", "normal");
-    doc.text("Perímetro de E-mail (DMARC):", 15, 115);
+    doc.text("Protocolo de Criptografia (SSL):", 25, posY);
     doc.setFont("helvetica", "bold");
-    doc.text(`${d.temDmarc ? 'PROTEGIDO' : 'VULNERÁVEL'}`, 100, 115);
+    doc.text(`${d.statusSSL}`, 110, posY);
 
-    // Velocidade
     doc.setFont("helvetica", "normal");
-    doc.text("Performance de Resposta:", 15, 125);
+    doc.text("Perímetro de E-mail (DMARC):", 25, posY + spacing);
     doc.setFont("helvetica", "bold");
-    doc.text(`${d.velStr.replace('🚀', '').trim()}`, 100, 125);
+    doc.text(`${d.temDmarc ? 'PROTEGIDO' : 'VULNERÁVEL'}`, 110, posY + spacing);
 
-    // Infra
     doc.setFont("helvetica", "normal");
-    doc.text("Infraestrutura Detectada:", 15, 135);
+    doc.text("Performance de Resposta:", 25, posY + (spacing * 2));
     doc.setFont("helvetica", "bold");
-    doc.text(`${d.plataforma}`, 100, 135);
+    doc.text(`${d.velStr.replace('🚀', '').trim()}`, 110, posY + (spacing * 2));
 
-    // 6. CONCLUSÃO TÉCNICA
-    doc.setFillColor(245, 245, 245);
-    doc.rect(15, 155, 180, 35, 'F');
+    doc.setFont("helvetica", "normal");
+    doc.text("DNA da Infraestrutura:", 25, posY + (spacing * 3));
+    doc.setFont("helvetica", "bold");
+    doc.text(`${d.plataforma}`, 110, posY + (spacing * 3));
+
+    // 5. PARECER TÉCNICO (O "Pulo do Gato" do Advisor)
+    doc.setFillColor(240, 240, 240);
+    doc.rect(15, 165, 180, 40, 'F');
+    doc.setTextColor(corTema[0], corTema[1], corTema[2]);
+    doc.setFont("helvetica", "bold");
+    doc.text("PARECER DO ADVISOR:", 22, 175);
+    
     doc.setTextColor(60, 60, 60);
-    doc.setFont("helvetica", "bold");
-    doc.text("PARECER DO ADVISOR:", 20, 165);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     const nota = d.score === "A+" 
-        ? "A infraestrutura apresenta conformidade com os padrões de segurança. Recomenda-se apenas monitoramento preventivo."
-        : "AVISO: Foram detectadas brechas críticas de segurança. Existe risco iminente de sequestro de dados e interrupção operacional. Recomenda-se mitigação imediata.";
-    doc.text(doc.splitTextToSize(nota, 170), 20, 175);
+        ? "Ambiente em conformidade. Recomenda-se monitoramento preventivo de patches e hardening contínuo."
+        : "AVISO CRÍTICO: Vulnerabilidades detectadas. Risco de sequestro de dados (Ransomware). Recomenda-se mitigação imediata.";
+    
+    const parecerQuebrado = doc.splitTextToSize(nota, 165);
+    doc.text(parecerQuebrado, 22, 185);
 
-    // 7. RODAPÉ
+    // 6. RODAPÉ PROFISSIONAL
     doc.setFontSize(9);
     doc.setTextColor(150, 150, 150);
-    doc.text("WL TEC - Consultoria em Infraestrutura e Blindagem Digital", 105, 285, { align: "center" });
+    doc.text("WL TEC - Consultoria em Infraestrutura e Blindagem Digital", 105, 280, { align: "center" });
+    doc.text("Relatório Confidencial - Propriedade do Cliente", 105, 285, { align: "center" });
 
-    // 8. SALVAR
+    // 7. SALVAR ARQUIVO
     doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
 }
