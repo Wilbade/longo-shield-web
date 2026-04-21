@@ -96,18 +96,56 @@ async function iniciarDiagnostico() {
         logger.style.display = 'none';
 
         resultArea.innerHTML = `
-            <div style="text-align: left; background: rgba(0,0,0,0.95); padding: 25px; border-left: 5px solid ${cor}; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
-                <div style="background: ${cor}; color: #000; padding: 4px 12px; border-radius: 4px; font-weight: bold; display: inline-block; margin-bottom: 15px;">STATUS: ${score}</div>
-                <h3 style="color: ${cor}; margin-top: 0;">Relatório: ${dominio}</h3>
-                <div style="color:#fff; font-size: 0.9rem;">
-                    <p>🔒 SSL: ${sslOk ? '✅ OK' : '❌ Falha'}</p>
-                    <p>⚡ Velocidade: ${velStr}</p>
-                    <p>🦠 Vírus: ${totalAlertas > 0 ? '🚨 Alerta' : '✅ Limpo'}</p>
-                    <p>💻 Sistema: ${plataforma}</p>
+        <div style="text-align: left; background: rgba(0,0,0,0.95); padding: 30px; border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; animation: fadeIn 0.6s ease-out;">
+            
+            <img src="img/escudo_shiel.png" alt="Shield" style="position: absolute; top: 20px; right: 20px; height: 60px; opacity: 0.8;">
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                    <div style="background: ${cor}; color: #000; padding: 5px 15px; border-radius: 4px; font-weight: 800; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 10px; font-family: sans-serif;">
+                        Status de Resiliência
+                    </div>
+                    <h2 style="color: #fff; margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 2px;">
+                        ${dominio}
+                    </h2>
                 </div>
-                <button onclick="window.open('https://wa.me/5511995314831')" style="width:100%; background:${cor}; color:#000; padding:15px; border:none; font-weight:bold; cursor:pointer; margin-top:15px; border-radius:4px;">FALAR COM ESPECIALISTA</button>
+                <div style="font-size: 2.5rem; font-weight: 900; color: ${cor}; font-family: 'Rajdhani', sans-serif; line-height: 1; margin-right: 70px;">
+                    ${score}
+                </div>
             </div>
-        `;
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <span style="color: #666; font-size: 0.7rem; text-transform: uppercase; display: block; margin-bottom: 5px;">Perímetro de E-mail</span>
+                    <span style="color: #fff; font-weight: bold;">🛡️ DMARC: ${temDmarc ? '<span style="color:#00FF00">OK</span>' : '<span style="color:#FF4444">Falha</span>'}</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <span style="color: #666; font-size: 0.7rem; text-transform: uppercase; display: block; margin-bottom: 5px;">Criptografia</span>
+                    <span style="color: #fff; font-weight: bold;">🔒 SSL: ${sslOk ? '<span style="color:#00FF00">Ativo</span>' : '<span style="color:#FF4444">Falha</span>'}</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <span style="color: #666; font-size: 0.7rem; text-transform: uppercase; display: block; margin-bottom: 5px;">Performance</span>
+                    <span style="color: #fff; font-weight: bold;">⚡ ${velStr}</span>
+                </div>
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+                    <span style="color: #666; font-size: 0.7rem; text-transform: uppercase; display: block; margin-bottom: 5px;">Ameaças Externas</span>
+                    <span style="color: #fff; font-weight: bold;">🦠 ${totalAlertas > 0 ? '<span style="color:#FF4444">Risco</span>' : '<span style="color:#00FF00">Limpo</span>'}</span>
+                </div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.05); border: 1px solid ${cor}33; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+                <span style="color: ${cor}; font-size: 0.7rem; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 5px;">DNA da Infraestrutura</span>
+                <span style="color: #fff; font-size: 1rem; font-weight: 600;">💻 Sistema: ${plataforma}</span>
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button onclick="window.open('https://wa.me/5511995314831', '_blank')"
+                        style="flex: 2; background: ${cor}; color: #000; border: none; padding: 18px; font-weight: 800; cursor: pointer; border-radius: 6px; text-transform: uppercase; font-family: 'Rajdhani', sans-serif; letter-spacing: 1px;">
+                    Solicitar Advisor de Resiliência
+                </button>
+            </div>
+        </div>
+    `;
     } catch (err) {
         console.error(err);
         resultArea.innerHTML = "Erro na análise.";
