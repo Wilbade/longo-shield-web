@@ -95,6 +95,7 @@ async function iniciarDiagnostico() {
         document.getElementById('main-loader').remove();
         logger.style.display = 'none';
 
+        // FINALIZAÇÃO E EXIBIÇÃO DO CARD COM DESIGN PREMIUM
         resultArea.innerHTML = `
         <div style="text-align: left; background: rgba(0,0,0,0.95); padding: 30px; border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; animation: fadeIn 0.6s ease-out;">
             
