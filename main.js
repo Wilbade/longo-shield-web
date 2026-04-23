@@ -55,29 +55,37 @@ async function finalizarSolicitacao() {
     btn.disabled = true;
 
     try {
-        // Buscamos a última análise desse domínio feita nos últimos 5 minutos
-        const { data: leads } = await _supabase
+        // 1. Buscamos a última análise desse domínio (para pegar os dados técnicos que já estão lá)
+        const { data: leadRecente } = await _supabase
             .from('leads')
-            .select('id')
+            .select('*') // Pegamos TUDO da linha
             .eq('dominio', dominio)
             .order('created_at', { ascending: false })
-            .limit(1);
+            .limit(1)
+            .single();
 
-        if (leads && leads.length > 0) {
-            // ATUALIZA A LINHA QUE JÁ EXISTE (ID 114, por exemplo)
+        if (leadRecente) {
+            // ✅ Se achou a linha técnica, apenas "carimba" o e-mail nela
             await _supabase.from('leads')
                 .update({ email: emailValue })
-                .eq('id', leads[0].id);
-            console.log("E-mail adicionado à linha existente.");
+                .eq('id', leadRecente.id);
+            console.log("E-mail vinculado ao lead técnico existente.");
         } else {
-            // Se não achar linha (muito raro), cria uma nova
-            await _supabase.from('leads').insert([{ dominio, email: emailValue, score: "LEAD DIRETO" }]);
+            // 🚨 Se NÃO achou (o caso do seu erro), criamos uma linha NOVA, 
+            // mas tentando salvar o máximo de info que temos no modal
+            await _supabase.from('leads').insert([{ 
+                dominio: dominio, 
+                email: emailValue, 
+                score: "LEAD DIRETO (ERRO SYNC)",
+                plataforma: "Recuperado via Fallback"
+            }]);
+            console.warn("Linha técnica não encontrada, criado lead isolado.");
         }
 
-        alert("Sucesso! Dossiê será enviado para " + emailValue);
+        alert("Sucesso! Dossiê enviado.");
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
-        console.error("Erro ao salvar e-mail:", e);
+        console.error("Erro crítico no salvamento:", e);
         alert("Erro ao salvar contato.");
     } finally {
         btn.innerText = "RECEBER AGORA";
