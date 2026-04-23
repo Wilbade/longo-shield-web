@@ -5,8 +5,8 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TEXTOS_IA = {
     "SSL_FALHOU": { "titulo": "Certificado SSL Inválido ou Ausente", "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD." },
-    "REPUTACAO_RUIM": { "titulo": "Domínio em Blacklists de Segurança", "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador." },
-    "LENTIDAO": { "titulo": "Degradação Severa de Disponibilidade", "descricao": "A lentidão extrema indica um possível ataque de Negação de Serviço (DDoS) ou esgotamento de recursos que facilita a exploração de brechas." },
+    "REPUTACAO_RUIM": { "titulo": "Domínio em Blacklists de Segurança", "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador dos seus clientes." },
+    "LENTIDAO": { "titulo": "Degradação Severa de Disponibilidade", "descricao": "A lentidão extrema no tempo de resposta do servidor indica um possível ataque de Negação de Serviço (DDoS) ou esgotamento de recursos que facilita a exploração de brechas." },
     "SCORE_ALTO": { "titulo": "Resiliência Cibernética em Conformidade", "descricao": "Seu ambiente apresenta um score de excelência. Recomendamos Hardening preventivo para manter sua superfície impenetrável." }
 };
 
@@ -25,7 +25,7 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
 
-        // Fazemos o insert simples. Sem depender de retorno.
+        // Fazemos o insert simples para garantir que a linha exista
         await _supabase.from('leads').insert([{
             dominio, score, status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
@@ -33,15 +33,17 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
         }]);
+        console.log("Análise técnica registrada.");
     } catch (err) { console.error("Erro Captura:", err); }
 }
 
 function solicitarRelatorio() {
-    document.getElementById('dominioModal').innerText = document.getElementById('domainInput').value;
+    const dominio = document.getElementById('domainInput').value;
+    document.getElementById('dominioModal').innerText = dominio;
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// 2. FINALIZAR (Busca a última linha do domínio e atualiza o e-mail)
+// 2. FINALIZAR (Ajustado para não duplicar linhas)
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
@@ -53,28 +55,29 @@ async function finalizarSolicitacao() {
     btn.disabled = true;
 
     try {
-        // BUSCA A LINHA QUE ACABOU DE SER CRIADA PELO DOMÍNIO
-        const { data: leadRecente } = await _supabase
+        // Buscamos a última análise desse domínio feita nos últimos 5 minutos
+        const { data: leads } = await _supabase
             .from('leads')
             .select('id')
             .eq('dominio', dominio)
             .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+            .limit(1);
 
-        if (leadRecente) {
-            // ATUALIZA A LINHA EXISTENTE
+        if (leads && leads.length > 0) {
+            // ATUALIZA A LINHA QUE JÁ EXISTE (ID 114, por exemplo)
             await _supabase.from('leads')
                 .update({ email: emailValue })
-                .eq('id', leadRecente.id);
+                .eq('id', leads[0].id);
+            console.log("E-mail adicionado à linha existente.");
         } else {
-            // Se por algum milagre não achar, cria uma com o e-mail
+            // Se não achar linha (muito raro), cria uma nova
             await _supabase.from('leads').insert([{ dominio, email: emailValue, score: "LEAD DIRETO" }]);
         }
 
         alert("Sucesso! Dossiê será enviado para " + emailValue);
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
+        console.error("Erro ao salvar e-mail:", e);
         alert("Erro ao salvar contato.");
     } finally {
         btn.innerText = "RECEBER AGORA";
@@ -120,7 +123,6 @@ async function iniciarDiagnostico() {
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `Rápida (${duration.toFixed(1)}s)`;
 
-        // Grava análise técnica
         await capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
         let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
