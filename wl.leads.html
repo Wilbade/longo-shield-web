@@ -163,13 +163,13 @@
                 corpoTabela.innerHTML += `
                     <tr>
                         <td style="font-size: 0.75rem; color: #777;">${dataHora}</td>
-                        <td style="font-weight: bold; color: #00FFFF;">${lead.dominio}</td>
-                        <td><span class="badge ${classeScore}">${lead.score}</span></td>
-                        <td style="font-size: 0.85rem;">${lead.status_ssl || '---'}</td>
-                        <td style="font-size: 0.85rem;">${lead.reputacao || '✅ Limpo'}</td>
-                        <td style="font-size: 0.85rem;">${lead.velocidade || '---'}</td>
-                        <td style="font-size: 0.85rem;">${lead.plataforma || '---'}</td>
-                        <td style="font-size: 0.75rem; color: #666;">${lead.ip_usuario}<br>${lead.localizacao}</td>
+                        <td style="font-weight: bold; color: #00FFFF;">${escapeHTML(lead.dominio)}</td>
+                        <td><span class="badge ${classeScore}">${escapeHTML(lead.score)}</span></td>
+                        <td style="font-size: 0.85rem;">${escapeHTML(lead.status_ssl) || '---'}</td>
+                        <td style="font-size: 0.85rem;">${escapeHTML(lead.reputacao) || '✅ Limpo'}</td>
+                        <td style="font-size: 0.85rem;">${escapeHTML(lead.velocidade) || '---'}</td>
+                        <td style="font-size: 0.85rem;">${escapeHTML(lead.plataforma) || '---'}</td>
+                        <td style="font-size: 0.75rem; color: #666;">${escapeHTML(lead.ip_usuario)}<br>${escapeHTML(lead.localizacao)}</td>
                     </tr>
                 `;
             });
