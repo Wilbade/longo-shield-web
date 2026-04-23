@@ -3,7 +3,7 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// BANCO DE TEXTOS DA IA
+// BANCO DE TEXTOS DA IA (Baseado no seu JSON)
 const TEXTOS_IA = {
     "SSL_FALHOU": {
         "titulo": "Certificado SSL Inválido ou Ausente",
@@ -39,7 +39,7 @@ async function checkReputation(domain) {
     } catch (error) { return 0; }
 }
 
-// CAPTURA O LEAD E O PARECER DA IA AUTOMATICAMENTE
+// CAPTURAR LEAD (Salvando agora na coluna detalhes_tecnicos o parecer da IA)
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma, parecerIA) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
@@ -51,7 +51,7 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
             velocidade: velocidade, 
             plataforma: plataforma,
-            detalhes_tecnicos: parecerIA, // SALVA O TEXTO DA IA AQUI
+            detalhes_tecnicos: parecerIA, // Salva o texto da IA aqui
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
         }]);
@@ -64,28 +64,33 @@ function solicitarRelatorio() {
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// FINALIZA E SALVA O E-MAIL NA COLUNA 'email'
+// FINALIZAR SOLICITAÇÃO (Salvando na coluna email)
 async function finalizarSolicitacao() {
-    const email = document.getElementById('emailCliente').value;
+    const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
-    if (!email || !email.includes('@')) {
-        return alert("Por favor, insira um e-mail válido.");
+    
+    if (!emailValue || !emailValue.includes('@')) {
+        return alert("Por favor, insira um e-mail válido para receber o dossiê.");
     }
+    
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
+
     try {
         const { error } = await _supabase.from('leads').insert([{ 
             dominio: dominio, 
             score: "LEAD QUALIFICADO", 
-            email: email, // SALVA NA COLUNA 'email'
-            plataforma: "Solicitou Relatório" 
+            email: emailValue, // Salva na coluna email (minúsculo)
+            plataforma: "Solicitou Dossiê" 
         }]);
+
         if (error) throw error;
-        alert("Sucesso! O Dossiê será enviado para " + email);
+        alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
-        alert("Erro ao salvar contato.");
+        console.error(e);
+        alert("Erro ao processar.");
     } finally {
         btn.innerText = "RECEBER AGORA";
         btn.disabled = false;
@@ -129,12 +134,15 @@ async function iniciarDiagnostico() {
         let plataforma = (dominio.includes('santini') || dominio.includes('abravidros')) ? "WordPress Detectado" : "Infraestrutura Proprietária";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
-        const velStr = `Processado (${duration.toFixed(1)}s)`;
+        const velStr = `Rápida (${duration.toFixed(1)}s)`;
 
+        // GERA O PARECER DA IA PARA SALVAR NO BANCO
         let chaveIA = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
         let parecerIA = `${TEXTOS_IA[chaveIA].titulo}: ${TEXTOS_IA[chaveIA].descricao}`;
 
         const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc, duration };
+        
+        // ENVIA O PARECER PARA A TABELA LEADS
         capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma, parecerIA);
 
         document.getElementById('main-loader').remove();
@@ -205,6 +213,7 @@ function gerarRelatorioPDF(d) {
     doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 40, 'F');
     try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12); } catch (e) { doc.setTextColor(255, 255, 255); doc.text("WL TEC", 15, 22); }
     doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(0, 40, 210, 12, 'F');
-    doc.setTextColor(255, 255, 255); doc.text(`SCORE: ${d.score}`, 15, 48);
-    doc.save(`Dossie_${d.dominio}.pdf`);
+    doc.setTextColor(255, 255, 255); doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
+    doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 65);
+    doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
 }
