@@ -6,19 +6,19 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TEXTOS_IA = {
     "SSL_FALHOU": {
         "titulo": "Certificado SSL Inválido ou Ausente",
-        "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD. Atacantes podem capturar senhas e informações financeiras em tempo real através de ataques de Man-in-the-Middle (MitM). Para reverter este cenário crítico, a WL TEC implementa imediatamente a criptografia de ponta a ponta e configura protocolos modernos para blindar o canal de comunicação."
+        "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD. Atacantes podem capturar senhas e informações financeiras em tempo real através de ataques de Man-in-the-Middle (MitM)."
     },
     "REPUTACAO_RUIM": {
         "titulo": "Domínio em Blacklists de Segurança",
-        "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas de perigo no navegador dos seus clientes. Essa classificação geralmente é o resultado de uma infecção silenciosa por malware ou uso da infraestrutura para campanhas de phishing de terceiros. A equipe de resposta a incidentes da WL TEC higienizará sua aplicação, removerá os artefatos maliciosos e conduzirá o processo técnico de remoção do domínio das listas de bloqueio."
+        "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador dos seus clientes."
     },
     "LENTIDAO": {
         "titulo": "Degradação Severa de Disponibilidade",
-        "descricao": "A lentidão extrema no tempo de resposta do servidor indica um possível ataque de Negação de Serviço Distribuída (DDoS) em andamento ou o esgotamento de recursos que facilita a exploração de brechas de arquitetura. Uma infraestrutura instável não apenas derruba as operações do seu negócio, mas também deixa o sistema suscetível a explorações de condições de corrida (race conditions). A WL TEC age emergencialmente otimizando a arquitetura de rede e implementando Web Application Firewalls (WAF) corporativos para absorver ataques e acelerar a aplicação."
+        "descricao": "A lentidão extrema no tempo de resposta do servidor indica um possível ataque de Negação de Serviço (DDoS) ou o esgotamento de recursos que facilita a exploração de brechas."
     },
     "SCORE_ALTO": {
         "titulo": "Resiliência Cibernética em Conformidade",
-        "descricao": "Seu ambiente apresenta um score de excelência, indicando que as camadas básicas de proteção estão ativas. No entanto, o cenário de ameaças é dinâmico. Especialistas ofensivos da WL TEC recomendam um Hardening preventivo e auditorias periódicas para garantir que sua superfície de ataque permaneça impenetrável contra novas variantes de ransomware e exploits zero-day."
+        "descricao": "Seu ambiente apresenta um score de excelência. No entanto, recomendamos um Hardening preventivo e auditorias periódicas para garantir que sua superfície permaneça impenetrável."
     }
 };
 
@@ -32,6 +32,7 @@ async function checkReputation(domain) {
     } catch (error) { return 0; }
 }
 
+// CAPTURA INICIAL (Cria a linha)
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
@@ -52,6 +53,7 @@ function solicitarRelatorio() {
     document.getElementById('modalEmail').style.display = 'block';
 }
 
+// FINALIZAR (Atualiza a linha existente com o e-mail)
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
@@ -62,13 +64,18 @@ async function finalizarSolicitacao() {
     btn.disabled = true;
 
     try {
-        const { error } = await _supabase.from('leads').insert([{ 
-            dominio: dominio, score: "SOLICITOU_RELATORIO", email: emailValue, plataforma: "Lead vindo do Modal" 
-        }]);
+        // ATUALIZA em vez de INSERT (para não duplicar a linha)
+        const { error } = await _supabase
+            .from('leads')
+            .update({ email: emailValue, score: "SOLICITOU_RELATORIO" })
+            .eq('dominio', dominio)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
         if (error) throw error;
         alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
-    } catch (e) { alert("Erro ao salvar."); }
+    } catch (e) { console.error(e); alert("Erro ao atualizar."); }
     finally { btn.innerText = "RECEBER AGORA"; btn.disabled = false; }
 }
 
@@ -111,10 +118,8 @@ async function iniciarDiagnostico() {
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `Rápida (${duration.toFixed(1)}s)`;
 
-        // Salva lead inicial
         capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
-        // Identifica texto da recomendação
         let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
         const dadosIA = TEXTOS_IA[chave];
 
@@ -126,10 +131,10 @@ async function iniciarDiagnostico() {
                 <div style="font-size: 3rem; font-weight: 900; color: ${cor};">${score}</div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">DMARC: ${temDmarc ? 'Protegido' : 'Vulnerável'}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">SSL: ${sslOk ? 'Ativo' : 'Falha'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Protegido' : '<span style="color:#FF4444">Vulnerável</span>'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 SSL: ${sslOk ? 'Ativo' : '<span style="color:#FF4444">Falha</span>'}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ ${velStr}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? '<span style="color:#FF4444">Risco</span>' : 'Limpo'}</div>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -139,36 +144,84 @@ async function iniciarDiagnostico() {
             </div>
 
             <div style="padding: 20px; background: rgba(255, 179, 0, 0.08); border-top: 1px solid rgba(255, 179, 0, 0.2);">
-                <h4 style="color: #FFB300;">🛡️ Análise de Risco WL TEC</h4>
+                <h4 style="color: #FFB300; margin: 0 0 5px 0;">🛡️ Análise de Risco WL TEC</h4>
                 <p style="font-size: 0.85rem; color: #bbb;"><strong>${dadosIA.titulo}:</strong> ${dadosIA.descricao}</p>
                 <button onclick="solicitarRelatorio()" class="refresh-btn" style="width: 100%; background: #FFB300; color: #000; margin-top: 10px;">
-                    🚀 OBTER RELATÓRIO COMPLETO
+                    🚀 OBTER DADOS TOTAIS E PROPOSTA DE CORREÇÃO
                 </button>
             </div>
         </div>`;
 
-        // Ativa o PDF
         const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc, duration };
         document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dadosParaPDF);
 
     } catch (error) { resultArea.innerHTML = "Erro na varredura técnica."; }
 }
 
+// RESTAURAÇÃO DO PDF "DOSSIÊ" (O COMPLETO DE ONTEM)
 function gerarRelatorioPDF(d) {
-    if (!window.jspdf) return alert("Erro: jsPDF não carregado.");
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const corTema = d.score === "A+" ? [0, 150, 0] : [180, 0, 0];
 
-    doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 40, 'F');
-    try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12); } catch (e) { doc.setTextColor(255, 255, 255); doc.text("WL TEC", 15, 22); }
-    doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(0, 40, 210, 12, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text(`SCORE: ${d.score}`, 15, 48);
+    // Cabeçalho Escuro
+    doc.setFillColor(20, 20, 20);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.text("LONGO SHIELD", 15, 20);
+    doc.setFontSize(10);
+    doc.setTextColor(150, 150, 150);
+    doc.text("RELATORIO TECNICO DE RESILIENCIA DIGITAL", 15, 30);
+
+    // Faixa de Score
+    doc.setFillColor(corTema[0], corTema[1], corTema[2]);
+    doc.rect(0, 40, 210, 12, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(12);
+    doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
+
+    // Dados da Análise
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(14);
+    doc.text(`Analise de Perimetro: ${d.dominio.toUpperCase()}`, 15, 65);
     
-    doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.text(`Dominio: ${d.dominio.toUpperCase()}`, 15, 65);
-    doc.setFontSize(10); doc.text(`- SSL: ${d.sslOk ? 'Ativo' : 'Falha'}`, 15, 75);
-    doc.text(`- DMARC: ${d.temDmarc ? 'Ok' : 'Vulneravel'}`, 15, 85);
-    doc.text(`- Reputacao: ${d.totalAlertas > 0 ? 'Risco' : 'Limpo'}`, 15, 95);
-    
-    doc.save(`Resiliencia_${d.dominio}.pdf`);
+    doc.setFillColor(245, 245, 245);
+    doc.rect(15, 70, 180, 50, 'F');
+    doc.setFontSize(11);
+    doc.setTextColor(50, 50, 50);
+    doc.text(`- Protocolo SSL/TLS: ${d.sslOk ? 'Ativo e Criptografado' : 'FALHA CRITICA'}`, 25, 82);
+    doc.text(`- Protecao de E-mail (DMARC): ${d.temDmarc ? 'Protegido' : 'VULNERAVEL'}`, 25, 92);
+    doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 102);
+    doc.text(`- Motor de Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 112);
+
+    // Seção de Por que é crítico
+    doc.setFontSize(12);
+    doc.text("POR QUE ESTES ITENS SAO CRITICOS?", 15, 135);
+    doc.setFontSize(9);
+    const notas = [
+        "SSL: Garante que os dados dos seus clientes nao sejam interceptados por hackers.",
+        "DMARC: Camada de seguranca que impede que usem seu e-mail para golpes (Spoofing).",
+        "Reputacao: Verifica se o seu site possui virus ou esta em listas negras globais."
+    ];
+    doc.text(notas, 15, 145);
+
+    // Parecer
+    doc.setFillColor(corTema[0], corTema[1], corTema[2]);
+    doc.rect(15, 175, 180, 25, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(11);
+    doc.text("PARECER DO ESPECIALISTA:", 20, 184);
+    const parecer = d.score === "A+" ? "Ambiente em conformidade. Hardening preventivo recomendado." : "RISCO DETECTADO: Recomendamos mitigacao imediata.";
+    doc.text(doc.splitTextToSize(parecer, 170), 20, 192);
+
+    // Rodapé
+    doc.setFillColor(30, 30, 30);
+    doc.rect(0, 260, 210, 37, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text("WL TEC - CONSULTORIA EM CIBERSEGURANCA", 15, 275);
+    doc.setFontSize(9);
+    doc.text("contato@wl.tec.br | (11) 99531-4831 | www.wl.tec.br", 15, 285);
+
+    doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
 }
