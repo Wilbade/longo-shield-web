@@ -3,6 +3,7 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// BANCO DE TEXTOS DA IA (Baseado no seu JSON)
 const TEXTOS_IA = {
     "SSL_FALHOU": {
         "titulo": "Certificado SSL Inválido ou Ausente",
@@ -61,18 +62,26 @@ function solicitarRelatorio() {
 async function finalizarSolicitacao() {
     const email = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
-    if (!email || !email.includes('@')) return alert("Por favor, insira um e-mail válido.");
-
+    if (!email || !email.includes('@')) {
+        return alert("Por favor, insira um e-mail válido para receber o dossiê.");
+    }
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
-
     try {
-        await _supabase.from('leads').insert([{ dominio, score: "SOLICITOU_RELATORIO", plataforma: "E-mail: " + email }]);
-        alert("Sucesso! O Dossiê será enviado para " + email);
+        const { error } = await _supabase.from('leads').insert([{ 
+            dominio: dominio, score: "SOLICITOU_RELATORIO", plataforma: "E-mail: " + email 
+        }]);
+        if (error) throw error;
+        alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
-    } catch (e) { alert("Erro ao solicitar."); }
-    finally { btn.innerText = "RECEBER AGORA"; btn.disabled = false; }
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao processar.");
+    } finally {
+        btn.innerText = "RECEBER AGORA";
+        btn.disabled = false;
+    }
 }
 
 async function iniciarDiagnostico() {
@@ -126,7 +135,6 @@ async function iniciarDiagnostico() {
         <div style="text-align: left; background: rgba(10,10,10,0.95); border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden;">
             <div style="padding: 30px;">
                 <img src="img/escudo_shiel.png" style="position: absolute; top: 20px; right: 20px; height: 60px; opacity: 0.9; filter: drop-shadow(0 0 10px ${cor}44);">
-                
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
                     <div>
                         <div style="background: ${cor}; color: #000; padding: 4px 12px; border-radius: 4px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">STATUS DE RESILIÊNCIA</div>
@@ -171,7 +179,7 @@ async function iniciarDiagnostico() {
                     <strong>${TEXTOS_IA[chaveIA].titulo}:</strong> ${TEXTOS_IA[chaveIA].descricao}
                 </p>
                 <button onclick="solicitarRelatorio()" style="background: #FFB300; color: #000; border: none; padding: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; width: 100%; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; text-transform: uppercase;">
-                    🚀 OBTER RELATÓRIO COMPLETO E PROPOSTA DE VALORES
+                    🚀 OBTER DADOS TOTAIS E PROPOSTA DE CORREÇÃO
                 </button>
             </div>
         </div>
@@ -188,6 +196,7 @@ function gerarRelatorioPDF(d) {
     doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 40, 'F');
     try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12); } catch (e) { doc.setTextColor(255, 255, 255); doc.text("WL TEC", 15, 22); }
     doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(0, 40, 210, 12, 'F');
-    doc.setTextColor(255, 255, 255); doc.text(`SCORE: ${d.score}`, 15, 48);
-    doc.save(`Dossie_${d.dominio}.pdf`);
+    doc.setTextColor(255, 255, 255); doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
+    doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 65);
+    doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
 }
