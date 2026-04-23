@@ -152,9 +152,11 @@
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
+const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let CHAVE_IA_AUTOMATICA = ""; // Variável global para a chave
 
         function escapeHTML(str) {
             if (!str) return '---';
@@ -163,28 +165,26 @@
             }[tag] || tag));
         }
 
-        let CHAVE_IA_AUTOMATICA = "";
-
-window.onload = async () => {
-    const { data: { session } } = await _supabase.auth.getSession();
-    if (session) { 
-        mostrarPainel();
-        // BUSCA A CHAVE NO BANCO ASSIM QUE LOGA
-        const { data } = await _supabase
-            .from('config_privada')
-            .select('chave_valor')
-            .eq('chave_nome', 'GEMINI_API_KEY')
-            .single();
-        if (data) CHAVE_IA_AUTOMATICA = data.chave_valor;
-    }
-};
-
-// Na função de analisar, use a chave automática
-async function analisarComIA(lead) {
-    const key = CHAVE_IA_AUTOMATICA; // Usa a chave que veio do banco
-    if (!key) return alert("Chave não configurada no Supabase.");
-    // ... resto do seu código de fetch do Gemini ...
-}
+        // 1. CARREGA TUDO AO INICIAR
+        window.onload = async () => {
+            const { data: { session } } = await _supabase.auth.getSession();
+            if (session) { 
+                mostrarPainel();
+                // Busca a chave secreta na sua tabela nova
+                const { data } = await _supabase
+                    .from('config_privada')
+                    .select('chave_valor')
+                    .eq('chave_nome', 'GEMINI_API_KEY')
+                    .single();
+                
+                if (data) {
+                    CHAVE_IA_AUTOMATICA = data.chave_valor;
+                    // Esconde a área de configuração se já temos a chave no banco
+                    document.querySelector('.config-area').style.display = 'none';
+                    console.log("🛡️ IA Automática configurada.");
+                }
+            }
+        };
 
         async function verificarLogin() {
             const email = document.getElementById('emailInput').value;
@@ -216,7 +216,6 @@ async function analisarComIA(lead) {
                 const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
                 let classeScore = (lead.score === 'A+') ? 'aplus' : (lead.score === 'Crítico' ? 'critico' : 'alerta');
 
-                // Criamos uma linha na tabela e um botão que envia os dados do lead para a IA
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="font-size: 0.75rem; color: #777;">${dataHora}</td>
@@ -230,21 +229,23 @@ async function analisarComIA(lead) {
             });
         }
 
-        // FUNÇÃO PARA FALAR COM O GEMINI
+        // 2. FUNÇÃO DA IA ATUALIZADA (Lê a chave automática)
         async function gerarPropostaIA(lead) {
-            const apiKey = document.getElementById('geminiKey').value.trim();
-            if (!apiKey) return alert("Por favor, cole sua API KEY!");
+            // Prioriza a chave do banco, se não tiver, tenta a do campo
+            const apiKey = CHAVE_IA_AUTOMATICA || document.getElementById('geminiKey').value.trim();
+            
+            if (!apiKey) return alert("Por favor, configure a API KEY no Supabase ou cole no campo!");
 
             document.getElementById('modalIA').style.display = 'block';
-            document.getElementById('statusIA').innerText = "Conectando ao Gemini 2.5 Flash...";
+            document.getElementById('statusIA').innerText = "O Analista Sênior está redigindo a proposta...";
             document.getElementById('textoProposta').value = "Redigindo...";
 
             const prompt = `Aja como Wiliam Longo, especialista em Cibersegurança da WL TEC. 
-            Escreva uma proposta curta para o site ${lead.dominio}. 
-            Dados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
+            Escreva uma proposta curta e impactante focado em prevenção de Ransomware para o site ${lead.dominio}. 
+            Dados técnicos detectados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
 
             try {
-                // Ajustado para o seu modelo 2.5 e apiVersion v1
+                // Modelo 2.5-flash como você solicitou
                 const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
@@ -264,7 +265,7 @@ async function analisarComIA(lead) {
                 document.getElementById('statusIA').innerText = "Proposta gerada!";
             } catch (e) {
                 console.error(e);
-                alert("Erro: " + e.message);
+                alert("Erro na IA: " + e.message);
                 fecharModal();
             }
         }
