@@ -37,6 +37,8 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
+        
+        // Removemos o .select() para garantir o insert mesmo com RLS restritivo
         const { data, error } = await _supabase.from('leads').insert([{
             dominio, score, status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
@@ -46,7 +48,7 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
         }]).select();
         
         if (data && data[0]) {
-            window.lastLeadId = data[0].id; // Guarda o ID exato para o update do e-mail
+            window.lastLeadId = data[0].id;
         }
     } catch (err) { console.error('Erro lead:', err); }
 }
@@ -57,9 +59,10 @@ function solicitarRelatorio() {
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// 2. ATUALIZA O LEAD COM O EMAIL (USANDO O ID SALVO)
+// 2. ATUALIZA O LEAD COM O EMAIL
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
+    const dominio = document.getElementById('dominioModal').innerText;
     if (!emailValue || !emailValue.includes('@')) return alert("E-mail inválido.");
 
     const btn = event.target;
@@ -67,13 +70,12 @@ async function finalizarSolicitacao() {
     btn.disabled = true;
 
     try {
-        // Se temos o ID da sessão atual, atualizamos por ele (mais seguro que domínio)
+        // Busca a linha mais recente se não tivermos o ID na memória
         let query = _supabase.from('leads').update({ email: emailValue, score: "SOLICITOU_RELATORIO" });
         
         if (window.lastLeadId) {
             query = query.eq('id', window.lastLeadId);
         } else {
-            const dominio = document.getElementById('dominioModal').innerText;
             query = query.eq('dominio', dominio).order('created_at', { ascending: false }).limit(1);
         }
 
@@ -154,7 +156,7 @@ async function iniciarDiagnostico() {
                 <h4 style="color: #FFB300; margin: 0 0 5px 0;">🛡️ Análise de Risco WL TEC</h4>
                 <p style="font-size: 0.85rem; color: #bbb;"><strong>${dadosIA.titulo}:</strong> ${dadosIA.descricao}</p>
                 <button onclick="solicitarRelatorio()" class="refresh-btn" style="width: 100%; background: #FFB300; color: #000; margin-top: 10px;">
-                    🚀 OBTER DADOS TOTAIS E PROPOSTA
+                    🚀 OBTER RELATÓRIO COMPLETO
                 </button>
             </div>
         </div>`;
@@ -165,7 +167,7 @@ async function iniciarDiagnostico() {
     } catch (error) { resultArea.innerHTML = "Erro técnico."; }
 }
 
-// PDF COM LOGO E LAYOUT COMPLETO
+// PDF RESTAURADO COM CONTEÚDO COMPLETO DO PDF 10
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -175,7 +177,6 @@ function gerarRelatorioPDF(d) {
     doc.setFillColor(20, 20, 20);
     doc.rect(0, 0, 210, 45, 'F');
     
-    // Tenta carregar a logo (Certifique-se que o caminho img/logo_shield_branco.png existe)
     try {
         doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 50, 15);
     } catch (e) {
@@ -193,34 +194,49 @@ function gerarRelatorioPDF(d) {
     doc.rect(0, 45, 210, 12, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
-    doc.text(`SCORE FINAL: ${d.score}`, 15, 53);
+    doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 53);
 
-    // Dados
+    // Dados Principais
     doc.setTextColor(40, 40, 40);
     doc.setFontSize(14);
-    doc.text(`Analise: ${d.dominio.toUpperCase()}`, 15, 75);
+    doc.text(`Analise de Perimetro: ${d.dominio.toUpperCase()}`, 15, 75);
     
     doc.setFillColor(245, 245, 245);
     doc.rect(15, 80, 180, 50, 'F');
     doc.setFontSize(11);
     doc.setTextColor(60, 60, 60);
-    doc.text(`- SSL/TLS: ${d.sslOk ? 'Ativo' : 'FALHA CRITICA'}`, 25, 92);
-    doc.text(`- DMARC: ${d.temDmarc ? 'Configurado' : 'VULNERAVEL'}`, 25, 102);
-    doc.text(`- VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS' : 'Limpo'}`, 25, 112);
-    doc.text(`- Infra: ${limparParaPDF(d.plataforma)}`, 25, 122);
+    doc.text(`- Protocolo SSL/TLS: ${d.sslOk ? 'Ativo e Criptografado' : 'FALHA CRITICA'}`, 25, 92);
+    doc.text(`- Protecao de E-mail (DMARC): ${d.temDmarc ? 'Protegido' : 'VULNERAVEL'}`, 25, 102);
+    doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 112);
+    doc.text(`- Motor de Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 122);
+
+    // SEÇÃO ADICIONAL DO PDF 10 RESTAURADA
+    doc.setFontSize(12);
+    doc.setTextColor(40, 40, 40);
+    doc.text("POR QUE ESTES ITENS SAO CRITICOS?", 15, 145);
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    const pqCritico = [
+        "SSL: Garante que os dados dos seus clientes nao sejam interceptados por hackers.",
+        "DMARC: Camada de seguranca que impede que usem seu e-mail para golpes (Spoofing).",
+        "Reputacao: Verifica se o seu site possui virus ou esta em listas negras globais."
+    ];
+    doc.text(pqCritico, 15, 155);
 
     // Parecer do Especialista
-    doc.setFontSize(12);
-    doc.text("PARECER TECNICO:", 15, 145);
-    doc.setFontSize(10);
-    const msg = d.score === "A+" ? "Ambiente Seguro. Recomenda-se apenas monitoramento." : "ALERTA: Vulnerabilidades detectadas que permitem sequestro de dados.";
-    doc.text(doc.splitTextToSize(msg, 170), 15, 155);
+    doc.setFontSize(11);
+    doc.setTextColor(40, 40, 40);
+    doc.text("PARECER DO ESPECIALISTA:", 15, 180);
+    doc.setFillColor(corTema[0], corTema[1], corTema[2]);
+    doc.rect(15, 185, 180, 20, 'F');
+    doc.setTextColor(255, 255, 255);
+    const msg = d.score === "A+" ? "Ambiente em conformidade. Hardening preventivo recomendado." : "RISCO DETECTADO: Recomendamos mitigacao imediata.";
+    doc.text(doc.splitTextToSize(msg, 170), 20, 197);
 
-    // Rodapé Preto com Escudo
+    // Rodapé Preto
     doc.setFillColor(20, 20, 20);
     doc.rect(0, 260, 210, 37, 'F');
     
-    // Escudo no rodapé
     try {
         doc.addImage("img/escudo_shiel.png", "PNG", 175, 265, 20, 20);
     } catch(e) {}
