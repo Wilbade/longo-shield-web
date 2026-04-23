@@ -6,19 +6,19 @@ const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TEXTOS_IA = {
     "SSL_FALHOU": {
         "titulo": "Certificado SSL Inválido ou Ausente",
-        "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD. Atacantes podem capturar senhas e informações financeiras em tempo real através de ataques de Man-in-the-Middle (MitM)."
+        "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD."
     },
     "REPUTACAO_RUIM": {
         "titulo": "Domínio em Blacklists de Segurança",
-        "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador dos seus clientes."
+        "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador."
     },
     "LENTIDAO": {
         "titulo": "Degradação Severa de Disponibilidade",
-        "descricao": "A lentidão extrema no tempo de resposta do servidor indica um possível ataque de Negação de Serviço (DDoS) ou o esgotamento de recursos que facilita a exploração de brechas."
+        "descricao": "A lentidão extrema indica um possível ataque de Negação de Serviço (DDoS) ou esgotamento de recursos que facilita a exploração de brechas."
     },
     "SCORE_ALTO": {
         "titulo": "Resiliência Cibernética em Conformidade",
-        "descricao": "Seu ambiente apresenta um score de excelência. No entanto, recomendamos um Hardening preventivo e auditorias periódicas para garantir que sua superfície permaneça impenetrável."
+        "descricao": "Seu ambiente apresenta um score de excelência. Recomendamos Hardening preventivo para manter sua superfície impenetrável."
     }
 };
 
@@ -32,18 +32,22 @@ async function checkReputation(domain) {
     } catch (error) { return 0; }
 }
 
-// CAPTURA INICIAL (Cria a linha)
+// 1. CRIA O LEAD INICIAL
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
-        await _supabase.from('leads').insert([{
+        const { data, error } = await _supabase.from('leads').insert([{
             dominio, score, status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
             velocidade, plataforma,
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
-        }]);
+        }]).select();
+        
+        if (data && data[0]) {
+            window.lastLeadId = data[0].id; // Guarda o ID exato para o update do e-mail
+        }
     } catch (err) { console.error('Erro lead:', err); }
 }
 
@@ -53,29 +57,32 @@ function solicitarRelatorio() {
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// FINALIZAR (Atualiza a linha existente com o e-mail)
+// 2. ATUALIZA O LEAD COM O EMAIL (USANDO O ID SALVO)
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
-    const dominio = document.getElementById('dominioModal').innerText;
-    if (!emailValue || !emailValue.includes('@')) return alert("Por favor, insira um e-mail válido.");
+    if (!emailValue || !emailValue.includes('@')) return alert("E-mail inválido.");
 
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
 
     try {
-        // ATUALIZA em vez de INSERT (para não duplicar a linha)
-        const { error } = await _supabase
-            .from('leads')
-            .update({ email: emailValue, score: "SOLICITOU_RELATORIO" })
-            .eq('dominio', dominio)
-            .order('created_at', { ascending: false })
-            .limit(1);
+        // Se temos o ID da sessão atual, atualizamos por ele (mais seguro que domínio)
+        let query = _supabase.from('leads').update({ email: emailValue, score: "SOLICITOU_RELATORIO" });
+        
+        if (window.lastLeadId) {
+            query = query.eq('id', window.lastLeadId);
+        } else {
+            const dominio = document.getElementById('dominioModal').innerText;
+            query = query.eq('dominio', dominio).order('created_at', { ascending: false }).limit(1);
+        }
 
+        const { error } = await query;
         if (error) throw error;
+
         alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
-    } catch (e) { console.error(e); alert("Erro ao atualizar."); }
+    } catch (e) { alert("Erro ao salvar e-mail."); }
     finally { btn.innerText = "RECEBER AGORA"; btn.disabled = false; }
 }
 
@@ -89,10 +96,10 @@ async function iniciarDiagnostico() {
     resultArea.innerHTML = `<div id="status-logger" style="padding: 20px; color: #00FFFF; font-family: monospace; text-align: left; background: rgba(0,0,0,0.7); border-radius: 8px; border: 1px solid #00FFFF33;"></div><div class="loader" id="main-loader" style="margin-top: 15px;"></div>`;
     
     const logger = document.getElementById('status-logger');
-    const logs = ["> Estabelecendo Handshake...", "> Auditando Certificados SSL...", "> Verificando DMARC...", "> Reputation Scan..."];
+    const logs = ["> Handshake...", "> SSL Scan...", "> DMARC Check...", "> Reputation..."];
     for (const log of logs) {
         const p = document.createElement('p'); p.innerText = log; logger.appendChild(p);
-        await new Promise(r => setTimeout(r, 400)); 
+        await new Promise(r => setTimeout(r, 300)); 
     }
 
     try {
@@ -106,17 +113,17 @@ async function iniciarDiagnostico() {
         let sslOk = false;
         try { 
             const controller = new AbortController();
-            const id = setTimeout(() => controller.abort(), 4000);
+            const id = setTimeout(() => controller.abort(), 3500);
             await fetch(`https://${dominio}`, { mode: 'no-cors', signal: controller.signal }); 
             sslOk = true; 
             clearTimeout(id);
         } catch (e) { sslOk = false; }
         
         const duration = (Date.now() - start) / 1000;
-        let plataforma = (dominio.includes('santini') || dominio.includes('abravidros')) ? "WordPress Detectado" : "Infraestrutura Proprietária";
+        let plataforma = (dominio.includes('santini') || dominio.includes('abravidros')) ? "WordPress" : "Proprietária";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
-        const velStr = `Rápida (${duration.toFixed(1)}s)`;
+        const velStr = `${duration.toFixed(1)}s`;
 
         capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
@@ -131,10 +138,10 @@ async function iniciarDiagnostico() {
                 <div style="font-size: 3rem; font-weight: 900; color: ${cor};">${score}</div>
                 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Protegido' : '<span style="color:#FF4444">Vulnerável</span>'}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 SSL: ${sslOk ? 'Ativo' : '<span style="color:#FF4444">Falha</span>'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Ok' : 'Risco'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 SSL: ${sslOk ? 'Ativo' : 'Falha'}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ ${velStr}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? '<span style="color:#FF4444">Risco</span>' : 'Limpo'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -147,80 +154,81 @@ async function iniciarDiagnostico() {
                 <h4 style="color: #FFB300; margin: 0 0 5px 0;">🛡️ Análise de Risco WL TEC</h4>
                 <p style="font-size: 0.85rem; color: #bbb;"><strong>${dadosIA.titulo}:</strong> ${dadosIA.descricao}</p>
                 <button onclick="solicitarRelatorio()" class="refresh-btn" style="width: 100%; background: #FFB300; color: #000; margin-top: 10px;">
-                    🚀 OBTER DADOS TOTAIS E PROPOSTA DE CORREÇÃO
+                    🚀 OBTER DADOS TOTAIS E PROPOSTA
                 </button>
             </div>
         </div>`;
 
-        const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc, duration };
-        document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dadosParaPDF);
+        const dPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc };
+        document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dPDF);
 
-    } catch (error) { resultArea.innerHTML = "Erro na varredura técnica."; }
+    } catch (error) { resultArea.innerHTML = "Erro técnico."; }
 }
 
-// RESTAURAÇÃO DO PDF "DOSSIÊ" (O COMPLETO DE ONTEM)
+// PDF COM LOGO E LAYOUT COMPLETO
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const corTema = d.score === "A+" ? [0, 150, 0] : [180, 0, 0];
 
-    // Cabeçalho Escuro
+    // Cabeçalho Preto + Logo
     doc.setFillColor(20, 20, 20);
-    doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(22);
-    doc.text("LONGO SHIELD", 15, 20);
-    doc.setFontSize(10);
-    doc.setTextColor(150, 150, 150);
-    doc.text("RELATORIO TECNICO DE RESILIENCIA DIGITAL", 15, 30);
+    doc.rect(0, 0, 210, 45, 'F');
+    
+    // Tenta carregar a logo (Certifique-se que o caminho img/logo_shield_branco.png existe)
+    try {
+        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 50, 15);
+    } catch (e) {
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.text("LONGO SHIELD", 15, 22);
+    }
 
-    // Faixa de Score
+    doc.setFontSize(9);
+    doc.setTextColor(150, 150, 150);
+    doc.text("RELATORIO TECNICO DE RESILIENCIA DIGITAL", 15, 35);
+
+    // Barra de Score
     doc.setFillColor(corTema[0], corTema[1], corTema[2]);
-    doc.rect(0, 40, 210, 12, 'F');
+    doc.rect(0, 45, 210, 12, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
-    doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
+    doc.text(`SCORE FINAL: ${d.score}`, 15, 53);
 
-    // Dados da Análise
+    // Dados
     doc.setTextColor(40, 40, 40);
     doc.setFontSize(14);
-    doc.text(`Analise de Perimetro: ${d.dominio.toUpperCase()}`, 15, 65);
+    doc.text(`Analise: ${d.dominio.toUpperCase()}`, 15, 75);
     
     doc.setFillColor(245, 245, 245);
-    doc.rect(15, 70, 180, 50, 'F');
+    doc.rect(15, 80, 180, 50, 'F');
     doc.setFontSize(11);
-    doc.setTextColor(50, 50, 50);
-    doc.text(`- Protocolo SSL/TLS: ${d.sslOk ? 'Ativo e Criptografado' : 'FALHA CRITICA'}`, 25, 82);
-    doc.text(`- Protecao de E-mail (DMARC): ${d.temDmarc ? 'Protegido' : 'VULNERAVEL'}`, 25, 92);
-    doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 102);
-    doc.text(`- Motor de Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 112);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`- SSL/TLS: ${d.sslOk ? 'Ativo' : 'FALHA CRITICA'}`, 25, 92);
+    doc.text(`- DMARC: ${d.temDmarc ? 'Configurado' : 'VULNERAVEL'}`, 25, 102);
+    doc.text(`- VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS' : 'Limpo'}`, 25, 112);
+    doc.text(`- Infra: ${limparParaPDF(d.plataforma)}`, 25, 122);
 
-    // Seção de Por que é crítico
+    // Parecer do Especialista
     doc.setFontSize(12);
-    doc.text("POR QUE ESTES ITENS SAO CRITICOS?", 15, 135);
-    doc.setFontSize(9);
-    const notas = [
-        "SSL: Garante que os dados dos seus clientes nao sejam interceptados por hackers.",
-        "DMARC: Camada de seguranca que impede que usem seu e-mail para golpes (Spoofing).",
-        "Reputacao: Verifica se o seu site possui virus ou esta em listas negras globais."
-    ];
-    doc.text(notas, 15, 145);
+    doc.text("PARECER TECNICO:", 15, 145);
+    doc.setFontSize(10);
+    const msg = d.score === "A+" ? "Ambiente Seguro. Recomenda-se apenas monitoramento." : "ALERTA: Vulnerabilidades detectadas que permitem sequestro de dados.";
+    doc.text(doc.splitTextToSize(msg, 170), 15, 155);
 
-    // Parecer
-    doc.setFillColor(corTema[0], corTema[1], corTema[2]);
-    doc.rect(15, 175, 180, 25, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
-    doc.text("PARECER DO ESPECIALISTA:", 20, 184);
-    const parecer = d.score === "A+" ? "Ambiente em conformidade. Hardening preventivo recomendado." : "RISCO DETECTADO: Recomendamos mitigacao imediata.";
-    doc.text(doc.splitTextToSize(parecer, 170), 20, 192);
-
-    // Rodapé
-    doc.setFillColor(30, 30, 30);
+    // Rodapé Preto com Escudo
+    doc.setFillColor(20, 20, 20);
     doc.rect(0, 260, 210, 37, 'F');
+    
+    // Escudo no rodapé
+    try {
+        doc.addImage("img/escudo_shiel.png", "PNG", 175, 265, 20, 20);
+    } catch(e) {}
+
     doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
     doc.text("WL TEC - CONSULTORIA EM CIBERSEGURANCA", 15, 275);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.text("contato@wl.tec.br | (11) 99531-4831 | www.wl.tec.br", 15, 285);
 
     doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
