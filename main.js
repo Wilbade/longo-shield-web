@@ -3,7 +3,7 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// BANCO DE TEXTOS DA IA (Baseado no seu JSON)
+// BANCO DE TEXTOS DA IA
 const TEXTOS_IA = {
     "SSL_FALHOU": {
         "titulo": "Certificado SSL Inválido ou Ausente",
@@ -39,14 +39,19 @@ async function checkReputation(domain) {
     } catch (error) { return 0; }
 }
 
-async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
+// CAPTURA O LEAD E O PARECER DA IA AUTOMATICAMENTE
+async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma, parecerIA) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
         await _supabase.from('leads').insert([{
-            dominio: dominio, score: score, status_ssl: ssl,
+            dominio: dominio, 
+            score: score, 
+            status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
-            velocidade: velocidade, plataforma: plataforma,
+            velocidade: velocidade, 
+            plataforma: plataforma,
+            detalhes_tecnicos: parecerIA, // SALVA O TEXTO DA IA AQUI
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
         }]);
@@ -59,25 +64,28 @@ function solicitarRelatorio() {
     document.getElementById('modalEmail').style.display = 'block';
 }
 
+// FINALIZA E SALVA O E-MAIL NA COLUNA 'email'
 async function finalizarSolicitacao() {
     const email = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
     if (!email || !email.includes('@')) {
-        return alert("Por favor, insira um e-mail válido para receber o dossiê.");
+        return alert("Por favor, insira um e-mail válido.");
     }
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
     try {
         const { error } = await _supabase.from('leads').insert([{ 
-            dominio: dominio, score: "SOLICITOU_RELATORIO", plataforma: "E-mail: " + email 
+            dominio: dominio, 
+            score: "LEAD QUALIFICADO", 
+            email: email, // SALVA NA COLUNA 'email'
+            plataforma: "Solicitou Relatório" 
         }]);
         if (error) throw error;
-        alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
+        alert("Sucesso! O Dossiê será enviado para " + email);
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
-        console.error(e);
-        alert("Erro ao processar.");
+        alert("Erro ao salvar contato.");
     } finally {
         btn.innerText = "RECEBER AGORA";
         btn.disabled = false;
@@ -121,15 +129,16 @@ async function iniciarDiagnostico() {
         let plataforma = (dominio.includes('santini') || dominio.includes('abravidros')) ? "WordPress Detectado" : "Infraestrutura Proprietária";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
-        const velStr = `Rápida (${duration.toFixed(1)}s)`;
+        const velStr = `Processado (${duration.toFixed(1)}s)`;
+
+        let chaveIA = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
+        let parecerIA = `${TEXTOS_IA[chaveIA].titulo}: ${TEXTOS_IA[chaveIA].descricao}`;
 
         const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc, duration };
-        capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
+        capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma, parecerIA);
 
         document.getElementById('main-loader').remove();
         logger.style.display = 'none';
-
-        let chaveIA = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
 
         resultArea.innerHTML = `
         <div style="text-align: left; background: rgba(10,10,10,0.95); border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden;">
@@ -196,7 +205,6 @@ function gerarRelatorioPDF(d) {
     doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 40, 'F');
     try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12); } catch (e) { doc.setTextColor(255, 255, 255); doc.text("WL TEC", 15, 22); }
     doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(0, 40, 210, 12, 'F');
-    doc.setTextColor(255, 255, 255); doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
-    doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 65);
-    doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
+    doc.setTextColor(255, 255, 255); doc.text(`SCORE: ${d.score}`, 15, 48);
+    doc.save(`Dossie_${d.dominio}.pdf`);
 }
