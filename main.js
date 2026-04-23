@@ -3,7 +3,6 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// BANCO DE TEXTOS DA IA
 const TEXTOS_IA = {
     "SSL_FALHOU": {
         "titulo": "Certificado SSL Inválido ou Ausente",
@@ -23,19 +22,13 @@ const TEXTOS_IA = {
     }
 };
 
-const limparParaPDF = (str) => {
-    if (typeof str !== 'string') return str;
-    return str.replace(/[^\x00-\x7F]/g, "").trim(); 
-};
+const limparParaPDF = (str) => typeof str === 'string' ? str.replace(/[^\x00-\x7F]/g, "").trim() : str;
 
 async function checkReputation(domain) {
     try {
-        const { data, error } = await _supabase.functions.invoke('rapid-worker', {
-            body: { domain: domain }
-        });
+        const { data, error } = await _supabase.functions.invoke('rapid-worker', { body: { domain: domain } });
         if (error) throw error;
-        return data?.data?.attributes?.last_analysis_stats ? 
-               (data.data.attributes.last_analysis_stats.malicious + data.data.attributes.last_analysis_stats.suspicious) : 0;
+        return data?.data?.attributes?.last_analysis_stats ? (data.data.attributes.last_analysis_stats.malicious + data.data.attributes.last_analysis_stats.suspicious) : 0;
     } catch (error) { return 0; }
 }
 
@@ -44,31 +37,13 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
         await _supabase.from('leads').insert([{
-            dominio: dominio, 
-            score: score, 
-            status_ssl: ssl,
+            dominio, score, status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
-            velocidade: velocidade, 
-            plataforma: plataforma,
+            velocidade, plataforma,
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
         }]);
     } catch (err) { console.error('Erro lead:', err); }
-}
-
-function exibirRecomendacaoIA(dados) {
-    const area = document.getElementById('wl-recomendacoes');
-    const titulo = document.getElementById('rec-titulo');
-    const desc = document.getElementById('rec-descricao');
-    
-    let chave = "SCORE_ALTO";
-    if (!dados.sslOk) chave = "SSL_FALHOU";
-    else if (dados.totalAlertas > 0) chave = "REPUTACAO_RUIM";
-    else if (dados.duration > 3) chave = "LENTIDAO";
-
-    if(titulo) titulo.innerText = TEXTOS_IA[chave].titulo;
-    if(desc) desc.innerText = TEXTOS_IA[chave].descricao;
-    if(area) area.style.display = 'block';
 }
 
 function solicitarRelatorio() {
@@ -78,44 +53,28 @@ function solicitarRelatorio() {
 }
 
 async function finalizarSolicitacao() {
-    const email = document.getElementById('emailCliente').value;
+    const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
-
-    if (!email || !email.includes('@')) {
-        return alert("Por favor, insira um e-mail válido para receber o dossiê.");
-    }
+    if (!emailValue || !emailValue.includes('@')) return alert("Por favor, insira um e-mail válido.");
 
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
 
     try {
-        const { error } = await _supabase
-            .from('leads')
-            .insert([{ 
-                dominio: dominio, 
-                score: "SOLICITOU_RELATORIO", 
-                plataforma: "E-mail: " + email,
-                email: email
-            }]);
-
+        const { error } = await _supabase.from('leads').insert([{ 
+            dominio: dominio, score: "SOLICITOU_RELATORIO", email: emailValue, plataforma: "Lead vindo do Modal" 
+        }]);
         if (error) throw error;
-
         alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
-    } catch (e) {
-        console.error(e);
-        alert("Ocorreu um erro ao salvar o e-mail.");
-    } finally {
-        btn.innerText = "RECEBER AGORA";
-        btn.disabled = false;
-    }
+    } catch (e) { alert("Erro ao salvar."); }
+    finally { btn.innerText = "RECEBER AGORA"; btn.disabled = false; }
 }
 
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const resultArea = document.getElementById('resultArea');
-    
     if (!dominioInput || !dominioInput.value) return;
 
     const dominio = dominioInput.value.trim().toLowerCase();
@@ -140,10 +99,10 @@ async function iniciarDiagnostico() {
         let sslOk = false;
         try { 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            const id = setTimeout(() => controller.abort(), 4000);
             await fetch(`https://${dominio}`, { mode: 'no-cors', signal: controller.signal }); 
             sslOk = true; 
-            clearTimeout(timeoutId);
+            clearTimeout(id);
         } catch (e) { sslOk = false; }
         
         const duration = (Date.now() - start) / 1000;
@@ -152,113 +111,64 @@ async function iniciarDiagnostico() {
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `Rápida (${duration.toFixed(1)}s)`;
 
-        const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc, duration };
-        
-        // SALVA DADOS TÉCNICOS NO SUPABASE (Captura Inicial)
+        // Salva lead inicial
         capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
-        if(document.getElementById('main-loader')) document.getElementById('main-loader').remove();
-        if(logger) logger.style.display = 'none';
+        // Identifica texto da recomendação
+        let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
+        const dadosIA = TEXTOS_IA[chave];
 
         resultArea.innerHTML = `
-        <div style="text-align: left; background: rgba(10,10,10,0.95); padding: 30px; border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative;">
-            <img src="img/escudo_shiel.png" style="position: absolute; top: 20px; right: 20px; height: 60px; opacity: 0.9; filter: drop-shadow(0 0 10px ${cor}44);">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px;">
-                <div>
-                    <div style="background: ${cor}; color: #000; padding: 4px 12px; border-radius: 4px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; display: inline-block; margin-bottom: 8px;">STATUS DE RESILIÊNCIA</div>
-                    <h2 style="color: #fff; margin: 0; font-family: 'Rajdhani', sans-serif; font-size: 1.8rem; letter-spacing: 1px;">${dominio.toUpperCase()}</h2>
+        <div style="text-align: left; background: rgba(10,10,10,0.95); border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden;">
+            <div style="padding: 30px;">
+                <img src="img/escudo_shiel.png" style="position: absolute; top: 20px; right: 20px; height: 60px; opacity: 0.9;">
+                <h2 style="color: #fff; font-family: 'Rajdhani', sans-serif;">${dominio.toUpperCase()}</h2>
+                <div style="font-size: 3rem; font-weight: 900; color: ${cor};">${score}</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">DMARC: ${temDmarc ? 'Protegido' : 'Vulnerável'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">SSL: ${sslOk ? 'Ativo' : 'Falha'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ ${velStr}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
                 </div>
-                <div style="font-size: 3rem; font-weight: 900; color: ${cor}; font-family: 'Rajdhani', sans-serif; margin-right: 70px; text-shadow: 0 0 15px ${cor}55;">${score}</div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <small style="color: #666; font-size: 0.65rem; text-transform: uppercase; display: block;">Perímetro de E-mail</small>
-                    <span style="color: #fff; font-size: 0.9rem; font-weight: bold;">🛡️ DMARC: ${temDmarc ? 'Protegido' : '<span style="color:#FF4444">Vulnerável</span>'}</span>
-                </div>
-                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <small style="color: #666; font-size: 0.65rem; text-transform: uppercase; display: block;">Criptografia</small>
-                    <span style="color: #fff; font-size: 0.9rem; font-weight: bold;">🔒 SSL: ${sslOk ? 'Ativo' : '<span style="color:#FF4444">Falha</span>'}</span>
-                </div>
-                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <small style="color: #666; font-size: 0.65rem; text-transform: uppercase; display: block;">Performance</small>
-                    <span style="color: #fff; font-size: 0.9rem; font-weight: bold;">⚡ ${velStr}</span>
-                </div>
-                <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <small style="color: #666; font-size: 0.65rem; text-transform: uppercase; display: block;">Ameaças Externas</small>
-                    <span style="color: #fff; font-size: 0.9rem; font-weight: bold;">🦠 ${totalAlertas > 0 ? '<span style="color:#FF4444">Risco</span>' : 'Limpo'}</span>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button id="btnPDF" class="refresh-btn" style="flex: 1;">📥 DOSSIÊ PDF</button>
+                    <button onclick="window.open('https://wa.me/5511995314831')" class="refresh-btn" style="flex: 1; background: ${cor}; color: #000;">📢 CONSULTORIA</button>
                 </div>
             </div>
 
-            <div style="background: rgba(255,255,255,0.05); border: 1px solid ${cor}33; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
-                <small style="color: ${cor}; font-size: 0.7rem; text-transform: uppercase; font-weight: bold;">DNA da Infraestrutura</small>
-                <div style="color: #fff; font-size: 1rem; font-weight: 600; margin-top: 4px;">💻 Sistema: ${plataforma}</div>
+            <div style="padding: 20px; background: rgba(255, 179, 0, 0.08); border-top: 1px solid rgba(255, 179, 0, 0.2);">
+                <h4 style="color: #FFB300;">🛡️ Análise de Risco WL TEC</h4>
+                <p style="font-size: 0.85rem; color: #bbb;"><strong>${dadosIA.titulo}:</strong> ${dadosIA.descricao}</p>
+                <button onclick="solicitarRelatorio()" class="refresh-btn" style="width: 100%; background: #FFB300; color: #000; margin-top: 10px;">
+                    🚀 OBTER RELATÓRIO COMPLETO
+                </button>
             </div>
+        </div>`;
 
-            <div style="display: flex; gap: 10px;">
-                <button id="btnPDF" style="flex: 1; background: #222; color: #fff; border: 1px solid #444; padding: 16px; border-radius: 6px; cursor: pointer; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-family: 'Rajdhani', sans-serif;">📥 DOSSIÊ PDF</button>
-                <button onclick="window.open('https://wa.me/5511995314831', '_blank')" style="flex: 1; background: ${cor}; color: #000; border: none; padding: 16px; border-radius: 6px; cursor: pointer; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-family: 'Rajdhani', sans-serif;">📢 CONSULTORIA</button>
-            </div>
-        </div>
-        `;
-
-        exibirRecomendacaoIA(dadosParaPDF);
-
+        // Ativa o PDF
+        const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc, duration };
         document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dadosParaPDF);
-    } catch (error) { 
-        console.error(error);
-        resultArea.innerHTML = "Erro na varredura técnica."; 
-    }
+
+    } catch (error) { resultArea.innerHTML = "Erro na varredura técnica."; }
 }
 
 function gerarRelatorioPDF(d) {
-    if (!window.jspdf) {
-        alert("Erro: Biblioteca de PDF não carregada.");
-        return;
-    }
+    if (!window.jspdf) return alert("Erro: jsPDF não carregado.");
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const corTema = d.score === "A+" ? [0, 150, 0] : [180, 0, 0];
 
-    // Header
-    doc.setFillColor(20, 20, 20);
-    doc.rect(0, 0, 210, 40, 'F');
-    try { 
-        doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12); 
-    } catch (e) {
-        doc.setTextColor(255, 255, 255); doc.setFontSize(20); doc.text("WL TEC - LONGO SHIELD", 15, 22);
-    }
-    doc.setFontSize(10); doc.setTextColor(180, 180, 180); doc.text("RELATORIO TECNICO DE RESILIENCIA DIGITAL", 15, 33);
-
-    // Score Bar
-    doc.setFillColor(corTema[0], corTema[1], corTema[2]);
-    doc.rect(0, 40, 210, 12, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
-
-    // Main Info
-    doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.setFont("helvetica", "bold");
-    doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 65);
+    doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 40, 'F');
+    try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 45, 12); } catch (e) { doc.setTextColor(255, 255, 255); doc.text("WL TEC", 15, 22); }
+    doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(0, 40, 210, 12, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text(`SCORE: ${d.score}`, 15, 48);
     
-    doc.setFillColor(248, 248, 248); doc.rect(15, 70, 180, 50, 'F');
-    doc.setFontSize(11); doc.setFont("helvetica", "normal");
-    doc.text(`- Protocolo SSL/TLS: ${d.sslOk ? 'Ativo e Criptografado' : 'FALHA CRITICA'}`, 25, 82);
-    doc.text(`- Configuracao DMARC: ${d.temDmarc ? 'Protegido contra Spoofing' : 'VULNERAVEL A FRAUDES'}`, 25, 92);
-    doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 102);
-    doc.text(`- DNA da Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 112);
-
-    // Parecer
-    doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(15, 175, 180, 25, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.text("PARECER DO ESPECIALISTA:", 20, 184);
-    const parecer = d.score === "A+" ? "Ambiente em conformidade. Hardening preventivo recomendado." : "ALERTA CRITICO: Vulnerabilidades detectadas. Risco de sequestro de dados.";
-    doc.text(doc.splitTextToSize(parecer, 170), 20, 192);
-
-    // Footer
-    doc.setFillColor(30, 30, 30); doc.rect(0, 260, 210, 37, 'F');
-    doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.setFont("helvetica", "bold");
-    doc.text("WL TEC - CONSULTORIA EM CIBERSEGURANCA", 15, 272);
-    doc.setFontSize(10); doc.setFont("helvetica", "normal"); doc.setTextColor(0, 255, 255);
-    doc.text("E-mail: contato@wl.tec.br", 15, 282);
-    doc.text("WhatsApp: (11) 99531-4831", 15, 290);
-
-    doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
+    doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.text(`Dominio: ${d.dominio.toUpperCase()}`, 15, 65);
+    doc.setFontSize(10); doc.text(`- SSL: ${d.sslOk ? 'Ativo' : 'Falha'}`, 15, 75);
+    doc.text(`- DMARC: ${d.temDmarc ? 'Ok' : 'Vulneravel'}`, 15, 85);
+    doc.text(`- Reputacao: ${d.totalAlertas > 0 ? 'Risco' : 'Limpo'}`, 15, 95);
+    
+    doc.save(`Resiliencia_${d.dominio}.pdf`);
 }
