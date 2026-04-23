@@ -3,6 +3,9 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Variável Global para segurar o ID entre a análise e o e-mail
+let idLeadAtual = null;
+
 const TEXTOS_IA = {
     "SSL_FALHOU": { "titulo": "Certificado SSL Inválido ou Ausente", "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD." },
     "REPUTACAO_RUIM": { "titulo": "Domínio em Blacklists de Segurança", "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador." },
@@ -16,64 +19,67 @@ async function checkReputation(domain) {
     try {
         const { data } = await _supabase.functions.invoke('rapid-worker', { body: { domain: domain } });
         return data?.data?.attributes?.last_analysis_stats ? (data.data.attributes.last_analysis_stats.malicious + data.data.attributes.last_analysis_stats.suspicious) : 0;
-    } catch { return 0; }
+    } catch (error) { return 0; }
 }
 
-// 1. CAPTURA INICIAL (Grava os dados técnicos)
+// 1. CAPTURA INICIAL (Cria a linha e guarda o ID)
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
 
-        // Fazemos o insert simples. Sem depender de retorno.
-        await _supabase.from('leads').insert([{
+        const { data, error } = await _supabase.from('leads').insert([{
             dominio, score, status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
             velocidade, plataforma,
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
-        }]);
+        }]).select();
+
+        if (data && data[0]) {
+            idLeadAtual = data[0].id; 
+            console.log("Linha criada com sucesso. ID:", idLeadAtual);
+        }
+        if (error) console.error("Erro Supabase:", error);
     } catch (err) { console.error("Erro Captura:", err); }
 }
 
 function solicitarRelatorio() {
-    document.getElementById('dominioModal').innerText = document.getElementById('domainInput').value;
+    const dominio = document.getElementById('domainInput').value;
+    document.getElementById('dominioModal').innerText = dominio;
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// 2. FINALIZAR (Busca a última linha do domínio e atualiza o e-mail)
+// 2. FINALIZAR SOLICITAÇÃO (Atualiza a linha exata sem criar outra)
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
 
-    if (!emailValue || !emailValue.includes('@')) return alert("Por favor, insira um e-mail válido.");
+    if (!emailValue || !emailValue.includes('@')) return alert("E-mail inválido.");
 
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
 
     try {
-        // BUSCA A LINHA QUE ACABOU DE SER CRIADA PELO DOMÍNIO
-        const { data: leadRecente } = await _supabase
-            .from('leads')
-            .select('id')
-            .eq('dominio', dominio)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        if (leadRecente) {
-            // ATUALIZA A LINHA EXISTENTE
-            await _supabase.from('leads')
-                .update({ email: emailValue })
-                .eq('id', leadRecente.id);
+        let error;
+        if (idLeadAtual) {
+            // Caminho Principal: Atualiza a linha que o Supabase acabou de nos dar
+            const res = await _supabase.from('leads').update({ email: emailValue }).eq('id', idLeadAtual);
+            error = res.error;
         } else {
-            // Se por algum milagre não achar, cria uma com o e-mail
-            await _supabase.from('leads').insert([{ dominio, email: emailValue, score: "LEAD DIRETO" }]);
+            // Backup: Se o ID se perder, busca o registro mais recente desse domínio
+            const { data: leadRecente } = await _supabase.from('leads').select('id').eq('dominio', dominio).order('created_at', { ascending: false }).limit(1).single();
+            if (leadRecente) {
+                const res = await _supabase.from('leads').update({ email: emailValue }).eq('id', leadRecente.id);
+                error = res.error;
+            }
         }
 
-        alert("Sucesso! Dossiê será enviado para " + emailValue);
+        if (error) throw error;
+        alert("Sucesso! Dossiê enviado para " + emailValue);
         document.getElementById('modalEmail').style.display = 'none';
+        idLeadAtual = null; 
     } catch (e) {
         alert("Erro ao salvar contato.");
     } finally {
@@ -89,7 +95,7 @@ async function iniciarDiagnostico() {
 
     const dominio = dominioInput.value.trim().toLowerCase();
     resultArea.classList.remove('result-hidden');
-    resultArea.innerHTML = `<div id="status-logger" style="padding: 20px; color: #00FFFF; font-family: monospace; text-align: left; background: rgba(0,0,0,0.7); border-radius: 8px;"></div><div class="loader" id="main-loader" style="margin-top: 15px;"></div>`;
+    resultArea.innerHTML = `<div id="status-logger" style="padding: 20px; color: #00FFFF; font-family: monospace; background: rgba(0,0,0,0.7); border-radius: 8px;"></div><div class="loader" id="main-loader" style="margin-top: 15px;"></div>`;
     
     const logger = document.getElementById('status-logger');
     const logs = ["> Handshake...", "> SSL Scan...", "> DMARC Check...", "> Reputation..."];
@@ -120,7 +126,7 @@ async function iniciarDiagnostico() {
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `Rápida (${duration.toFixed(1)}s)`;
 
-        // Grava análise técnica
+        // Grava análise técnica e armazena o ID
         await capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
         let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
@@ -133,7 +139,7 @@ async function iniciarDiagnostico() {
                 <h2 style="color: #fff; font-family: 'Rajdhani', sans-serif;">${dominio.toUpperCase()}</h2>
                 <div style="font-size: 3rem; font-weight: 900; color: ${cor};">${score}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Protegido' : 'Vulnerável'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Ok' : 'Risco'}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 SSL: ${sslOk ? 'Ativo' : 'Falha'}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ ${velStr}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
@@ -169,7 +175,7 @@ function gerarRelatorioPDF(d) {
     doc.setFillColor(245, 245, 245); doc.rect(15, 80, 180, 50, 'F');
     doc.setFontSize(11); doc.setTextColor(60, 60, 60);
     doc.text(`- Protocolo SSL/TLS: ${d.sslOk ? 'Ativo e Criptografado' : 'FALHA CRITICA'}`, 25, 92);
-    doc.text(`- Protecao de E-mail (DMARC): ${d.temDmarc ? 'Protegido contra Spoofing' : 'VULNERAVEL A FRAUDES'}`, 25, 102);
+    doc.text(`- Protecao de E-mail (DMARC): ${d.temDmarc ? 'Protegido' : 'VULNERAVEL'}`, 25, 102);
     doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 112);
     doc.text(`- Motor de Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 122);
     doc.setFontSize(12); doc.setTextColor(40, 40, 40); doc.text("POR QUE ESTES ITENS SAO CRITICOS?", 15, 145);
