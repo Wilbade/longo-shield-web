@@ -107,6 +107,19 @@
         const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // ESCUDO DE SEGURANÇA: Limpa textos maliciosos antes de exibir na tela
+                function escapeHTML(str) {
+                    if (!str) return '---';
+                    return str.replace(/[&<>'"]/g, 
+                        tag => ({
+                            '&': '&amp;',
+                            '<': '&lt;',
+                            '>': '&gt;',
+                            "'": '&#39;',
+                            '"': '&quot;'
+                        }[tag] || tag)
+                    );
+                }
 
         window.onload = () => {
             if (localStorage.getItem('longo_shield_admin') === 'true') { mostrarPainel(); }
