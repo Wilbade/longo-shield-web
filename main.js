@@ -70,9 +70,49 @@ function exibirRecomendacaoIA(dados) {
     area.style.display = 'block';
 }
 
+// Abre a janelinha de e-mail e guarda o domínio atual
 function solicitarRelatorio() {
-    alert("Solicitação enviada! Em instantes você receberá o dossiê completo no e-mail cadastrado.");
-    // Aqui no futuro integraremos o envio do PDF por e-mail via Supabase
+    const dominio = document.getElementById('domainInput').value;
+    document.getElementById('dominioModal').innerText = dominio;
+    document.getElementById('modalEmail').style.display = 'block';
+}
+
+// Salva o e-mail no lead e avisa o cliente
+async function finalizarSolicitacao() {
+    const email = document.getElementById('emailCliente').value;
+    const dominio = document.getElementById('dominioModal').innerText;
+
+    if (!email || !email.includes('@')) {
+        return alert("Por favor, insira um e-mail válido para receber o dossiê.");
+    }
+
+    // Feedback visual
+    const btn = event.target;
+    btn.innerText = "ENVIANDO...";
+    btn.disabled = true;
+
+    try {
+        // Vamos atualizar o lead no Supabase que acabamos de criar
+        // Procuramos pelo domínio mais recente deste IP
+        const { error } = await _supabase
+            .from('leads')
+            .insert([{ 
+                dominio: dominio, 
+                score: "SOLICITOU_RELATORIO", 
+                plataforma: "E-mail: " + email 
+            }]);
+
+        if (error) throw error;
+
+        alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
+        document.getElementById('modalEmail').style.display = 'none';
+    } catch (e) {
+        console.error(e);
+        alert("Ocorreu um erro, mas não se preocupe. Tentaremos enviar manualmente.");
+    } finally {
+        btn.innerText = "RECEBER AGORA";
+        btn.disabled = false;
+    }
 }
 
 async function iniciarDiagnostico() {
