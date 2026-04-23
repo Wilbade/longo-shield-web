@@ -3,6 +3,9 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Variável Global para evitar duplicar linhas
+let currentLeadId = null;
+
 const TEXTOS_IA = {
     "SSL_FALHOU": { "titulo": "Certificado SSL Inválido ou Ausente", "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD." },
     "REPUTACAO_RUIM": { "titulo": "Domínio em Blacklists de Segurança", "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador." },
@@ -14,32 +17,43 @@ const limparParaPDF = (str) => typeof str === 'string' ? str.replace(/[^\x00-\x7
 
 async function checkReputation(domain) {
     try {
-        const { data, error } = await _supabase.functions.invoke('rapid-worker', { body: { domain: domain } });
-        if (error) throw error;
+        const { data } = await _supabase.functions.invoke('rapid-worker', { body: { domain: domain } });
         return data?.data?.attributes?.last_analysis_stats ? (data.data.attributes.last_analysis_stats.malicious + data.data.attributes.last_analysis_stats.suspicious) : 0;
     } catch (error) { return 0; }
 }
 
-// 1. CRIA O LEAD INICIAL E GUARDA O ID NA MEMÓRIA
+// 1. INSERT DO LEAD (ROBUSTO)
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
-        
-        const { data, error } = await _supabase.from('leads').insert([{
-            dominio, score, status_ssl: ssl,
-            reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
-            velocidade, plataforma,
-            ip_usuario: dataIp.ip || '0.0.0.0',
-            localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
-        }]).select(); // O .select() é necessário para pegar o ID da linha criada
-        
-        if (error) console.error("Erro ao inserir lead:", error);
-        if (data && data[0]) {
-            window.currentLeadId = data[0].id; // SALVA O ID PARA O E-MAIL
-            console.log("Lead criado com ID:", window.currentLeadId);
+
+        const { data, error } = await _supabase
+            .from('leads')
+            .insert([{
+                dominio,
+                score,
+                status_ssl: ssl,
+                reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
+                velocidade,
+                plataforma,
+                ip_usuario: dataIp.ip || '0.0.0.0',
+                localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
+            }])
+            .select()
+            .single();
+
+        if (error) {
+            console.error("❌ Erro Supabase:", error);
+            return null;
         }
-    } catch (err) { console.error('Erro geral lead:', err); }
+
+        currentLeadId = data.id;
+        return data.id;
+    } catch (err) {
+        console.error("❌ Erro geral insert:", err);
+        return null;
+    }
 }
 
 function solicitarRelatorio() {
@@ -48,42 +62,45 @@ function solicitarRelatorio() {
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// 2. ATUALIZA A MESMA LINHA USANDO O ID SALVO (Resolve o erro do Order/Limit)
+// 2. UPDATE DO EMAIL (SEGURO)
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
-    if (!emailValue || !emailValue.includes('@')) return alert("Por favor, insira um e-mail válido.");
+    if (!emailValue || !emailValue.includes('@')) return alert("E-mail inválido.");
 
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
 
     try {
-        let error;
-        if (window.currentLeadId) {
-            // Caminho 1: Atualiza a linha exata que acabou de ser criada
-            const response = await _supabase
+        let leadId = currentLeadId;
+
+        // Fallback: se o ID se perdeu, busca o último registro desse domínio
+        if (!leadId) {
+            const dominio = document.getElementById('dominioModal').innerText;
+            const { data } = await _supabase
                 .from('leads')
-                .update({ email: emailValue, score: "SOLICITOU_RELATORIO" })
-                .eq('id', window.currentLeadId);
-            error = response.error;
-        } else {
-            // Caminho 2: Backup caso o ID se perca (tenta por domínio)
-            const response = await _supabase
-                .from('leads')
-                .update({ email: emailValue, score: "SOLICITOU_RELATORIO" })
-                .eq('dominio', document.getElementById('dominioModal').innerText);
-            error = response.error;
+                .select('id')
+                .eq('dominio', dominio)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+            if (data) leadId = data.id;
         }
 
-        if (error) throw error;
-        alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
-        document.getElementById('modalEmail').style.display = 'none';
-    } catch (e) { 
-        console.error("Erro no update do e-mail:", e);
-        alert("Erro ao salvar e-mail."); 
-    } finally { 
-        btn.innerText = "RECEBER AGORA"; 
-        btn.disabled = false; 
+        if (leadId) {
+            await _supabase.from('leads').update({ 
+                email: emailValue, 
+                score: "SOLICITOU_RELATORIO" 
+            }).eq('id', leadId);
+            
+            alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
+            document.getElementById('modalEmail').style.display = 'none';
+        }
+    } catch (err) {
+        alert("Erro ao salvar e-mail.");
+    } finally {
+        btn.innerText = "RECEBER AGORA";
+        btn.disabled = false;
     }
 }
 
@@ -117,16 +134,16 @@ async function iniciarDiagnostico() {
             setTimeout(() => ctrl.abort(), 3500);
             await fetch(`https://${dominio}`, { mode: 'no-cors', signal: ctrl.signal }); 
             sslOk = true; 
-        } catch (e) { sslOk = false; }
+        } catch { sslOk = false; }
         
         const duration = (Date.now() - start) / 1000;
-        let plataforma = (dominio.includes('santini') || dominio.includes('abravidros')) ? "WordPress Detectado" : "Infraestrutura Proprietária";
+        let plataforma = (dominio.includes('santini')) ? "WordPress Detectado" : "Infraestrutura Proprietária";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `Rápida (${duration.toFixed(1)}s)`;
 
-        // Grava no Supabase e guarda o ID
-        capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
+        // 🚨 SALVAMENTO ROBUSTO (ID NOVO CADA VEZ)
+        await capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
         let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
         const dadosIA = TEXTOS_IA[chave];
@@ -138,10 +155,10 @@ async function iniciarDiagnostico() {
                 <h2 style="color: #fff; font-family: 'Rajdhani', sans-serif;">${dominio.toUpperCase()}</h2>
                 <div style="font-size: 3rem; font-weight: 900; color: ${cor};">${score}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Protegido' : '<span style="color:#FF4444">Vulnerável</span>'}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 SSL: ${sslOk ? 'Ativo' : '<span style="color:#FF4444">Falha</span>'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Protegido' : 'Vulnerável'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 SSL: ${sslOk ? 'Ativo' : 'Falha'}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ ${velStr}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? '<span style="color:#FF4444">Risco</span>' : 'Limpo'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button id="btnPDF" class="refresh-btn" style="flex: 1;">📥 DOSSIÊ PDF</button>
@@ -161,13 +178,12 @@ async function iniciarDiagnostico() {
     } catch (error) { resultArea.innerHTML = "Erro técnico."; }
 }
 
-// PDF IDENTICO AO DOSSIÊ 10 (NÃO MEXER)
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const corTema = d.score === "A+" ? [0, 150, 0] : [180, 0, 0];
     doc.setFillColor(20, 20, 20); doc.rect(0, 0, 210, 45, 'F');
-    try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 50, 15); } catch (e) { doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.text("LONGO SHIELD", 15, 22); }
+    try { doc.addImage("img/logo_shield_branco.png", "PNG", 15, 12, 50, 15); } catch (e) { doc.setTextColor(255, 255, 255); doc.text("LONGO SHIELD", 15, 22); }
     doc.setFontSize(9); doc.setTextColor(150, 150, 150); doc.text("RELATORIO TECNICO DE RESILIENCIA DIGITAL", 15, 35);
     doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(0, 45, 210, 12, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 53);
