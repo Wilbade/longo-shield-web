@@ -3,12 +3,31 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// BANCO DE TEXTOS DA IA (Baseado no seu JSON)
+const TEXTOS_IA = {
+    "SSL_FALHOU": {
+        "titulo": "Certificado SSL Inválido ou Ausente",
+        "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD. Atacantes podem capturar senhas e informações financeiras em tempo real através de ataques de Man-in-the-Middle (MitM). Para reverter este cenário crítico, a WL TEC implementa imediatamente a criptografia de ponta a ponta e configura protocolos modernos para blindar o canal de comunicação."
+    },
+    "REPUTACAO_RUIM": {
+        "titulo": "Domínio em Blacklists de Segurança",
+        "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas de perigo no navegador dos seus clientes. Essa classificação geralmente é o resultado de uma infecção silenciosa por malware ou uso da infraestrutura para campanhas de phishing de terceiros. A equipe de resposta a incidentes da WL TEC higienizará sua aplicação, removerá os artefatos maliciosos e conduzirá o processo técnico de remoção do domínio das listas de bloqueio."
+    },
+    "LENTIDAO": {
+        "titulo": "Degradação Severa de Disponibilidade",
+        "descricao": "A lentidão extrema no tempo de resposta do servidor indica um possível ataque de Negação de Serviço Distribuída (DDoS) em andamento ou o esgotamento de recursos que facilita a exploração de brechas de arquitetura. Uma infraestrutura instável não apenas derruba as operações do seu negócio, mas também deixa o sistema suscetível a explorações de condições de corrida (race conditions). A WL TEC age emergencialmente otimizando a arquitetura de rede e implementando Web Application Firewalls (WAF) corporativos para absorver ataques e acelerar a aplicação."
+    },
+    "SCORE_ALTO": {
+        "titulo": "Resiliência Cibernética em Conformidade",
+        "descricao": "Seu ambiente apresenta um score de excelência, indicando que as camadas básicas de proteção estão ativas. No entanto, o cenário de ameaças é dinâmico. Especialistas ofensivos da WL TEC recomendam um Hardening preventivo e auditorias periódicas para garantir que sua superfície de ataque permaneça impenetrável contra novas variantes de ransomware e exploits zero-day."
+    }
+};
+
 const limparParaPDF = (str) => {
     if (typeof str !== 'string') return str;
     return str.replace(/[^\x00-\x7F]/g, "").trim(); 
 };
 
-// 2. FUNÇÃO SEGURA (EDGE FUNCTION)
 async function checkReputation(domain) {
     try {
         const { data, error } = await _supabase.functions.invoke('rapid-worker', {
@@ -20,7 +39,6 @@ async function checkReputation(domain) {
     } catch (error) { return 0; }
 }
 
-// 3. CAPTURA LEAD
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
@@ -35,11 +53,36 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
     } catch (err) { console.error('Erro lead:', err); }
 }
 
-// 4. FUNÇÃO BAZUCA (INTERFÁCE MODERNA DA PRINT 1)
+// NOVA FUNÇÃO PARA EXIBIR A RECOMENDAÇÃO DA IA
+function exibirRecomendacaoIA(dados) {
+    const area = document.getElementById('wl-recomendacoes');
+    const titulo = document.getElementById('rec-titulo');
+    const desc = document.getElementById('rec-descricao');
+    
+    let chave = "SCORE_ALTO";
+    if (!dados.sslOk) chave = "SSL_FALHOU";
+    else if (dados.totalAlertas > 0) chave = "REPUTACAO_RUIM";
+    else if (dados.duration > 3) chave = "LENTIDAO";
+
+    titulo.innerText = TEXTOS_IA[chave].titulo;
+    desc.innerText = TEXTOS_IA[chave].descricao;
+    
+    area.style.display = 'block';
+}
+
+function solicitarRelatorio() {
+    alert("Solicitação enviada! Em instantes você receberá o dossiê completo no e-mail cadastrado.");
+    // Aqui no futuro integraremos o envio do PDF por e-mail via Supabase
+}
+
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const resultArea = document.getElementById('resultArea');
+    const areaRec = document.getElementById('wl-recomendacoes');
+    
     if (!dominioInput || !dominioInput.value) return;
+
+    if (areaRec) areaRec.style.display = 'none'; // Esconde recomendações antigas
 
     const dominio = dominioInput.value.trim().toLowerCase();
     resultArea.classList.remove('result-hidden');
@@ -69,13 +112,12 @@ async function iniciarDiagnostico() {
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `Rápida (${duration.toFixed(1)}s)`;
 
-        const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc };
+        const dadosParaPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc, duration };
         capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
         document.getElementById('main-loader').remove();
         logger.style.display = 'none';
 
-        // --- INTERFACE MODERNA (LAYOUT DA PRINT 1) ---
         resultArea.innerHTML = `
         <div style="text-align: left; background: rgba(10,10,10,0.95); padding: 30px; border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative;">
             <img src="img/escudo_shiel.png" style="position: absolute; top: 20px; right: 20px; height: 60px; opacity: 0.9; filter: drop-shadow(0 0 10px ${cor}44);">
@@ -118,17 +160,18 @@ async function iniciarDiagnostico() {
         </div>
         `;
 
+        // CHAMA A EXIBIÇÃO DA RECOMENDAÇÃO
+        exibirRecomendacaoIA(dadosParaPDF);
+
         document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dadosParaPDF);
     } catch (error) { resultArea.innerHTML = "Erro na varredura."; }
 }
 
-// 5. FUNÇÃO PDF - DESIGN PREMIUM + GLOSSÁRIO TÉCNICO COMPLETO + CONTATOS CLICÁVEIS
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const corTema = d.score === "A+" ? [0, 150, 0] : [180, 0, 0];
 
-    // Cabeçalho Black Premium
     doc.setFillColor(20, 20, 20);
     doc.rect(0, 0, 210, 40, 'F');
     try { 
@@ -138,12 +181,10 @@ function gerarRelatorioPDF(d) {
     }
     doc.setFontSize(10); doc.setTextColor(180, 180, 180); doc.text("RELATORIO TECNICO DE RESILIENCIA DIGITAL", 15, 33);
 
-    // Barra de Status Colorida
     doc.setFillColor(corTema[0], corTema[1], corTema[2]);
     doc.rect(0, 40, 210, 12, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(12); doc.text(`SCORE FINAL DO DOMINIO: ${d.score}`, 15, 48);
 
-    // Dados da Análise
     doc.setTextColor(40, 40, 40); doc.setFontSize(14); doc.setFont("helvetica", "bold");
     doc.text(`Alvo Analisado: ${d.dominio.toUpperCase()}`, 15, 65);
     
@@ -154,7 +195,6 @@ function gerarRelatorioPDF(d) {
     doc.text(`- Reputacao VirusTotal: ${d.totalAlertas > 0 ? 'ALERTAS DETECTADOS' : 'Limpo'}`, 25, 102);
     doc.text(`- DNA da Infraestrutura: ${limparParaPDF(d.plataforma)}`, 25, 112);
 
-    // GLOSSÁRIO TÉCNICO (O QUE VOCÊ PEDIU)
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
     doc.text("NOTAS DO ADVISOR (GLOSSARIO):", 15, 135);
     doc.setFontSize(9); doc.setFont("helvetica", "normal"); doc.setTextColor(80, 80, 80);
@@ -165,13 +205,11 @@ function gerarRelatorioPDF(d) {
     ];
     doc.text(glossario, 15, 145);
 
-    // Parecer do Especialista
     doc.setFillColor(corTema[0], corTema[1], corTema[2]); doc.rect(15, 175, 180, 25, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.text("PARECER DO ESPECIALISTA:", 20, 184);
     const parecer = d.score === "A+" ? "Ambiente em conformidade. Hardening preventivo recomendado." : "ALERTA CRITICO: Vulnerabilidades detectadas. Risco de sequestro de dados.";
     doc.text(doc.splitTextToSize(parecer, 170), 20, 192);
 
-    // RODAPÉ BLACK PREMIUM (CONTATOS CLICÁVEIS)
     doc.setFillColor(30, 30, 30); doc.rect(0, 260, 210, 37, 'F');
     doc.setTextColor(255, 255, 255); doc.setFontSize(11); doc.setFont("helvetica", "bold");
     doc.text("WL TEC - CONSULTORIA EM CIBERSEGURANCA", 15, 272);
