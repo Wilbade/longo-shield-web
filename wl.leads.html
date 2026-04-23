@@ -8,114 +8,44 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { 
-            justify-content: flex-start; 
-            flex-direction: column; 
-            padding: 40px 20px;
-            background-color: #0a0c10;
-            color: #fff;
-        }
+        body { justify-content: flex-start; flex-direction: column; padding: 40px 20px; background-color: #0a0c10; color: #fff; }
         .container { max-width: 1300px; margin: 0 auto; }
-        .admin-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(0, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 20px;
-            overflow-x: auto;
-        }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
-            color: #e0e0e0;
-            min-width: 1000px;
-        }
-        th, td { 
-            padding: 12px 15px; 
-            border-bottom: 1px solid rgba(255,255,255,0.05); 
-            text-align: left; 
-        }
-        th { 
-            background: rgba(0, 255, 255, 0.1); 
-            color: #00FFFF; 
-            font-family: 'Rajdhani', sans-serif;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-        }
-        .badge { 
-            padding: 4px 8px; 
-            border-radius: 4px; 
-            font-size: 0.75rem; 
-            font-weight: bold; 
-        }
+        .admin-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(0, 255, 255, 0.1); border-radius: 8px; padding: 20px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #e0e0e0; min-width: 1000px; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
+        th { background: rgba(0, 255, 255, 0.1); color: #00FFFF; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.8rem; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
         .critico { background: #FF4444; color: white; }
         .aplus { background: #00FF00; color: black; }
         .alerta { background: #FFFF00; color: black; }
-        
-        .refresh-btn {
-            background: #FFB300;
-            color: black;
-            border: none;
-            padding: 10px 20px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-family: 'Rajdhani', sans-serif;
-        }
-
-        /* ESTILOS NOVOS PARA IA */
+        .refresh-btn { background: #FFB300; color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani', sans-serif; }
         .btn-ia { background: #8E44AD; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.7rem; }
         .config-area { margin-bottom: 20px; background: rgba(0, 255, 255, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(0, 255, 255, 0.1); }
         #modalIA { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); }
         .modal-content { background: #1a1c23; margin: 5% auto; padding: 30px; border: 1px solid #00FFFF; width: 60%; border-radius: 12px; }
         textarea { width: 100%; height: 250px; background: #000; color: #00FF00; border: 1px solid #333; padding: 15px; font-family: monospace; margin-top: 15px; resize: none; }
-
-        #loginArea { 
-            text-align: center; 
-            margin-top: 100px; 
-            max-width: 350px; 
-            margin-left: auto; 
-            margin-right: auto;
-            background: rgba(255,255,255,0.02);
-            padding: 30px;
-            border-radius: 10px;
-            border: 1px solid rgba(0,255,255,0.1);
-        }
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 4px;
-            border: 1px solid #00FFFF;
-            background: #000;
-            color: #fff;
-            box-sizing: border-box;
-        }
-        #mainContent { display: none; }
+        #loginArea { text-align: center; margin-top: 100px; max-width: 350px; margin-left: auto; margin-right: auto; background: rgba(255,255,255,0.02); padding: 30px; border-radius: 10px; border: 1px solid rgba(0,255,255,0.1); }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 4px; border: 1px solid #00FFFF; background: #000; color: #fff; }
     </style>
 </head>
 <body>
 
     <div id="loginArea">
-        <h2 style="color: #00FFFF; margin-bottom: 20px;">🛡️ WL Admin</h2>
-        <input type="email" id="emailInput" placeholder="E-mail do Administrador">
+        <h2 style="color: #00FFFF;">🛡️ WL Admin</h2>
+        <input type="email" id="emailInput" placeholder="E-mail">
         <input type="password" id="passInput" placeholder="Senha">
-        <button onclick="verificarLogin()" class="refresh-btn" style="width: 100%; margin-top: 10px;">Entrar no Painel</button>
+        <button onclick="verificarLogin()" class="refresh-btn" style="width: 100%;">Entrar</button>
     </div>
 
     <div id="mainContent" class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h2 style="color: #00FFFF; margin-bottom: 5px;">🚀 WL Leads</h2>
-                <p style="margin-bottom: 30px; color: #888;">Base de Inteligência Longo Shield</p>
-            </div>
-            <button onclick="logout()" style="background:none; border:none; color:#FF4444; cursor:pointer; text-decoration:underline;">Sair com segurança</button>
+            <h2 style="color: #00FFFF;">🚀 WL Leads - Painel</h2>
+            <button onclick="logout()" style="color:#FF4444; background:none; border:none; cursor:pointer;">Sair</button>
         </div>
 
-        <div class="config-area">
-            <small style="color: #00FFFF; font-weight: bold;">CHAVE DE API GEMINI:</small>
-            <input type="password" id="geminiKey" placeholder="Cole sua API Key do AI Studio aqui" style="margin-top: 5px; width: 350px; display: block;">
+        <div class="config-area" id="areaConfigIA">
+            <small style="color: #00FFFF;">CHAVE DE API GEMINI:</small>
+            <input type="password" id="geminiKey" placeholder="Cole sua API Key aqui" style="width: 350px; display: block;">
         </div>
         
         <button class="refresh-btn" onclick="carregarLeads()">🔄 Atualizar Base</button>
@@ -124,25 +54,23 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Data/Hora</th>
+                        <th>Data</th>
                         <th>Domínio</th>
                         <th>Status</th>
                         <th>SSL/Reputação</th>
-                        <th>Plataforma</th>
+                        <th>Plataforma/E-mail</th>
                         <th>Ação IA</th>
                     </tr>
                 </thead>
-                <tbody id="tabelaLeads">
-                    <tr><td colspan="6" style="text-align: center;">Aguardando autorização...</td></tr>
-                </tbody>
+                <tbody id="tabelaLeads"></tbody>
             </table>
         </div>
     </div>
 
     <div id="modalIA">
         <div class="modal-content">
-            <h3 style="color: #00FFFF; margin-top: 0;">🤖 Analista Sênior IA</h3>
-            <p id="statusIA" style="font-size: 0.8rem; color: #888;">Processando dados do domínio...</p>
+            <h3 style="color: #00FFFF; margin: 0;">🤖 Analista Sênior IA</h3>
+            <p id="statusIA" style="font-size: 0.8rem; color: #888;">...</p>
             <textarea id="textoProposta" readonly></textarea>
             <div style="margin-top: 20px; display: flex; gap: 10px;">
                 <button onclick="copiarTexto()" class="refresh-btn" style="background:#2ecc71;">Copiar Proposta</button>
@@ -152,36 +80,20 @@
     </div>
 
     <script>
-const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
+        const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let CHAVE_IA_AUTOMATICA = ""; // Variável global para a chave
+        let CHAVE_IA_AUTOMATICA = "";
 
-        function escapeHTML(str) {
-            if (!str) return '---';
-            return str.replace(/[&<>'"]/g, tag => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-            }[tag] || tag));
-        }
-
-        // 1. CARREGA TUDO AO INICIAR
         window.onload = async () => {
             const { data: { session } } = await _supabase.auth.getSession();
             if (session) { 
                 mostrarPainel();
-                // Busca a chave secreta na sua tabela nova
-                const { data } = await _supabase
-                    .from('config_privada')
-                    .select('chave_valor')
-                    .eq('chave_nome', 'GEMINI_API_KEY')
-                    .single();
-                
+                const { data } = await _supabase.from('config_privada').select('chave_valor').eq('chave_nome', 'GEMINI_API_KEY').single();
                 if (data) {
                     CHAVE_IA_AUTOMATICA = data.chave_valor;
-                    // Esconde a área de configuração se já temos a chave no banco
-                    document.querySelector('.config-area').style.display = 'none';
-                    console.log("🛡️ IA Automática configurada.");
+                    document.getElementById('areaConfigIA').style.display = 'none';
                 }
             }
         };
@@ -190,7 +102,7 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
             const email = document.getElementById('emailInput').value;
             const senha = document.getElementById('passInput').value;
             const { error } = await _supabase.auth.signInWithPassword({ email, password: senha });
-            if (error) alert("Acesso Negado: " + error.message);
+            if (error) alert("Erro: " + error.message);
             else mostrarPainel();
         }
 
@@ -205,78 +117,55 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
         async function carregarLeads() {
             const corpoTabela = document.getElementById('tabelaLeads');
             const { data, error } = await _supabase.from('leads').select('*').order('created_at', { ascending: false });
-
-            if (error) {
-                corpoTabela.innerHTML = `<tr><td colspan="6" style="color: red;">Erro de permissão.</td></tr>`;
-                return;
-            }
+            if (error) return;
 
             corpoTabela.innerHTML = '';
             data.forEach(lead => {
                 const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
                 let classeScore = (lead.score === 'A+') ? 'aplus' : (lead.score === 'Crítico' ? 'critico' : 'alerta');
-
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="font-size: 0.75rem; color: #777;">${dataHora}</td>
-                    <td style="font-weight: bold; color: #00FFFF;">${escapeHTML(lead.dominio)}</td>
-                    <td><span class="badge ${classeScore}">${escapeHTML(lead.score)}</span></td>
-                    <td style="font-size: 0.85rem;">SSL: ${escapeHTML(lead.status_ssl)}<br>REP: ${escapeHTML(lead.reputacao)}</td>
-                    <td style="font-size: 0.85rem;">${escapeHTML(lead.plataforma)}</td>
+                    <td style="font-size: 0.7rem; color: #777;">${dataHora}</td>
+                    <td style="color: #00FFFF;">${lead.dominio}</td>
+                    <td><span class="badge ${classeScore}">${lead.score}</span></td>
+                    <td style="font-size: 0.8rem;">SSL: ${lead.status_ssl}<br>REP: ${lead.reputacao}</td>
+                    <td style="font-size: 0.8rem;">${lead.email || lead.plataforma}</td>
                     <td><button class="btn-ia" onclick='gerarPropostaIA(${JSON.stringify(lead)})'>✨ ANALISAR</button></td>
                 `;
                 corpoTabela.appendChild(tr);
             });
         }
 
-        // 2. FUNÇÃO DA IA ATUALIZADA (Lê a chave automática)
         async function gerarPropostaIA(lead) {
-            // Prioriza a chave do banco, se não tiver, tenta a do campo
             const apiKey = CHAVE_IA_AUTOMATICA || document.getElementById('geminiKey').value.trim();
-            
-            if (!apiKey) return alert("Por favor, configure a API KEY no Supabase ou cole no campo!");
+            if (!apiKey) return alert("Configure a API KEY!");
 
             document.getElementById('modalIA').style.display = 'block';
-            document.getElementById('statusIA').innerText = "O Analista Sênior está redigindo a proposta...";
-            document.getElementById('textoProposta').value = "Redigindo...";
+            document.getElementById('statusIA').innerText = "O Analista está redigindo e salvando no banco...";
+            document.getElementById('textoProposta').value = "Processando...";
 
-            const prompt = `Aja como Wiliam Longo, especialista em Cibersegurança da WL TEC. 
-            Escreva uma proposta curta e impactante focado em prevenção de Ransomware para o site ${lead.dominio}. 
-            Dados técnicos detectados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
+            const prompt = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC. Escreva uma proposta comercial curta para ${lead.dominio}. Dados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
 
             try {
-                // Modelo 2.5-flash como você solicitou
                 const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                 const resJson = await response.json();
+                const textoGerado = resJson.candidates[0].content.parts[0].text;
 
-                if (resJson.error) {
-                    throw new Error(resJson.error.message);
-                }
+                document.getElementById('textoProposta').value = textoGerado;
 
-                const texto = resJson.candidates[0].content.parts[0].text;
-                document.getElementById('textoProposta').value = texto;
-                document.getElementById('statusIA').innerText = "Proposta gerada!";
+                // CARIMBA NA BASE NA LINHA RESPECTIVA
+                await _supabase.from('leads').update({ detalhes_tecnicos: textoGerado }).eq('id', lead.id);
+
+                document.getElementById('statusIA').innerText = "Proposta gerada e carimbada no banco!";
             } catch (e) {
-                console.error(e);
-                alert("Erro na IA: " + e.message);
+                alert("Erro IA.");
                 fecharModal();
             }
         }
 
         function fecharModal() { document.getElementById('modalIA').style.display = 'none'; }
-        function copiarTexto() { 
-            const area = document.getElementById('textoProposta');
-            area.select();
-            document.execCommand('copy');
-            alert("Copiado!");
-        }
+        function copiarTexto() { const area = document.getElementById('textoProposta'); area.select(); document.execCommand('copy'); alert("Copiado!"); }
     </script>
 </body>
 </html>
