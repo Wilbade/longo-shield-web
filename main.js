@@ -3,6 +3,9 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Variável global para manter o ID da análise atual na memória
+let idLeadAtual = null;
+
 const TEXTOS_IA = {
     "SSL_FALHOU": { "titulo": "Certificado SSL Inválido ou Ausente", "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD." },
     "REPUTACAO_RUIM": { "titulo": "Domínio em Blacklists de Segurança", "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador." },
@@ -19,67 +22,65 @@ async function checkReputation(domain) {
     } catch { return 0; }
 }
 
-// 1. CAPTURA INICIAL (Grava os dados técnicos)
+// 1. CAPTURA INICIAL (Cria a linha e guarda o ID)
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
 
-        const { error } = await _supabase.from('leads').insert([{
+        // Fazemos o insert e usamos o .select() para o Supabase nos devolver o ID gerado
+        const { data, error } = await _supabase.from('leads').insert([{
             dominio, score, status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
             velocidade, plataforma,
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
-        }]);
+        }]).select();
 
-        if (error) console.error("Erro Supabase Insert:", error);
-    } catch (err) { console.error("Erro geral Captura:", err); }
+        if (data && data[0]) {
+            idLeadAtual = data[0].id; // 🎯 Guardamos o ID (ex: 111) para usar no e-mail
+            console.log("Lead registrado com ID:", idLeadAtual);
+        }
+    } catch (err) { console.error("Erro lead:", err); }
 }
 
-function solicitarRelatorio() {
-    const dominio = document.getElementById('domainInput').value;
-    document.getElementById('dominioModal').innerText = dominio;
-    document.getElementById('modalEmail').style.display = 'block';
-}
-
-// 2. FINALIZAR (Atualiza o e-mail na linha existente)
+// 2. FINALIZAR SOLICITAÇÃO (Atualiza a linha em vez de criar nova)
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
 
-    if (!emailValue || !emailValue.includes('@')) return alert("Por favor, insira um e-mail válido.");
+    if (!emailValue || !emailValue.includes('@')) return alert("E-mail inválido.");
 
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
 
     try {
-        // Busca o ID da última análise deste domínio para atualizar
-        const { data: leadRecente, error: errorBusca } = await _supabase
-            .from('leads')
-            .select('id')
-            .eq('dominio', dominio)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        if (leadRecente) {
-            const { error: errorUpdate } = await _supabase
-                .from('leads')
-                .update({ email: emailValue, score: "SOLICITOU_RELATORIO" })
-                .eq('id', leadRecente.id);
-            
-            if (errorUpdate) throw errorUpdate;
+        let error;
+        
+        if (idLeadAtual) {
+            // ✅ MÁGICA: Atualiza a linha exata que acabou de ser criada
+            const res = await _supabase.from('leads')
+                .update({ email: emailValue }) // Só insere o e-mail
+                .eq('id', idLeadAtual);
+            error = res.error;
         } else {
-            // Caso não ache a linha (raro), cria uma nova com o e-mail
-            await _supabase.from('leads').insert([{ dominio, email: emailValue, score: "SOLICITOU_RELATORIO" }]);
+            // Caso falhe o ID, tenta pelo domínio mais recente como backup
+            const res = await _supabase.from('leads')
+                .update({ email: emailValue })
+                .eq('dominio', dominio)
+                .order('created_at', { ascending: false })
+                .limit(1);
+            error = res.error;
         }
 
-        alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
+        if (error) throw error;
+
+        alert("Sucesso! O dossiê será enviado para " + emailValue);
         document.getElementById('modalEmail').style.display = 'none';
+        idLeadAtual = null; // Reseta para a próxima análise
     } catch (e) {
-        console.error("Erro Finalizar:", e);
+        console.error("Erro update:", e);
         alert("Erro ao salvar contato.");
     } finally {
         btn.innerText = "RECEBER AGORA";
