@@ -163,10 +163,28 @@
             }[tag] || tag));
         }
 
-        window.onload = async () => {
-            const { data: { session } } = await _supabase.auth.getSession();
-            if (session) { mostrarPainel(); }
-        };
+        let CHAVE_IA_AUTOMATICA = "";
+
+window.onload = async () => {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (session) { 
+        mostrarPainel();
+        // BUSCA A CHAVE NO BANCO ASSIM QUE LOGA
+        const { data } = await _supabase
+            .from('config_privada')
+            .select('chave_valor')
+            .eq('chave_nome', 'GEMINI_API_KEY')
+            .single();
+        if (data) CHAVE_IA_AUTOMATICA = data.chave_valor;
+    }
+};
+
+// Na função de analisar, use a chave automática
+async function analisarComIA(lead) {
+    const key = CHAVE_IA_AUTOMATICA; // Usa a chave que veio do banco
+    if (!key) return alert("Chave não configurada no Supabase.");
+    // ... resto do seu código de fetch do Gemini ...
+}
 
         async function verificarLogin() {
             const email = document.getElementById('emailInput').value;
