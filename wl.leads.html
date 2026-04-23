@@ -27,7 +27,7 @@
             border-collapse: collapse; 
             margin-top: 20px; 
             color: #e0e0e0;
-            min-width: 900px; /* Garante que não esmague no mobile */
+            min-width: 900px;
         }
         th, td { 
             padding: 12px 15px; 
@@ -107,30 +107,43 @@
         const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        // ESCUDO DE SEGURANÇA: Limpa textos maliciosos antes de exibir na tela
-                function escapeHTML(str) {
-                    if (!str) return '---';
-                    return str.replace(/[&<>'"]/g, 
-                        tag => ({
-                            '&': '&amp;',
-                            '<': '&lt;',
-                            '>': '&gt;',
-                            "'": '&#39;',
-                            '"': '&quot;'
-                        }[tag] || tag)
-                    );
-                }
 
-        window.onload = () => {
-            if (localStorage.getItem('longo_shield_admin') === 'true') { mostrarPainel(); }
+        // ESCUDO DE SEGURANÇA
+        function escapeHTML(str) {
+            if (!str) return '---';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+
+        window.onload = async () => {
+            // Verifica se já existe uma sessão ativa no Supabase
+            const { data: { session } } = await _supabase.auth.getSession();
+            if (session) {
+                mostrarPainel();
+            }
         };
 
-        function verificarSenha() {
+        async function verificarSenha() {
+            const email = "wiliamlongo@gmail.com";
             const senha = document.getElementById('passInput').value;
-            if (senha === 'longo2026') {
-                localStorage.setItem('longo_shield_admin', 'true');
+            
+            const { data, error } = await _supabase.auth.signInWithPassword({
+                email: email,
+                password: senha,
+            });
+
+            if (error) {
+                alert("Acesso negado: " + error.message);
+            } else {
                 mostrarPainel();
-            } else { alert("Senha incorreta!"); }
+            }
         }
 
         function mostrarPainel() {
@@ -139,7 +152,10 @@
             carregarLeads();
         }
 
-        function logout() { localStorage.removeItem('longo_shield_admin'); location.reload(); }
+        async function logout() { 
+            await _supabase.auth.signOut();
+            location.reload(); 
+        }
 
         async function carregarLeads() {
             const corpoTabela = document.getElementById('tabelaLeads');
@@ -149,7 +165,7 @@
                 .order('created_at', { ascending: false });
 
             if (error) {
-                corpoTabela.innerHTML = `<tr><td colspan="8" style="color: red;">Erro: ${error.message}</td></tr>`;
+                corpoTabela.innerHTML = `<tr><td colspan="8" style="color: red;">Erro: ${escapeHTML(error.message)}</td></tr>`;
                 return;
             }
 
