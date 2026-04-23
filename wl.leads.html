@@ -13,8 +13,9 @@
             flex-direction: column; 
             padding: 40px 20px;
             background-color: #0a0c10;
+            color: #fff;
         }
-        .container { max-width: 1200px; }
+        .container { max-width: 1200px; margin: 0 auto; }
         .admin-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(0, 255, 255, 0.1);
@@ -62,22 +63,47 @@
             margin-bottom: 20px;
             font-family: 'Rajdhani', sans-serif;
         }
-        #loginArea { text-align: center; margin-top: 100px; }
+        #loginArea { 
+            text-align: center; 
+            margin-top: 100px; 
+            max-width: 350px; 
+            margin-left: auto; 
+            margin-right: auto;
+            background: rgba(255,255,255,0.02);
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(0,255,255,0.1);
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid #00FFFF;
+            background: #000;
+            color: #fff;
+            box-sizing: border-box;
+        }
         #mainContent { display: none; }
     </style>
 </head>
 <body>
 
     <div id="loginArea">
-        <h2 style="color: #00FFFF;">Acesso Restrito</h2>
-        <p style="color: #888;">Digite a senha de administrador</p>
-        <input type="password" id="passInput" style="padding: 10px; border-radius: 4px; border: 1px solid #00FFFF; background: #000; color: #fff; margin-top: 10px;">
-        <button onclick="verificarSenha()" class="refresh-btn" style="margin-top: 10px;">Entrar</button>
+        <h2 style="color: #00FFFF; margin-bottom: 20px;">🛡️ WL Admin</h2>
+        <input type="email" id="emailInput" placeholder="E-mail do Administrador">
+        <input type="password" id="passInput" placeholder="Senha">
+        <button onclick="verificarLogin()" class="refresh-btn" style="width: 100%; margin-top: 10px;">Entrar no Painel</button>
     </div>
 
     <div id="mainContent" class="container">
-        <h2 style="color: #00FFFF; margin-bottom: 5px;">🚀 WL Leads</h2>
-        <p style="margin-bottom: 30px;">Base de Inteligência Longo Shield</p>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2 style="color: #00FFFF; margin-bottom: 5px;">🚀 WL Leads</h2>
+                <p style="margin-bottom: 30px; color: #888;">Base de Inteligência Longo Shield</p>
+            </div>
+            <button onclick="logout()" style="background:none; border:none; color:#FF4444; cursor:pointer; text-decoration:underline;">Sair com segurança</button>
+        </div>
         
         <button class="refresh-btn" onclick="carregarLeads()">🔄 Atualizar Base</button>
 
@@ -96,11 +122,10 @@
                     </tr>
                 </thead>
                 <tbody id="tabelaLeads">
-                    <tr><td colspan="8" style="text-align: center;">Carregando dados...</td></tr>
+                    <tr><td colspan="8" style="text-align: center;">Aguardando autorização...</td></tr>
                 </tbody>
             </table>
         </div>
-        <button onclick="logout()" style="background:none; border:none; color:#555; cursor:pointer; margin-top:20px; text-decoration:underline;">Sair do Painel</button>
     </div>
 
     <script>
@@ -108,39 +133,26 @@
         const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ESCUDO DE SEGURANÇA
         function escapeHTML(str) {
             if (!str) return '---';
-            return str.replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;',
-                    '<': '&lt;',
-                    '>': '&gt;',
-                    "'": '&#39;',
-                    '"': '&quot;'
-                }[tag] || tag)
-            );
+            return str.replace(/[&<>'"]/g, tag => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            }[tag] || tag));
         }
 
         window.onload = async () => {
-            // Verifica se já existe uma sessão ativa no Supabase
             const { data: { session } } = await _supabase.auth.getSession();
-            if (session) {
-                mostrarPainel();
-            }
+            if (session) { mostrarPainel(); }
         };
 
-        async function verificarSenha() {
-            const email = "wiliamlongo@gmail.com";
+        async function verificarLogin() {
+            const email = document.getElementById('emailInput').value;
             const senha = document.getElementById('passInput').value;
             
-            const { data, error } = await _supabase.auth.signInWithPassword({
-                email: email,
-                password: senha,
-            });
+            const { error } = await _supabase.auth.signInWithPassword({ email, password: senha });
 
             if (error) {
-                alert("Acesso negado: " + error.message);
+                alert("Acesso Negado: " + error.message);
             } else {
                 mostrarPainel();
             }
@@ -165,7 +177,7 @@
                 .order('created_at', { ascending: false });
 
             if (error) {
-                corpoTabela.innerHTML = `<tr><td colspan="8" style="color: red;">Erro: ${escapeHTML(error.message)}</td></tr>`;
+                corpoTabela.innerHTML = `<tr><td colspan="8" style="color: red;">Erro de permissão: Contate o administrador.</td></tr>`;
                 return;
             }
 
