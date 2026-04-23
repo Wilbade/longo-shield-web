@@ -214,30 +214,39 @@
 
         // FUNÇÃO PARA FALAR COM O GEMINI
         async function gerarPropostaIA(lead) {
-            const apiKey = document.getElementById('geminiKey').value;
-            if (!apiKey) return alert("Cole sua API KEY do AI Studio primeiro!");
+            const apiKey = document.getElementById('geminiKey').value.trim();
+            if (!apiKey) return alert("Por favor, cole sua API KEY!");
 
             document.getElementById('modalIA').style.display = 'block';
-            document.getElementById('statusIA').innerText = "O Analista Sênior está redigindo a proposta...";
-            document.getElementById('textoProposta').value = "Aguarde...";
+            document.getElementById('statusIA').innerText = "Conectando ao Gemini 2.5 Flash...";
+            document.getElementById('textoProposta').value = "Redigindo...";
 
-            const prompt = `Aja como Wiliam Longo, especialista em Blindagem Digital da WL TEC. 
-            Escreva uma proposta comercial curta e impactante para o dono do site ${lead.dominio}. 
-            Os dados encontrados foram: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.
-            O objetivo é marcar uma reunião para correção desses pontos críticos.`;
+            const prompt = `Aja como Wiliam Longo, especialista em Cibersegurança da WL TEC. 
+            Escreva uma proposta curta para o site ${lead.dominio}. 
+            Dados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                // Ajustado para o seu modelo 2.5 e apiVersion v1
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
+
                 const resJson = await response.json();
+
+                if (resJson.error) {
+                    throw new Error(resJson.error.message);
+                }
+
                 const texto = resJson.candidates[0].content.parts[0].text;
                 document.getElementById('textoProposta').value = texto;
                 document.getElementById('statusIA').innerText = "Proposta gerada!";
             } catch (e) {
-                alert("Erro na IA: Verifique sua chave.");
+                console.error(e);
+                alert("Erro: " + e.message);
                 fecharModal();
             }
         }
