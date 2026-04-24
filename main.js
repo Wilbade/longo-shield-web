@@ -3,9 +3,6 @@ const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Variável Global para manter o ID na memória e evitar duplicidade
-let currentLeadId = null;
-
 const TEXTOS_IA = {
     "SSL_FALHOU": { "titulo": "Certificado SSL Inválido ou Ausente", "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD." },
     "REPUTACAO_RUIM": { "titulo": "Domínio em Blacklists de Segurança", "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador." },
@@ -19,67 +16,60 @@ async function checkReputation(domain) {
     try {
         const { data } = await _supabase.functions.invoke('rapid-worker', { body: { domain: domain } });
         return data?.data?.attributes?.last_analysis_stats ? (data.data.attributes.last_analysis_stats.malicious + data.data.attributes.last_analysis_stats.suspicious) : 0;
-    } catch (error) { return 0; }
+    } catch { return 0; }
 }
 
-// 1. CRIA O LEAD INICIAL E GUARDA O ID
+// 1. CAPTURA INICIAL (Salva a linha 1: Dados Técnicos)
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
-        
-        const { data, error } = await _supabase.from('leads').insert([{
-            dominio, score, status_ssl: ssl,
+
+        await _supabase.from('leads').insert([{
+            dominio: dominio,
+            score: score,
+            status_ssl: ssl,
             reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
-            velocidade, plataforma,
+            velocidade: velocidade,
+            plataforma: plataforma,
             ip_usuario: dataIp.ip || '0.0.0.0',
             localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
-        }]).select(); // O .select() devolve o ID gerado
-
-        if (error) throw error;
-        if (data && data[0]) {
-            currentLeadId = data[0].id;
-            console.log("Lead técnico registrado com ID:", currentLeadId);
-        }
-    } catch (err) { console.error('Erro ao salvar parte técnica:', err); }
+        }]);
+        console.log("Linha 1 (Técnica) salva.");
+    } catch (err) { console.error("Erro na captura técnica:", err); }
 }
 
-// 2. ATUALIZA A MESMA LINHA COM O E-MAIL (Evita duplicidade)
-async function finalizarSolicitacao(event) {
+function solicitarRelatorio() {
+    const dominio = document.getElementById('domainInput').value;
+    document.getElementById('dominioModal').innerText = dominio;
+    document.getElementById('modalEmail').style.display = 'block';
+}
+
+// 2. FINALIZAR (Salva a linha 2: E-mail separado)
+async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
 
-    if (!emailValue || !emailValue.includes('@')) return alert("E-mail inválido.");
+    if (!emailValue || !emailValue.includes('@')) return alert("Por favor, insira um e-mail válido.");
 
     const btn = event.target;
     btn.innerText = "ENVIANDO...";
     btn.disabled = true;
 
     try {
-        let error;
-        if (currentLeadId) {
-            // Caminho 1: Atualiza a linha que acabamos de criar (ID 114 vira ID 114 com email)
-            const response = await _supabase.from('leads')
-                .update({ email: emailValue, score: "SOLICITOU_RELATORIO" })
-                .eq('id', currentLeadId);
-            error = response.error;
-        } else {
-            // Caminho 2: Backup se o ID se perder (Upsert por domínio recente)
-            const response = await _supabase.from('leads')
-                .update({ email: emailValue, score: "SOLICITOU_RELATORIO" })
-                .eq('dominio', dominio)
-                .is('email', null)
-                .order('created_at', { ascending: false })
-                .limit(1);
-            error = response.error;
-        }
+        // Salva uma nova linha apenas com domínio e e-mail (Jeito que funcionava)
+        const { error } = await _supabase.from('leads').insert([{ 
+            dominio: dominio, 
+            email: emailValue, 
+            score: "SOLICITOU_RELATORIO" 
+        }]);
 
         if (error) throw error;
+
         alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
-        console.error("Erro no update do e-mail:", e);
-        alert("Erro ao salvar contato.");
+        alert("Erro ao salvar e-mail.");
     } finally {
         btn.innerText = "RECEBER AGORA";
         btn.disabled = false;
@@ -89,7 +79,7 @@ async function finalizarSolicitacao(event) {
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const resultArea = document.getElementById('resultArea');
-    if (!dominioInput?.value) return;
+    if (!dominioInput || !dominioInput.value) return;
 
     const dominio = dominioInput.value.trim().toLowerCase();
     resultArea.classList.remove('result-hidden');
@@ -116,16 +106,16 @@ async function iniciarDiagnostico() {
             setTimeout(() => ctrl.abort(), 3500);
             await fetch(`https://${dominio}`, { mode: 'no-cors', signal: ctrl.signal }); 
             sslOk = true; 
-        } catch { sslOk = false; }
+        } catch (e) { sslOk = false; }
         
         const duration = (Date.now() - start) / 1000;
         let plataforma = (dominio.includes('santini')) ? "WordPress Detectado" : "Infraestrutura Proprietária";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
-        const velStr = `Rápida (${duration.toFixed(1)}s)`;
+        const velStr = `${duration.toFixed(1)}s`;
 
-        // Grava análise técnica e recupera o ID
-        await capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
+        // Salva a primeira parte no banco
+        capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
 
         let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
         const dadosIA = TEXTOS_IA[chave];
@@ -154,14 +144,10 @@ async function iniciarDiagnostico() {
             </div>
         </div>`;
 
-        document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF({ dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc });
-    } catch { resultArea.innerHTML = "Erro técnico."; }
-}
+        const dPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc };
+        document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dPDF);
 
-function solicitarRelatorio() {
-    const dominio = document.getElementById('domainInput').value;
-    document.getElementById('dominioModal').innerText = dominio;
-    document.getElementById('modalEmail').style.display = 'block';
+    } catch (error) { resultArea.innerHTML = "Erro técnico."; }
 }
 
 function gerarRelatorioPDF(d) {
