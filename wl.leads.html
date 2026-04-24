@@ -144,7 +144,7 @@
             document.getElementById('statusIA').innerText = "O Analista está redigindo e salvando no banco...";
             document.getElementById('textoProposta').value = "Processando...";
 
-            const prompt = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC. Escreva uma proposta comercial curta para ${lead.dominio}. Dados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
+            const prompt = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC. [Telefone/WhatsApp: 11 99531-4831],[Email: contato@wl.tec.br],[Site:wl.tec.br da WL TEC] Escreva uma proposta comercial curta para ${lead.dominio}. Dados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
 
             try {
                 const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
