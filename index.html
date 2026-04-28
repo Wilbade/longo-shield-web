@@ -1,58 +1,80 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B4CYSBWLVT"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-B4CYSBWLVT');
-    </script>
 
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="canonical" href="https://wl.tec.br/">
+
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://giikoiqpnzgmhcqiuvhs.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://wl.tec.br; connect-src 'self' https://giikoiqpnzgmhcqiuvhs.supabase.co https://ipapi.co https://dns.google https://generativelanguage.googleapis.com;">
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B4CYSBWLVT"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'G-B4CYSBWLVT');
+    </script>
+
     <title>WL TEC | Longo Shield | Consultoria e Blindagem Digital contra Ransomware</title>
-    <meta name="description" content="Especialista em Cibersegurança no ABC. A WL TEC oferece blindagem digital, análise de vulnerabilidades e proteção contra sequestro de dados para empresas.">
-    <meta name="keywords" content="Cibersegurança, Blindagem Digital, Ransomware, Proteção de Dados, Consultoria TI, WL TEC, Santo André, ABC Paulista">
+    <meta name="description"
+        content="Especialista em Cibersegurança no ABC. A WL TEC oferece blindagem digital, análise de vulnerabilidades e proteção contra sequestro de dados para empresas.">
+    <meta name="keywords"
+        content="Cibersegurança, Blindagem Digital, Ransomware, Proteção de Dados, Consultoria TI, WL TEC, Santo André, ABC Paulista">
+
     <meta property="og:title" content="WL TEC - Dossiê de Resiliência Digital">
     <meta property="og:description" content="Faça um diagnóstico gratuito do seu domínio agora e proteja sua empresa.">
-    <meta property="og:image" content="img/escudo_shiel.png">
+    <meta property="og:image" content="https://wl.tec.br/img/escudo_shiel.png">
     <link rel="icon" type="image/png" href="img/escudo_shiel.png">
+
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Roboto:wght@300;400&display=swap"
+        rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
+
 <body>
     <div class="container">
         <nav>
             <div class="logo-wrapper">
                 <a href="index.html">
-                    <img src="img/logo_shield_branco.png" alt="WL TEC Longo Shield - Especialista em Cibersegurança" class="main-logo">
+                    <img src="img/logo_shield_branco.png" alt="WL TEC Longo Shield - Especialista em Cibersegurança"
+                        class="main-logo">
                 </a>
             </div>
-            <a href="https://wa.me/5511995314831" target="_blank" class="btn-contato" title="Falar com o Especialista Wiliam Longo no WhatsApp">Falar com Especialista</a>
+            <a href="https://wa.me/5511995314831" target="_blank" class="btn-contato"
+                title="Falar com o Especialista Wiliam Longo no WhatsApp">Falar com Especialista</a>
         </nav>
 
         <main>
             <section class="hero">
                 <h1>Blindagem Digital e Consultoria em Cibersegurança para Empresas</h1>
-                <p>Resiliência cibernética e auditoria de perímetro para infraestruturas críticas sob comando de quem entende o negócio.</p>
-                
+                <p>Resiliência cibernética e auditoria de perímetro para infraestruturas críticas sob comando de quem
+                    entende o negócio.</p>
+
                 <div class="search-box">
                     <input type="text" id="domainInput" placeholder="Digite seu domínio (ex: empresa.com.br)">
                     <button id="btnAnalisar" onclick="iniciarDiagnostico()">Analisar Agora</button>
                 </div>
-                
-                <div id="progressWrapper" style="display: none; width: 100%; max-width: 600px; margin: 20px auto; text-align: center;">
+
+                <div id="progressWrapper"
+                    style="display: none; width: 100%; max-width: 600px; margin: 20px auto; text-align: center;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span id="statusLabel" style="color: #00FFFF; font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; text-transform: uppercase;">Iniciando Varredura...</span>
-                        <span id="percentLabel" style="color: #00FFFF; font-family: 'Rajdhani', sans-serif; font-weight: bold;">0%</span>
+                        <span id="statusLabel"
+                            style="color: #00FFFF; font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; text-transform: uppercase;">Iniciando
+                            Varredura...</span>
+                        <span id="percentLabel"
+                            style="color: #00FFFF; font-family: 'Rajdhani', sans-serif; font-weight: bold;">0%</span>
                     </div>
-                    <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; border: 1px solid rgba(0,255,255,0.2);">
-                        <div id="progressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #00FFFF, #FFB300); transition: width 0.3s ease;"></div>
+                    <div
+                        style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; border: 1px solid rgba(0,255,255,0.2);">
+                        <div id="progressBar"
+                            style="width: 0%; height: 100%; background: linear-gradient(90deg, #00FFFF, #FFB300); transition: width 0.3s ease;">
+                        </div>
                     </div>
                 </div>
-                
+
                 <div id="resultArea" class="result-hidden"></div>
             </section>
 
@@ -80,15 +102,20 @@
             <section class="about">
                 <div class="about-content">
                     <h2>Trajetória Executiva e Hands-on</h2>
-                    <p>Wiliam Longo une a visão estratégica de um <strong>ex-CIO</strong> à execução técnica de quem administra ambientes críticos há mais de 20 anos. Especialista em <strong>Segurança da Informação</strong> com foco em mitigação de riscos e automação via IA.</p>
-                    <p style="margin-top: 15px; font-size: 0.9rem; color: #00FFFF; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;">Expertise: Linux | AWS | Fortigate | LGPD | Resposta a Incidentes</p>
+                    <p>Wiliam Longo une a visão estratégica de um <strong>ex-CIO</strong> à execução técnica de quem
+                        administra ambientes críticos há mais de 20 anos. Especialista em <strong>Segurança da
+                            Informação</strong> com foco em mitigação de riscos e automação via IA.</p>
+                    <p
+                        style="margin-top: 15px; font-size: 0.9rem; color: #00FFFF; font-family: 'Rajdhani', sans-serif; text-transform: uppercase;">
+                        Expertise: Linux | AWS | Fortigate | LGPD | Resposta a Incidentes</p>
                 </div>
             </section>
         </main>
 
         <footer style="text-align: center; padding: 40px 20px;">
             <div style="margin-bottom: 20px;">
-                <img src="img/escudo_shiel.png" alt="Escudo WL TEC" style="height: 50px; opacity: 0.8; filter: drop-shadow(0 0 8px rgba(0,255,255,0.3));">
+                <img src="img/escudo_shiel.png" alt="Escudo WL TEC"
+                    style="height: 50px; opacity: 0.8; filter: drop-shadow(0 0 8px rgba(0,255,255,0.3));">
             </div>
             <p>&copy; 2026 WL TEC | Wiliam Longo - Especialista em Cibersegurança e Gestão de TI Estratégica.</p>
         </footer>
@@ -97,14 +124,25 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="main.js?v=1.5"></script>
 
-    <div id="modalEmail" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(5px);">
-        <div style="background: #1a1c23; margin: 15% auto; padding: 30px; border: 1px solid #00FFFF; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; border-left: 5px solid #FFB300; box-shadow: 0 0 30px rgba(0,255,255,0.1);">
-            <h3 style="color: #00FFFF; font-family: 'Rajdhani', sans-serif; margin-top: 0; text-transform: uppercase;">🛡️ Dossiê de Blindagem</h3>
-            <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 20px;">Informe seu e-mail para receber o relatório técnico completo do domínio: <br><span id="dominioModal" style="color:#FFB300; font-weight: bold;"></span></p>
-            <input type="email" id="emailCliente" placeholder="seu@email.com.br" style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #333; background: #000; color: #fff; font-size: 1rem; outline: none;">
-            <button onclick="finalizarSolicitacao()" style="background: #FFB300; color: #000; border: none; padding: 15px; font-weight: bold; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; width: 100%; font-size: 1rem; text-transform: uppercase;">🚀 RECEBER RELATÓRIO COMPLETO</button>
-            <button onclick="document.getElementById('modalEmail').style.display='none'" style="background: none; border: none; color: #555; margin-top: 15px; cursor: pointer; text-decoration: underline; font-size: 0.8rem;">Voltar para análise</button>
+    <div id="modalEmail"
+        style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(5px);">
+        <div
+            style="background: #1a1c23; margin: 15% auto; padding: 30px; border: 1px solid #00FFFF; width: 90%; max-width: 400px; border-radius: 12px; text-align: center; border-left: 5px solid #FFB300; box-shadow: 0 0 30px rgba(0,255,255,0.1);">
+            <h3 style="color: #00FFFF; font-family: 'Rajdhani', sans-serif; margin-top: 0; text-transform: uppercase;">
+                🛡️ Dossiê de Blindagem</h3>
+            <p style="color: #ccc; font-size: 0.9rem; margin-bottom: 20px;">Informe seu e-mail para receber o relatório
+                técnico completo do domínio: <br><span id="dominioModal"
+                    style="color:#FFB300; font-weight: bold;"></span></p>
+            <input type="email" id="emailCliente" placeholder="seu@email.com.br"
+                style="width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #333; background: #000; color: #fff; font-size: 1rem; outline: none;">
+            <button onclick="finalizarSolicitacao()"
+                style="background: #FFB300; color: #000; border: none; padding: 15px; font-weight: bold; border-radius: 4px; cursor: pointer; font-family: 'Rajdhani', sans-serif; width: 100%; font-size: 1rem; text-transform: uppercase;">🚀
+                RECEBER RELATÓRIO COMPLETO</button>
+            <button onclick="document.getElementById('modalEmail').style.display='none'"
+                style="background: none; border: none; color: #555; margin-top: 15px; cursor: pointer; text-decoration: underline; font-size: 0.8rem;">Voltar
+                para análise</button>
         </div>
     </div>
 </body>
+
 </html>
