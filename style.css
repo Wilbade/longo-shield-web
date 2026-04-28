@@ -1,5 +1,8 @@
-/* Cores Base: Cyan (#00FFFF) e Âmbar (#FFBF00) */
-:root {
+/* ================================================================
+   Cores Base: Cyan (#00FFFF) e Âmbar (#FFBF00)
+   WL TEC - Longo Shield
+   ================================================================ */
+   :root {
     --bg-dark: #0a0c10;
     --cyan: #00FFFF;
     --ambar: #FFBF00;
@@ -7,7 +10,7 @@
     --gray-steel: #4a4a4a;
 }
 
-/* Configuração Geral - Removido o centralizador que grudava no topo */
+/* Configuração Geral */
 body {
     background-color: var(--bg-dark);
     color: var(--text-light);
@@ -15,21 +18,22 @@ body {
     margin: 0;
     padding: 0;
     line-height: 1.6;
+    overflow-x: hidden;
 }
 
 .container {
     width: 90%;
-    max-width: 1000px; /* Aumentei um pouco para os serviços respirarem */
+    max-width: 1000px;
     margin: 0 auto;
     padding-bottom: 50px;
 }
 
-/* --- NAVEGAÇÃO (Ajuste de Respiro) --- */
+/* --- NAVEGAÇÃO --- */
 nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 40px 0; /* Aumentei o espaço no topo e embaixo do logo */
+    padding: 40px 0;
     border-bottom: 1px solid rgba(0, 255, 255, 0.1);
     margin-bottom: 40px;
 }
@@ -40,7 +44,7 @@ nav {
 }
 
 .main-logo {
-    height: 60px; /* Tamanho otimizado */
+    height: 60px;
     width: auto;
     transition: 0.3s ease;
 }
@@ -52,18 +56,20 @@ nav {
 .btn-contato {
     color: var(--cyan);
     text-decoration: none;
-    border: 2px solid var(--cyan); /* Borda mais forte para autoridade */
+    border: 2px solid var(--cyan);
     padding: 10px 20px;
     border-radius: 4px;
     font-size: 0.9rem;
     font-weight: bold;
     text-transform: uppercase;
     transition: 0.3s;
+    font-family: 'Rajdhani', sans-serif;
 }
 
 .btn-contato:hover {
     background: var(--cyan);
     color: var(--bg-dark);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
 }
 
 /* --- HERO SECTION --- */
@@ -72,11 +78,21 @@ nav {
     padding: 40px 0;
 }
 
-h2 {
+h1 {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 2.8rem;
-    color: var(--text-light);
+    font-size: 3.2rem;
+    font-weight: 700;
+    color: var(--cyan);
     margin-bottom: 15px;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.hero p {
+    font-size: 1.2rem;
+    color: var(--text-light);
+    max-width: 700px;
+    margin: 0 auto 30px auto;
 }
 
 /* --- CAIXA DE BUSCA CYBER --- */
@@ -87,7 +103,8 @@ h2 {
     padding: 20px;
     border-radius: 8px;
     border: 1px solid var(--gray-steel);
-    margin: 30px 0;
+    margin: 30px auto;
+    max-width: 700px;
 }
 
 input {
@@ -98,9 +115,14 @@ input {
     color: white;
     border-radius: 4px;
     outline: none;
+    font-size: 1rem;
 }
 
-button {
+input:focus {
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+}
+
+#btnAnalisar {
     background-color: var(--ambar);
     color: #000;
     border: none;
@@ -111,19 +133,50 @@ button {
     cursor: pointer;
     border-radius: 4px;
     transition: 0.3s;
+    font-size: 1rem;
 }
 
-button:hover {
+#btnAnalisar:hover:not(:disabled) {
     background-color: #e6ac00;
-    box-shadow: 0 0 15px rgba(255, 191, 0, 0.5);
+    box-shadow: 0 0 15px rgba(255, 191, 0, 0.6);
+    transform: translateY(-2px);
+}
+
+#btnAnalisar:disabled {
+    background-color: var(--gray-steel);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* --- BARRA DE PROGRESSO MODERNA --- */
+#progressWrapper {
+    margin: 30px auto;
+    max-width: 600px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+#progressBar {
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+    border-radius: 4px;
 }
 
 /* --- SERVIÇOS --- */
 .services { margin-top: 80px; text-align: center; }
 
+h2 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2.5rem;
+    color: var(--text-light);
+    margin-bottom: 40px;
+    text-transform: uppercase;
+}
+
 .service-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 25px;
     margin-top: 40px;
 }
@@ -133,61 +186,105 @@ button:hover {
     padding: 40px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: 0.3s;
+    transition: 0.4s;
+    text-align: left;
 }
 
 .service-card:hover { 
     border-color: var(--cyan); 
-    background: rgba(0, 255, 255, 0.02);
+    background: rgba(0, 255, 255, 0.03);
+    transform: translateY(-10px);
 }
 
 .service-card .icon { font-size: 2.5rem; display: block; margin-bottom: 20px; }
 
-/* --- SOBRE --- */
+.service-card h3 {
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--cyan);
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+/* --- SOBRE (AUTORIDADE DO CV) --- */
 .about {
     margin-top: 80px;
     padding: 60px 40px;
     background: linear-gradient(90deg, rgba(0,255,255,0.05) 0%, rgba(0,0,0,0) 100%);
     border-radius: 8px;
+    border-left: 4px solid var(--cyan);
+}
+
+.about-content h2 {
+    color: var(--cyan);
+    margin-bottom: 20px;
     text-align: left;
+}
+
+.about-content p {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+.about-content strong {
+    color: var(--ambar);
 }
 
 /* --- FOOTER --- */
 footer {
     margin-top: 100px;
-    padding: 40px 0;
+    padding: 60px 0;
     text-align: center;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
-    font-size: 0.85rem;
+}
+
+footer p {
+    font-size: 0.9rem;
     color: var(--gray-steel);
 }
 
 /* --- RESULTADO DO DIAGNÓSTICO --- */
 .result-hidden { display: none; }
-#resultArea { margin-top: 30px; }
+#resultArea { margin-top: 30px; animation: fadeIn 0.8s ease; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Estilo para botões dentro do resultado */
+.refresh-btn {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+}
 
 /* --- AJUSTE MOBILE --- */
 @media (max-width: 600px) {
+    h1 { font-size: 2.2rem; }
+    
     nav {
         flex-direction: column;
-        padding: 50px 0 30px 0; /* Muito respiro no topo do celular */
-        gap: 25px;
+        padding: 40px 0 20px 0;
+        gap: 20px;
     }
     
-    .main-logo {
-        height: 70px; /* Logo maior no mobile para destaque */
-    }
+    .main-logo { height: 50px; }
 
-    .btn-contato {
-        width: 100%;
-        text-align: center;
-    }
+    .btn-contato { width: 100%; text-align: center; }
 
     h2 { font-size: 1.8rem; }
 
     .search-box {
         flex-direction: column;
+        padding: 15px;
     }
 
     .service-card { padding: 30px; }
+    
+    .about { padding: 40px 20px; }
 }

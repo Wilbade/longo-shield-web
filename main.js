@@ -57,7 +57,6 @@ async function finalizarSolicitacao() {
     btn.disabled = true;
 
     try {
-        // Salva uma nova linha apenas com domínio e e-mail (Jeito que funcionava)
         const { error } = await _supabase.from('leads').insert([{ 
             dominio: dominio, 
             email: emailValue, 
@@ -76,21 +75,45 @@ async function finalizarSolicitacao() {
     }
 }
 
+// NOVA FUNÇÃO: CONTROLE DA BARRA DE PROGRESSO MODERNA
+async function animarBarraProgresso() {
+    const progressWrapper = document.getElementById('progressWrapper');
+    const progressBar = document.getElementById('progressBar');
+    const percentLabel = document.getElementById('percentLabel');
+    const statusLabel = document.getElementById('statusLabel');
+    
+    progressWrapper.style.display = 'block';
+    let progresso = 0;
+    
+    const etapas = [
+        { p: 15, t: "Iniciando Handshake..." },
+        { p: 35, t: "Varrendo Certificados SSL/TLS..." },
+        { p: 60, t: "Auditando DNS e Registros DMARC..." },
+        { p: 85, t: "Verificando Reputação em Blacklists..." },
+        { p: 100, t: "Gerando Dossiê de Resiliência..." }
+    ];
+
+    for (const etapa of etapas) {
+        statusLabel.innerText = etapa.t;
+        while (progresso < etapa.p) {
+            progresso++;
+            progressBar.style.width = progresso + "%";
+            percentLabel.innerText = progresso + "%";
+            await new Promise(r => setTimeout(r, 20)); // Velocidade da animação
+        }
+    }
+}
+
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const resultArea = document.getElementById('resultArea');
     if (!dominioInput || !dominioInput.value) return;
 
     const dominio = dominioInput.value.trim().toLowerCase();
-    resultArea.classList.remove('result-hidden');
-    resultArea.innerHTML = `<div id="status-logger" style="padding: 20px; color: #00FFFF; font-family: monospace; text-align: left; background: rgba(0,0,0,0.7); border-radius: 8px;"></div><div class="loader" id="main-loader" style="margin-top: 15px;"></div>`;
     
-    const logger = document.getElementById('status-logger');
-    const logs = ["> Handshake...", "> SSL Scan...", "> DMARC Check...", "> Reputation..."];
-    for (const log of logs) {
-        const p = document.createElement('p'); p.innerText = log; logger.appendChild(p);
-        await new Promise(r => setTimeout(r, 300)); 
-    }
+    // Esconde resultados anteriores e inicia a barra moderna
+    resultArea.classList.add('result-hidden');
+    await animarBarraProgresso();
 
     try {
         const start = Date.now();
@@ -109,7 +132,9 @@ async function iniciarDiagnostico() {
         } catch (e) { sslOk = false; }
         
         const duration = (Date.now() - start) / 1000;
-        let plataforma = (dominio.includes('santini')) ? "WordPress Detectado" : "Infraestrutura Proprietária";
+        
+        // Melhoria baseada no CV: Identificação de infraestrutura mais profissional
+        let plataforma = (dominio.includes('santini')) ? "WordPress (Análise de Vulnerabilidade necessária)" : "Infraestrutura Proprietária / Cloud";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `${duration.toFixed(1)}s`;
@@ -119,6 +144,10 @@ async function iniciarDiagnostico() {
 
         let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
         const dadosIA = TEXTOS_IA[chave];
+
+        // Finaliza animação e mostra resultado
+        document.getElementById('progressWrapper').style.display = 'none';
+        resultArea.classList.remove('result-hidden');
 
         resultArea.innerHTML = `
         <div style="text-align: left; background: rgba(10,10,10,0.95); border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden;">
@@ -147,7 +176,10 @@ async function iniciarDiagnostico() {
         const dPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc };
         document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dPDF);
 
-    } catch (error) { resultArea.innerHTML = "Erro técnico."; }
+    } catch (error) { 
+        document.getElementById('progressWrapper').style.display = 'none';
+        resultArea.innerHTML = "Erro técnico."; 
+    }
 }
 
 function gerarRelatorioPDF(d) {
