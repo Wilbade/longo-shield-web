@@ -3,63 +3,153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WL Leads - Painel de Controle</title>
+    <title>WL CRM - Painel de Leads</title>
     <link rel="icon" type="image/png" href="img/escudo_shiel.png">
-    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body { justify-content: flex-start; flex-direction: column; padding: 40px 20px; background-color: #0a0c10; color: #fff; }
-        .container { max-width: 1300px; margin: 0 auto; }
-        .admin-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(0, 255, 255, 0.1); border-radius: 8px; padding: 20px; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; color: #e0e0e0; min-width: 1000px; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
-        th { background: rgba(0, 255, 255, 0.1); color: #00FFFF; font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.8rem; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-        .critico { background: #FF4444; color: white; }
-        .aplus { background: #00FF00; color: black; }
-        .alerta { background: #FFFF00; color: black; }
-        .refresh-btn { background: #FFB300; color: black; border: none; padding: 10px 20px; font-weight: bold; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani', sans-serif; }
-        .btn-ia { background: #8E44AD; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.7rem; }
-        .config-area { margin-bottom: 20px; background: rgba(0, 255, 255, 0.05); padding: 15px; border-radius: 8px; border: 1px solid rgba(0, 255, 255, 0.1); }
-        #modalIA { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); }
-        .modal-content { background: #1a1c23; margin: 5% auto; padding: 30px; border: 1px solid #00FFFF; width: 60%; border-radius: 12px; }
-        textarea { width: 100%; height: 250px; background: #000; color: #00FF00; border: 1px solid #333; padding: 15px; font-family: monospace; margin-top: 15px; resize: none; }
-        #loginArea { text-align: center; margin-top: 100px; max-width: 350px; margin-left: auto; margin-right: auto; background: rgba(255,255,255,0.02); padding: 30px; border-radius: 10px; border: 1px solid rgba(0,255,255,0.1); }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 4px; border: 1px solid #00FFFF; background: #000; color: #fff; }
+        :root { --bg-dark: #0a0c10; --cyan: #00FFFF; --ambar: #FFB300; --text-light: #e0e0e0; --gray-steel: #4a4a4a; --card-bg: rgba(255,255,255,0.03); --purple: #8E44AD; --green: #2ecc71; --red: #FF4444; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Roboto', sans-serif; padding: 20px; min-height: 100vh; }
+        .container { max-width: 1500px; margin: 0 auto; }
+
+        /* Login */
+        #loginArea { text-align: center; margin-top: 80px; max-width: 380px; margin-left: auto; margin-right: auto; background: var(--card-bg); padding: 40px 30px; border-radius: 12px; border: 1px solid rgba(0,255,255,0.15); box-shadow: 0 0 30px rgba(0,255,255,0.05); }
+        #loginArea h2 { color: var(--cyan); font-family: 'Rajdhani', sans-serif; margin-bottom: 20px; font-size: 1.8rem; }
+        #loginArea input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid rgba(0,255,255,0.3); background: #000; color: #fff; font-size: 0.95rem; outline: none; }
+        #loginArea input:focus { border-color: var(--cyan); box-shadow: 0 0 8px rgba(0,255,255,0.2); }
+
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(0,255,255,0.1); }
+        .header h2 { color: var(--cyan); font-family: 'Rajdhani', sans-serif; font-size: 1.6rem; }
+        .header-actions { display: flex; gap: 10px; align-items: center; }
+
+        /* Stats */
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 16px; text-align: center; }
+        .stat-card .num { font-size: 2rem; font-weight: 900; font-family: 'Rajdhani', sans-serif; }
+        .stat-card .label { font-size: 0.75rem; color: #777; text-transform: uppercase; margin-top: 4px; }
+
+        /* Config */
+        .config-area { margin-bottom: 15px; background: rgba(0,255,255,0.04); padding: 12px 15px; border-radius: 8px; border: 1px solid rgba(0,255,255,0.1); display: flex; align-items: center; gap: 10px; }
+        .config-area small { color: var(--cyan); white-space: nowrap; font-family: 'Rajdhani', sans-serif; }
+        .config-area input { flex: 1; max-width: 400px; padding: 8px 12px; border-radius: 4px; border: 1px solid #333; background: #000; color: #fff; font-size: 0.85rem; outline: none; }
+
+        /* Table */
+        .admin-card { background: var(--card-bg); border: 1px solid rgba(0,255,255,0.1); border-radius: 8px; padding: 15px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; color: var(--text-light); min-width: 1200px; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); text-align: left; font-size: 0.8rem; }
+        th { background: rgba(0,255,255,0.08); color: var(--cyan); font-family: 'Rajdhani', sans-serif; text-transform: uppercase; font-size: 0.72rem; position: sticky; top: 0; }
+        tr:hover { background: rgba(0,255,255,0.03); }
+
+        /* Badges */
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; display: inline-block; }
+        .critico { background: var(--red); color: white; }
+        .aplus { background: var(--green); color: black; }
+        .alerta { background: var(--ambar); color: black; }
+        .badge-ssl-ok { background: rgba(46,204,113,0.15); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+        .badge-ssl-fail { background: rgba(255,68,68,0.15); color: var(--red); border: 1px solid rgba(255,68,68,0.3); }
+        .badge-email { background: rgba(0,255,255,0.1); color: var(--cyan); border: 1px solid rgba(0,255,255,0.2); font-size: 0.72rem; padding: 2px 6px; }
+
+        /* Buttons */
+        .btn { border: none; padding: 8px 16px; font-weight: bold; cursor: pointer; border-radius: 4px; font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; text-transform: uppercase; transition: 0.2s; }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary { background: var(--ambar); color: #000; }
+        .btn-ia { background: var(--purple); color: white; padding: 5px 10px; font-size: 0.7rem; }
+        .btn-ia:hover { background: #a15dc4; box-shadow: 0 0 10px rgba(142,68,173,0.4); }
+        .btn-ver { background: rgba(0,255,255,0.15); color: var(--cyan); border: 1px solid rgba(0,255,255,0.3); padding: 5px 10px; font-size: 0.7rem; }
+        .btn-ver:hover { background: rgba(0,255,255,0.25); box-shadow: 0 0 10px rgba(0,255,255,0.3); }
+        .btn-danger { background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.85rem; }
+        .btn-copy { background: var(--green); color: #000; }
+        .btn-close { background: #555; color: #fff; }
+
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); backdrop-filter: blur(4px); }
+        .modal-box { background: #1a1c23; margin: 4% auto; padding: 30px; border: 1px solid var(--cyan); width: 65%; max-width: 800px; border-radius: 12px; max-height: 85vh; overflow-y: auto; box-shadow: 0 0 40px rgba(0,255,255,0.1); }
+        .modal-box h3 { color: var(--cyan); font-family: 'Rajdhani', sans-serif; margin-bottom: 5px; font-size: 1.3rem; }
+        .modal-box .subtitle { font-size: 0.8rem; color: #888; margin-bottom: 15px; }
+
+        /* Textarea for IA */
+        textarea { width: 100%; height: 280px; background: #000; color: #00FF00; border: 1px solid #333; padding: 15px; font-family: 'Roboto Mono', monospace; font-size: 0.85rem; margin-top: 10px; resize: vertical; border-radius: 6px; outline: none; }
+        textarea:focus { border-color: var(--cyan); }
+
+        /* Markdown rendered content */
+        .md-content { background: #0d0f14; border: 1px solid rgba(0,255,255,0.1); border-radius: 8px; padding: 20px 25px; margin-top: 10px; line-height: 1.7; font-size: 0.9rem; max-height: 55vh; overflow-y: auto; }
+        .md-content h1, .md-content h2, .md-content h3 { color: var(--cyan); font-family: 'Rajdhani', sans-serif; margin-top: 15px; }
+        .md-content p { margin-bottom: 10px; }
+        .md-content strong { color: var(--ambar); }
+        .md-content ul, .md-content ol { padding-left: 20px; margin-bottom: 10px; }
+        .md-content li { margin-bottom: 5px; }
+        .md-content code { background: rgba(0,255,255,0.08); padding: 2px 6px; border-radius: 3px; color: var(--cyan); font-size: 0.85em; }
+        .md-content blockquote { border-left: 3px solid var(--ambar); padding-left: 15px; color: #aaa; margin: 10px 0; }
+        .md-content hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 15px 0; }
+
+        .modal-actions { margin-top: 20px; display: flex; gap: 10px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .modal-box { width: 95%; margin: 2% auto; padding: 20px; }
+            .header { flex-direction: column; gap: 10px; }
+            .config-area { flex-direction: column; }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,255,255,0.3); border-radius: 3px; }
     </style>
 </head>
 <body>
 
+    <!-- LOGIN -->
     <div id="loginArea">
-        <h2 style="color: #00FFFF;">🛡️ WL Admin</h2>
+        <h2>🛡️ WL CRM</h2>
+        <p style="color:#777; font-size:0.85rem; margin-bottom:20px;">Painel de Gestão de Leads</p>
         <input type="email" id="emailInput" placeholder="E-mail">
         <input type="password" id="passInput" placeholder="Senha">
-        <button onclick="verificarLogin()" class="refresh-btn" style="width: 100%;">Entrar</button>
+        <button onclick="verificarLogin()" class="btn btn-primary" style="width:100%; margin-top:10px; padding:12px;">Entrar</button>
     </div>
 
-    <div id="mainContent" class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="color: #00FFFF;">🚀 WL Leads - Painel</h2>
-            <button onclick="logout()" style="color:#FF4444; background:none; border:none; cursor:pointer;">Sair</button>
+    <!-- PAINEL PRINCIPAL -->
+    <div id="mainContent" class="container" style="display:none;">
+        <div class="header">
+            <h2>🚀 WL CRM — Gestão de Leads</h2>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="carregarLeads()">🔄 Atualizar</button>
+                <button class="btn-danger" onclick="logout()">Sair</button>
+            </div>
         </div>
 
+        <!-- Stats -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card"><div class="num" id="statTotal" style="color:var(--cyan);">0</div><div class="label">Total Leads</div></div>
+            <div class="stat-card"><div class="num" id="statCriticos" style="color:var(--red);">0</div><div class="label">Críticos</div></div>
+            <div class="stat-card"><div class="num" id="statEmails" style="color:var(--ambar);">0</div><div class="label">Com E-mail</div></div>
+            <div class="stat-card"><div class="num" id="statPropostas" style="color:var(--green);">0</div><div class="label">Propostas</div></div>
+        </div>
+
+        <!-- Config IA -->
         <div class="config-area" id="areaConfigIA">
-            <small style="color: #00FFFF;">CHAVE DE API GEMINI:</small>
-            <input type="password" id="geminiKey" placeholder="Cole sua API Key aqui" style="width: 350px; display: block;">
+            <small>CHAVE GEMINI:</small>
+            <input type="password" id="geminiKey" placeholder="Cole sua API Key (preenchida automaticamente se configurada)">
         </div>
-        
-        <button class="refresh-btn" onclick="carregarLeads()">🔄 Atualizar Base</button>
 
+        <!-- Tabela -->
         <div class="admin-card">
             <table>
                 <thead>
                     <tr>
                         <th>Data</th>
                         <th>Domínio</th>
-                        <th>Status</th>
-                        <th>SSL/Reputação</th>
-                        <th>Plataforma/E-mail</th>
-                        <th>Ação IA</th>
+                        <th>Score</th>
+                        <th>SSL</th>
+                        <th>Reputação</th>
+                        <th>Velocidade</th>
+                        <th>Plataforma</th>
+                        <th>IP / Local</th>
+                        <th>E-mail</th>
+                        <th>Ação</th>
                     </tr>
                 </thead>
                 <tbody id="tabelaLeads"></tbody>
@@ -67,14 +157,29 @@
         </div>
     </div>
 
-    <div id="modalIA">
-        <div class="modal-content">
-            <h3 style="color: #00FFFF; margin: 0;">🤖 Analista Sênior IA</h3>
-            <p id="statusIA" style="font-size: 0.8rem; color: #888;">...</p>
+    <!-- MODAL IA (Gerar proposta) -->
+    <div id="modalIA" class="modal-overlay">
+        <div class="modal-box">
+            <h3>🤖 Analista Sênior IA</h3>
+            <p id="statusIA" class="subtitle">Aguardando...</p>
             <textarea id="textoProposta" readonly></textarea>
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button onclick="copiarTexto()" class="refresh-btn" style="background:#2ecc71;">Copiar Proposta</button>
-                <button onclick="fecharModal()" class="refresh-btn" style="background:#555;">Fechar</button>
+            <div class="modal-actions">
+                <button onclick="copiarTexto()" class="btn btn-copy">📋 Copiar</button>
+                <button onclick="fecharModalIA()" class="btn btn-close">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL VER PROPOSTA (Leitura Markdown) -->
+    <div id="modalVer" class="modal-overlay">
+        <div class="modal-box">
+            <h3 id="modalVerTitulo">📄 Proposta Comercial</h3>
+            <p id="modalVerSubtitle" class="subtitle"></p>
+            <div id="modalVerConteudo" class="md-content"></div>
+            <div class="modal-actions">
+                <button onclick="copiarProposta()" class="btn btn-copy">📋 Copiar</button>
+                <button onclick="regenerarProposta()" class="btn btn-ia" style="padding:8px 16px; font-size:0.8rem;">🔄 Regenerar</button>
+                <button onclick="fecharModalVer()" class="btn btn-close">Fechar</button>
             </div>
         </div>
     </div>
@@ -85,16 +190,21 @@
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let CHAVE_IA_AUTOMATICA = "";
+        let _leadsCache = [];
+        let _leadAtual = null;
 
+        // ========== AUTH ==========
         window.onload = async () => {
             const { data: { session } } = await _supabase.auth.getSession();
-            if (session) { 
+            if (session) {
                 mostrarPainel();
-                const { data } = await _supabase.from('config_privada').select('chave_valor').eq('chave_nome', 'GEMINI_API_KEY').single();
-                if (data) {
-                    CHAVE_IA_AUTOMATICA = data.chave_valor;
-                    document.getElementById('areaConfigIA').style.display = 'none';
-                }
+                try {
+                    const { data } = await _supabase.from('config_privada').select('chave_valor').eq('chave_nome', 'GEMINI_API_KEY').single();
+                    if (data) {
+                        CHAVE_IA_AUTOMATICA = data.chave_valor;
+                        document.getElementById('areaConfigIA').style.display = 'none';
+                    }
+                } catch(e) {}
             }
         };
 
@@ -103,7 +213,7 @@
             const senha = document.getElementById('passInput').value;
             const { error } = await _supabase.auth.signInWithPassword({ email, password: senha });
             if (error) alert("Erro: " + error.message);
-            else mostrarPainel();
+            else { mostrarPainel(); location.reload(); }
         }
 
         function mostrarPainel() {
@@ -114,58 +224,142 @@
 
         async function logout() { await _supabase.auth.signOut(); location.reload(); }
 
+        // ========== CARREGAR LEADS ==========
         async function carregarLeads() {
-            const corpoTabela = document.getElementById('tabelaLeads');
+            const corpo = document.getElementById('tabelaLeads');
             const { data, error } = await _supabase.from('leads').select('*').order('created_at', { ascending: false });
-            if (error) return;
+            if (error) { console.error(error); return; }
 
-            corpoTabela.innerHTML = '';
-            data.forEach(lead => {
-                const dataHora = new Date(lead.created_at).toLocaleString('pt-BR');
-                let classeScore = (lead.score === 'A+') ? 'aplus' : (lead.score === 'Crítico' ? 'critico' : 'alerta');
+            _leadsCache = data || [];
+            atualizarStats(_leadsCache);
+            corpo.innerHTML = '';
+
+            _leadsCache.forEach(lead => {
+                const dt = new Date(lead.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+                const classeScore = lead.score === 'A+' ? 'aplus' : (lead.score === 'Crítico' ? 'critico' : 'alerta');
+                const sslClass = (lead.status_ssl === 'Ativo') ? 'badge-ssl-ok' : 'badge-ssl-fail';
+                const temProposta = lead.detalhes_tecnicos && lead.detalhes_tecnicos.trim().length > 0;
+                const leadJson = JSON.stringify(lead).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+
+                let btnAcao;
+                if (temProposta) {
+                    btnAcao = `<button class="btn btn-ver" onclick='verProposta(${leadJson})'>📄 VER</button>`;
+                } else {
+                    btnAcao = `<button class="btn btn-ia" onclick='gerarPropostaIA(${leadJson})'>✨ ANALISAR</button>`;
+                }
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="font-size: 0.7rem; color: #777;">${dataHora}</td>
-                    <td style="color: #00FFFF;">${lead.dominio}</td>
-                    <td><span class="badge ${classeScore}">${lead.score}</span></td>
-                    <td style="font-size: 0.8rem;">SSL: ${lead.status_ssl}<br>REP: ${lead.reputacao}</td>
-                    <td style="font-size: 0.8rem;">${lead.email || lead.plataforma}</td>
-                    <td><button class="btn-ia" onclick='gerarPropostaIA(${JSON.stringify(lead)})'>✨ ANALISAR</button></td>
+                    <td style="font-size:0.7rem; color:#666; white-space:nowrap;">${dt}</td>
+                    <td style="color:var(--cyan); font-weight:bold;">${lead.dominio || '—'}</td>
+                    <td><span class="badge ${classeScore}">${lead.score || '—'}</span></td>
+                    <td><span class="badge ${sslClass}">${lead.status_ssl || '—'}</span></td>
+                    <td style="font-size:0.75rem;">${lead.reputacao || '—'}</td>
+                    <td style="font-size:0.75rem; color:#888;">${lead.velocidade || '—'}</td>
+                    <td style="font-size:0.72rem; color:#888; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lead.plataforma || '—'}</td>
+                    <td style="font-size:0.7rem; color:#666;">${lead.ip_usuario || '—'}<br>${lead.localizacao || ''}</td>
+                    <td>${lead.email ? `<span class="badge badge-email">${lead.email}</span>` : '<span style="color:#555;">—</span>'}</td>
+                    <td>${btnAcao}</td>
                 `;
-                corpoTabela.appendChild(tr);
+                corpo.appendChild(tr);
             });
         }
 
+        function atualizarStats(leads) {
+            document.getElementById('statTotal').textContent = leads.length;
+            document.getElementById('statCriticos').textContent = leads.filter(l => l.score === 'Crítico').length;
+            document.getElementById('statEmails').textContent = leads.filter(l => l.email).length;
+            document.getElementById('statPropostas').textContent = leads.filter(l => l.detalhes_tecnicos && l.detalhes_tecnicos.trim()).length;
+        }
+
+        // ========== GERAR PROPOSTA IA ==========
         async function gerarPropostaIA(lead) {
             const apiKey = CHAVE_IA_AUTOMATICA || document.getElementById('geminiKey').value.trim();
-            if (!apiKey) return alert("Configure a API KEY!");
+            if (!apiKey) return alert("Configure a API KEY do Gemini!");
 
+            _leadAtual = lead;
             document.getElementById('modalIA').style.display = 'block';
-            document.getElementById('statusIA').innerText = "O Analista está redigindo e salvando no banco...";
+            document.getElementById('statusIA').innerText = "⏳ O Analista está redigindo a proposta...";
             document.getElementById('textoProposta').value = "Processando...";
 
-            const prompt = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC. Telefone/WhatsApp: 11 99531-4831, Email: contato@wl.tec.br, Site: wl.tec.br Escreva uma proposta comercial curta para ${lead.dominio}. Dados: Score ${lead.score}, SSL ${lead.status_ssl}, Reputação ${lead.reputacao}.`;
+            const prompt = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC.
+Telefone/WhatsApp: 11 99531-4831 | Email: contato@wl.tec.br | Site: wl.tec.br
+
+Escreva uma proposta comercial profissional em Markdown para o domínio **${lead.dominio}**.
+
+Dados técnicos coletados:
+- Score de Resiliência: ${lead.score}
+- SSL/TLS: ${lead.status_ssl}
+- Reputação: ${lead.reputacao}
+- Velocidade de Resposta: ${lead.velocidade || 'N/A'}
+- Plataforma: ${lead.plataforma || 'N/A'}
+
+A proposta deve conter: Diagnóstico, Riscos identificados, Plano de ação recomendado e Investimento sugerido.
+Use formatação Markdown com headers, bullet points e negrito.`;
 
             try {
                 const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
                 const resJson = await response.json();
                 const textoGerado = resJson.candidates[0].content.parts[0].text;
 
                 document.getElementById('textoProposta').value = textoGerado;
 
-                // CARIMBA NA BASE NA LINHA RESPECTIVA
-                await _supabase.from('leads').update({ detalhes_tecnicos: textoGerado }).eq('id', lead.id);
+                // Persiste no Supabase
+                const { error } = await _supabase.from('leads').update({ detalhes_tecnicos: textoGerado }).eq('id', lead.id);
+                if (error) console.error('[CRM] Erro ao persistir proposta:', error);
 
-                document.getElementById('statusIA').innerText = "Proposta gerada e carimbada no banco!";
+                document.getElementById('statusIA').innerText = "✅ Proposta gerada e salva no banco!";
+
+                // Atualiza cache local
+                const idx = _leadsCache.findIndex(l => l.id === lead.id);
+                if (idx >= 0) _leadsCache[idx].detalhes_tecnicos = textoGerado;
+
             } catch (e) {
-                alert("Erro IA.");
-                fecharModal();
+                console.error('[CRM] Erro IA:', e);
+                document.getElementById('statusIA').innerText = "❌ Erro ao gerar proposta.";
+                document.getElementById('textoProposta').value = "Erro: " + e.message;
             }
         }
 
-        function fecharModal() { document.getElementById('modalIA').style.display = 'none'; }
-        function copiarTexto() { const area = document.getElementById('textoProposta'); area.select(); document.execCommand('copy'); alert("Copiado!"); }
+        // ========== VER PROPOSTA (Modal Markdown) ==========
+        function verProposta(lead) {
+            _leadAtual = lead;
+            document.getElementById('modalVer').style.display = 'block';
+            document.getElementById('modalVerTitulo').textContent = `📄 Proposta — ${lead.dominio}`;
+            document.getElementById('modalVerSubtitle').textContent = `Score: ${lead.score} | SSL: ${lead.status_ssl} | Gerada em: ${new Date(lead.created_at).toLocaleString('pt-BR')}`;
+
+            // Renderiza Markdown
+            const html = marked.parse(lead.detalhes_tecnicos || 'Sem conteúdo.');
+            document.getElementById('modalVerConteudo').innerHTML = html;
+        }
+
+        async function regenerarProposta() {
+            fecharModalVer();
+            if (_leadAtual) gerarPropostaIA(_leadAtual);
+        }
+
+        function copiarProposta() {
+            if (_leadAtual && _leadAtual.detalhes_tecnicos) {
+                navigator.clipboard.writeText(_leadAtual.detalhes_tecnicos).then(() => alert('Proposta copiada!')).catch(() => alert('Erro ao copiar.'));
+            }
+        }
+
+        // ========== UTILS ==========
+        function fecharModalIA() {
+            document.getElementById('modalIA').style.display = 'none';
+            carregarLeads(); // Recarrega para atualizar botão ANALISAR → VER
+        }
+        function fecharModalVer() { document.getElementById('modalVer').style.display = 'none'; }
+
+        function copiarTexto() {
+            const area = document.getElementById('textoProposta');
+            navigator.clipboard.writeText(area.value).then(() => alert('Copiado!')).catch(() => { area.select(); document.execCommand('copy'); alert('Copiado!'); });
+        }
     </script>
 </body>
 </html>
