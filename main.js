@@ -244,10 +244,10 @@ async function iniciarDiagnostico() {
                 <h2 style="color: #fff; font-family: 'Rajdhani', sans-serif;">${dominio.toUpperCase()}</h2>
                 <div style="font-size: 3rem; font-weight: 900; color: ${cor};">${score}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ DMARC: ${temDmarc ? 'Ok' : 'Risco'}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 SSL: ${sslOk ? 'Ativo' : 'Falha'}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ ${velStr}</div>
-                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ Blindagem de E-mail: ${temDmarc ? 'Protegido' : 'Vulnerável'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 Conexão Segura: ${sslOk ? 'Ativa' : 'Falha'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ Resposta: ${velStr}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 Saúde: ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button id="btnPDF" class="refresh-btn" style="flex: 1;">📥 DOSSIÊ PDF</button>
