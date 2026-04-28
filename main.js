@@ -188,11 +188,25 @@ async function animarBarraProgresso() {
     }
 }
 
-// 10. DIAGNÓSTICO PRINCIPAL
+// 10. CLOUDFLARE TURNSTILE — Proteção Anti-Bot
+let _turnstileToken = null;
+
+function onTurnstileSuccess(token) {
+    _turnstileToken = token;
+    console.log("[Turnstile] Verificação humana concluída.");
+}
+
+// 11. DIAGNÓSTICO PRINCIPAL
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const resultArea = document.getElementById('resultArea');
     if (!dominioInput || !dominioInput.value) return;
+
+    // Verificação Turnstile — bloqueia bots
+    if (!_turnstileToken) {
+        alert("⚠️ Aguarde a verificação de segurança antes de analisar.");
+        return;
+    }
 
     const dominio = dominioInput.value.trim().toLowerCase();
     
@@ -267,6 +281,12 @@ async function iniciarDiagnostico() {
     } catch (error) { 
         document.getElementById('progressWrapper').style.display = 'none';
         resultArea.innerHTML = "Erro técnico."; 
+    } finally {
+        // Reset do Turnstile para a próxima análise
+        _turnstileToken = null;
+        if (typeof turnstile !== 'undefined') {
+            turnstile.reset();
+        }
     }
 }
 
