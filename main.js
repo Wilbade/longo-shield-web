@@ -1,8 +1,21 @@
+// ================================================================
+// WL TEC - Longo Shield | main.js v2.0
+// Refatorado: Upsert unificado (anti-duplicidade) + Persistência robusta
+// ================================================================
+
 // 1. CONFIGURAÇÃO DO SUPABASE
 const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true },
+    global: {
+        headers: {
+            'X-Client-Info': 'longo-shield-web/2.0'
+        }
+    }
+});
 
+// 2. TEXTOS DE ANÁLISE (IA)
 const TEXTOS_IA = {
     "SSL_FALHOU": { "titulo": "Certificado SSL Inválido ou Ausente", "descricao": "A falha na implementação do SSL expõe todo o tráfego da sua aplicação a interceptações criminosas, comprometendo dados sensíveis dos clientes e ferindo as diretrizes da LGPD." },
     "REPUTACAO_RUIM": { "titulo": "Domínio em Blacklists de Segurança", "descricao": "O seu domínio foi categorizado como perigoso por provedores globais de segurança, o que bloqueia o envio de e-mails corporativos e exibe alertas no navegador." },
@@ -10,8 +23,51 @@ const TEXTOS_IA = {
     "SCORE_ALTO": { "titulo": "Resiliência Cibernética em Conformidade", "descricao": "Seu ambiente apresenta um score de excelência. Recomendamos Hardening preventivo para manter sua superfície impenetrável." }
 };
 
+// 3. UTILIDADES
 const limparParaPDF = (str) => typeof str === 'string' ? str.replace(/[^\x00-\x7F]/g, "").trim() : str;
 
+// Variável global para manter os dados do diagnóstico entre etapas
+let _dadosDiagnostico = null;
+
+// 4. PERSISTÊNCIA ROBUSTA — Fallback para localStorage
+function salvarFallbackLocal(dominio, dados) {
+    try {
+        const pending = JSON.parse(localStorage.getItem('wl_leads_pendentes') || '[]');
+        pending.push({ dominio, dados, timestamp: new Date().toISOString() });
+        localStorage.setItem('wl_leads_pendentes', JSON.stringify(pending));
+        console.log('[Fallback] Lead salvo localmente para reenvio.');
+    } catch (e) {
+        console.warn('[Fallback] localStorage indisponível:', e);
+    }
+}
+
+async function reenviarLeadsPendentes() {
+    try {
+        const pending = JSON.parse(localStorage.getItem('wl_leads_pendentes') || '[]');
+        if (pending.length === 0) return;
+
+        const reenviados = [];
+        for (const item of pending) {
+            const { error } = await _supabase.from('leads').upsert(item.dados, { onConflict: 'dominio' });
+            if (!error) reenviados.push(item);
+        }
+
+        if (reenviados.length > 0) {
+            const restantes = pending.filter(p => !reenviados.includes(p));
+            localStorage.setItem('wl_leads_pendentes', JSON.stringify(restantes));
+            console.log(`[Fallback] ${reenviados.length} lead(s) reenviado(s) com sucesso.`);
+        }
+    } catch (e) {
+        console.warn('[Fallback] Erro ao reenviar leads pendentes:', e);
+    }
+}
+
+// Tenta reenviar leads pendentes ao carregar a página
+window.addEventListener('load', () => {
+    setTimeout(reenviarLeadsPendentes, 3000);
+});
+
+// 5. VERIFICAÇÃO DE REPUTAÇÃO
 async function checkReputation(domain) {
     try {
         const { data } = await _supabase.functions.invoke('rapid-worker', { body: { domain: domain } });
@@ -19,33 +75,55 @@ async function checkReputation(domain) {
     } catch { return 0; }
 }
 
-// 1. CAPTURA INICIAL (Salva a linha 1: Dados Técnicos)
+// 6. CAPTURA UNIFICADA (UPSERT) — Anti-Duplicidade
+// Usa a coluna `dominio` como chave de conflito.
+// Primeira chamada: insere os dados técnicos.
+// Segunda chamada (email): atualiza a MESMA linha.
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
+    let ipUsuario = '0.0.0.0';
+    let localizacao = '';
+
     try {
         const resIp = await fetch('https://ipapi.co/json/');
         const dataIp = await resIp.json();
+        ipUsuario = dataIp.ip || '0.0.0.0';
+        localizacao = `${dataIp.city || ''}, ${dataIp.region || ''}`;
+    } catch (e) {
+        console.warn('[GeoIP] Falha na geolocalização, continuando sem IP:', e.message);
+    }
 
-        await _supabase.from('leads').insert([{
-            dominio: dominio,
-            score: score,
-            status_ssl: ssl,
-            reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
-            velocidade: velocidade,
-            plataforma: plataforma,
-            ip_usuario: dataIp.ip || '0.0.0.0',
-            localizacao: `${dataIp.city || ''}, ${dataIp.region || ''}`
-        }]);
-        console.log("Linha 1 (Técnica) salva.");
-    } catch (err) { console.error("Erro na captura técnica:", err); }
+    const dadosLead = {
+        dominio: dominio,
+        score: score,
+        status_ssl: ssl,
+        reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
+        velocidade: velocidade,
+        plataforma: plataforma,
+        ip_usuario: ipUsuario,
+        localizacao: localizacao
+    };
+
+    try {
+        const { error } = await _supabase
+            .from('leads')
+            .upsert(dadosLead, { onConflict: 'dominio' });
+
+        if (error) throw error;
+        console.log("[Upsert] Lead técnico salvo/atualizado com sucesso.");
+    } catch (err) {
+        console.error("[Upsert] Erro ao salvar lead técnico, ativando fallback:", err);
+        salvarFallbackLocal(dominio, dadosLead);
+    }
 }
 
+// 7. MODAL DE RELATÓRIO
 function solicitarRelatorio() {
     const dominio = document.getElementById('domainInput').value;
     document.getElementById('dominioModal').innerText = dominio;
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// 2. FINALIZAR (Salva a linha 2: E-mail separado)
+// 8. FINALIZAR SOLICITAÇÃO — Upsert do e-mail na MESMA linha
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
@@ -57,25 +135,31 @@ async function finalizarSolicitacao() {
     btn.disabled = true;
 
     try {
-        const { error } = await _supabase.from('leads').insert([{ 
-            dominio: dominio, 
-            email: emailValue, 
-            score: "SOLICITOU_RELATORIO" 
-        }]);
+        // Upsert: atualiza a linha existente do domínio, adicionando o e-mail
+        const { error } = await _supabase
+            .from('leads')
+            .upsert(
+                { dominio: dominio, email: emailValue },
+                { onConflict: 'dominio' }
+            );
 
         if (error) throw error;
 
         alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
-        alert("Erro ao salvar e-mail.");
+        console.error("[Upsert] Erro ao salvar e-mail:", e);
+        // Fallback: salvar localmente para reenvio
+        salvarFallbackLocal(dominio, { dominio: dominio, email: emailValue });
+        alert("Erro temporário. Seus dados foram salvos e serão reenviados automaticamente.");
+        document.getElementById('modalEmail').style.display = 'none';
     } finally {
-        btn.innerText = "RECEBER AGORA";
+        btn.innerText = "🚀 RECEBER RELATÓRIO COMPLETO";
         btn.disabled = false;
     }
 }
 
-// NOVA FUNÇÃO: CONTROLE DA BARRA DE PROGRESSO MODERNA
+// 9. BARRA DE PROGRESSO MODERNA (Preservada integralmente)
 async function animarBarraProgresso() {
     const progressWrapper = document.getElementById('progressWrapper');
     const progressBar = document.getElementById('progressBar');
@@ -99,11 +183,12 @@ async function animarBarraProgresso() {
             progresso++;
             progressBar.style.width = progresso + "%";
             percentLabel.innerText = progresso + "%";
-            await new Promise(r => setTimeout(r, 20)); // Velocidade da animação
+            await new Promise(r => setTimeout(r, 20));
         }
     }
 }
 
+// 10. DIAGNÓSTICO PRINCIPAL
 async function iniciarDiagnostico() {
     const dominioInput = document.getElementById('domainInput');
     const resultArea = document.getElementById('resultArea');
@@ -133,14 +218,17 @@ async function iniciarDiagnostico() {
         
         const duration = (Date.now() - start) / 1000;
         
-        // Melhoria baseada no CV: Identificação de infraestrutura mais profissional
+        // Identificação de infraestrutura
         let plataforma = (dominio.includes('santini')) ? "WordPress (Análise de Vulnerabilidade necessária)" : "Infraestrutura Proprietária / Cloud";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `${duration.toFixed(1)}s`;
 
-        // Salva a primeira parte no banco
+        // Salva no banco via UPSERT (anti-duplicidade)
         capturarLead(dominio, score, sslOk ? "Ativo" : "Falha", totalAlertas, velStr, plataforma);
+
+        // Armazena dados do diagnóstico na variável global para uso posterior
+        _dadosDiagnostico = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc };
 
         let chave = (sslOk && temDmarc && totalAlertas === 0) ? "SCORE_ALTO" : (!sslOk ? "SSL_FALHOU" : (totalAlertas > 0 ? "REPUTACAO_RUIM" : "LENTIDAO"));
         const dadosIA = TEXTOS_IA[chave];
@@ -182,6 +270,7 @@ async function iniciarDiagnostico() {
     }
 }
 
+// 11. GERAÇÃO DE PDF (Preservada integralmente)
 function gerarRelatorioPDF(d) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
