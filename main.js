@@ -145,7 +145,7 @@ async function finalizarSolicitacao() {
 
         if (error) throw error;
 
-        alert("Sucesso! Wiliam Longo enviará seu dossiê em instantes.");
+        alert("Sucesso! WL Tec | Longo Shield enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
         console.error("[Upsert] Erro ao salvar e-mail:", e);
@@ -165,10 +165,10 @@ async function animarBarraProgresso() {
     const progressBar = document.getElementById('progressBar');
     const percentLabel = document.getElementById('percentLabel');
     const statusLabel = document.getElementById('statusLabel');
-    
+
     progressWrapper.style.display = 'block';
     let progresso = 0;
-    
+
     const etapas = [
         { p: 15, t: "Iniciando Handshake..." },
         { p: 35, t: "Varrendo Certificados SSL/TLS..." },
@@ -209,7 +209,7 @@ async function iniciarDiagnostico() {
     }
 
     const dominio = dominioInput.value.trim().toLowerCase();
-    
+
     // Esconde resultados anteriores e inicia a barra moderna
     resultArea.classList.add('result-hidden');
     await animarBarraProgresso();
@@ -223,15 +223,15 @@ async function iniciarDiagnostico() {
 
         const temDmarc = !!(dmarcData.Answer);
         let sslOk = false;
-        try { 
+        try {
             const ctrl = new AbortController();
             setTimeout(() => ctrl.abort(), 3500);
-            await fetch(`https://${dominio}`, { mode: 'no-cors', signal: ctrl.signal }); 
-            sslOk = true; 
+            await fetch(`https://${dominio}`, { mode: 'no-cors', signal: ctrl.signal });
+            sslOk = true;
         } catch (e) { sslOk = false; }
-        
+
         const duration = (Date.now() - start) / 1000;
-        
+
         // Identificação de infraestrutura
         let plataforma = (dominio.includes('santini')) ? "WordPress (Análise de Vulnerabilidade necessária)" : "Infraestrutura Proprietária / Cloud";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
@@ -278,9 +278,9 @@ async function iniciarDiagnostico() {
         const dPDF = { dominio, score, sslOk, totalAlertas, velStr, plataforma, temDmarc };
         document.getElementById('btnPDF').onclick = () => gerarRelatorioPDF(dPDF);
 
-    } catch (error) { 
+    } catch (error) {
         document.getElementById('progressWrapper').style.display = 'none';
-        resultArea.innerHTML = "Erro técnico."; 
+        resultArea.innerHTML = "Erro técnico.";
     } finally {
         // Reset do Turnstile para a próxima análise
         _turnstileToken = null;
@@ -317,7 +317,7 @@ function gerarRelatorioPDF(d) {
     const msg = d.score === "A+" ? "Ambiente em conformidade. Hardening preventivo recomendado." : "RISCO DETECTADO: Recomendamos mitigacao imediata.";
     doc.text(doc.splitTextToSize(msg, 170), 20, 197);
     doc.setFillColor(20, 20, 20); doc.rect(0, 260, 210, 37, 'F');
-    try { doc.addImage("img/escudo_shiel.png", "PNG", 175, 265, 20, 20); } catch {}
+    try { doc.addImage("img/escudo_shiel.png", "PNG", 175, 265, 20, 20); } catch { }
     doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.text("WL TEC - CONSULTORIA EM CIBERSEGURANCA", 15, 275);
     doc.setFontSize(8); doc.text("contato@wl.tec.br | (11) 99531-4831 | www.wl.tec.br", 15, 285);
     doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
