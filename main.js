@@ -50,7 +50,18 @@ async function reenviarLeadsPendentes() {
 
         const reenviados = [];
         for (const item of pending) {
-            const { error } = await _supabase.from('leads').upsert(item.dados, { onConflict: 'dominio' });
+            const d = item.dados;
+            const { error } = await _supabase.rpc('upsert_lead', {
+                p_dominio: d.dominio,
+                p_score: d.score || null,
+                p_status_ssl: d.status_ssl || null,
+                p_reputacao: d.reputacao || null,
+                p_velocidade: d.velocidade || null,
+                p_plataforma: d.plataforma || null,
+                p_ip_usuario: d.ip_usuario || null,
+                p_localizacao: d.localizacao || null,
+                p_email: d.email || null
+            });
             if (!error) reenviados.push(item);
         }
 
@@ -77,10 +88,8 @@ async function checkReputation(domain) {
     } catch { return 0; }
 }
 
-// 6. CAPTURA UNIFICADA (UPSERT) — Anti-Duplicidade
-// Usa a coluna `dominio` como chave de conflito.
-// Primeira chamada: insere os dados técnicos.
-// Segunda chamada (email): atualiza a MESMA linha.
+// 6. CAPTURA UNIFICADA (RPC Seguro) — Anti-Duplicidade
+// Usa função SECURITY DEFINER no Supabase para upsert seguro sem expor SELECT.
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
     let ipUsuario = '0.0.0.0';
     let localizacao = '';
@@ -94,27 +103,24 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
         console.warn('[GeoIP] Falha na geolocalização, continuando sem IP:', e.message);
     }
 
-    const dadosLead = {
-        dominio: dominio,
-        score: score,
-        status_ssl: ssl,
-        reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
-        velocidade: velocidade,
-        plataforma: plataforma,
-        ip_usuario: ipUsuario,
-        localizacao: localizacao
+    const params = {
+        p_dominio: dominio,
+        p_score: score,
+        p_status_ssl: ssl,
+        p_reputacao: reputacao > 0 ? "Alertas Detectados" : "Limpo",
+        p_velocidade: velocidade,
+        p_plataforma: plataforma,
+        p_ip_usuario: ipUsuario,
+        p_localizacao: localizacao
     };
 
     try {
-        const { error } = await _supabase
-            .from('leads')
-            .upsert(dadosLead, { onConflict: 'dominio' });
-
+        const { error } = await _supabase.rpc('upsert_lead', params);
         if (error) throw error;
-        console.log("[Upsert] Lead técnico salvo/atualizado com sucesso.");
+        console.log("[RPC] Lead técnico salvo/atualizado com sucesso.");
     } catch (err) {
-        console.error("[Upsert] Erro ao salvar lead técnico, ativando fallback:", err);
-        salvarFallbackLocal(dominio, dadosLead);
+        console.error("[RPC] Erro ao salvar lead técnico, ativando fallback:", err);
+        salvarFallbackLocal(dominio, params);
     }
 }
 
@@ -125,7 +131,7 @@ function solicitarRelatorio() {
     document.getElementById('modalEmail').style.display = 'block';
 }
 
-// 8. FINALIZAR SOLICITAÇÃO — Upsert do e-mail na MESMA linha
+// 8. FINALIZAR SOLICITAÇÃO — RPC seguro para atualizar e-mail
 async function finalizarSolicitacao() {
     const emailValue = document.getElementById('emailCliente').value;
     const dominio = document.getElementById('dominioModal').innerText;
@@ -137,22 +143,18 @@ async function finalizarSolicitacao() {
     btn.disabled = true;
 
     try {
-        // Upsert: atualiza a linha existente do domínio, adicionando o e-mail
-        const { error } = await _supabase
-            .from('leads')
-            .upsert(
-                { dominio: dominio, email: emailValue },
-                { onConflict: 'dominio' }
-            );
+        const { error } = await _supabase.rpc('upsert_lead', {
+            p_dominio: dominio,
+            p_email: emailValue
+        });
 
         if (error) throw error;
 
         alert("Sucesso! WL Tec | Longo Shield enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
     } catch (e) {
-        console.error("[Upsert] Erro ao salvar e-mail:", e);
-        // Fallback: salvar localmente para reenvio
-        salvarFallbackLocal(dominio, { dominio: dominio, email: emailValue });
+        console.error("[RPC] Erro ao salvar e-mail:", e);
+        salvarFallbackLocal(dominio, { p_dominio: dominio, p_email: emailValue });
         alert("Erro temporário. Seus dados foram salvos e serão reenviados automaticamente.");
         document.getElementById('modalEmail').style.display = 'none';
     } finally {
