@@ -25,6 +25,8 @@ const TEXTOS_IA = {
 
 // 3. UTILIDADES
 const limparParaPDF = (str) => typeof str === 'string' ? str.replace(/[^\x00-\x7F]/g, "").trim() : str;
+const escapeHTML = (str) => typeof str === 'string' ? str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;') : str;
+const isValidDomain = (domain) => /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(domain);
 
 // Variável global para manter os dados do diagnóstico entre etapas
 let _dadosDiagnostico = null;
@@ -208,7 +210,13 @@ async function iniciarDiagnostico() {
         return;
     }
 
-    const dominio = dominioInput.value.trim().toLowerCase();
+    const dominio = dominioInput.value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
+
+    // Validação anti-XSS: aceita apenas domínios válidos
+    if (!isValidDomain(dominio)) {
+        alert("Por favor, insira um domínio válido (ex: empresa.com.br).");
+        return;
+    }
 
     // Esconde resultados anteriores e inicia a barra moderna
     resultArea.classList.add('result-hidden');
@@ -255,7 +263,7 @@ async function iniciarDiagnostico() {
         <div style="text-align: left; background: rgba(10,10,10,0.95); border-left: 6px solid ${cor}; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); position: relative; overflow: hidden;">
             <div style="padding: 30px;">
                 <img src="img/escudo_shiel.png" style="position: absolute; top: 20px; right: 20px; height: 60px; opacity: 0.9;">
-                <h2 style="color: #fff; font-family: 'Rajdhani', sans-serif;">${dominio.toUpperCase()}</h2>
+                <h2 style="color: #fff; font-family: 'Rajdhani', sans-serif;">${escapeHTML(dominio.toUpperCase())}</h2>
                 <div style="font-size: 3rem; font-weight: 900; color: ${cor};">${score}</div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🛡️ Blindagem de E-mail: ${temDmarc ? 'Protegido' : 'Vulnerável'}</div>

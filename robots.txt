@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /wl.leads.html
 
 Sitemap: https://wl.tec.br/sitemap.xml

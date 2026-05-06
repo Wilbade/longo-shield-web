@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://giikoiqpnzgmhcqiuvhs.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://wl.tec.br; connect-src 'self' https://giikoiqpnzgmhcqiuvhs.supabase.co https://generativelanguage.googleapis.com; frame-src 'none'; form-action 'self'; base-uri 'self';">
     <title>WL CRM - Painel de Leads</title>
     <link rel="icon" type="image/png" href="img/escudo_shiel.png">
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
     <style>
         :root { --bg-dark: #0a0c10; --cyan: #00FFFF; --ambar: #FFB300; --text-light: #e0e0e0; --gray-steel: #4a4a4a; --card-bg: rgba(255,255,255,0.03); --purple: #8E44AD; --green: #2ecc71; --red: #FF4444; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -193,6 +196,12 @@
         let _leadsCache = [];
         let _leadAtual = null;
 
+        // Utilidade anti-XSS: escapa HTML de dados vindos do banco
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
         // ========== AUTH ==========
         window.onload = async () => {
             const { data: { session } } = await _supabase.auth.getSession();
@@ -250,15 +259,15 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td style="font-size:0.7rem; color:#666; white-space:nowrap;">${dt}</td>
-                    <td style="color:var(--cyan); font-weight:bold;">${lead.dominio || '—'}</td>
-                    <td><span class="badge ${classeScore}">${lead.score || '—'}</span></td>
-                    <td><span class="badge ${sslClass}">${lead.status_ssl || '—'}</span></td>
-                    <td style="font-size:0.75rem;">${lead.reputacao || '—'}</td>
-                    <td style="font-size:0.75rem; color:#888;">${lead.velocidade || '—'}</td>
-                    <td style="font-size:0.72rem; color:#888; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lead.plataforma || '—'}</td>
-                    <td style="font-size:0.7rem; color:#666;">${lead.ip_usuario || '—'}<br>${lead.localizacao || ''}</td>
-                    <td>${lead.email ? `<span class="badge badge-email">${lead.email}</span>` : '<span style="color:#555;">—</span>'}</td>
+                    <td style="font-size:0.7rem; color:#666; white-space:nowrap;">${escapeHTML(dt)}</td>
+                    <td style="color:var(--cyan); font-weight:bold;">${escapeHTML(lead.dominio) || '—'}</td>
+                    <td><span class="badge ${classeScore}">${escapeHTML(lead.score) || '—'}</span></td>
+                    <td><span class="badge ${sslClass}">${escapeHTML(lead.status_ssl) || '—'}</span></td>
+                    <td style="font-size:0.75rem;">${escapeHTML(lead.reputacao) || '—'}</td>
+                    <td style="font-size:0.75rem; color:#888;">${escapeHTML(lead.velocidade) || '—'}</td>
+                    <td style="font-size:0.72rem; color:#888; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHTML(lead.plataforma) || '—'}</td>
+                    <td style="font-size:0.7rem; color:#666;">${escapeHTML(lead.ip_usuario) || '—'}<br>${escapeHTML(lead.localizacao) || ''}</td>
+                    <td>${lead.email ? `<span class="badge badge-email">${escapeHTML(lead.email)}</span>` : '<span style="color:#555;">—</span>'}</td>
                     <td>${btnAcao}</td>
                 `;
                 corpo.appendChild(tr);
@@ -334,7 +343,8 @@ Use formatação Markdown com headers, bullet points e negrito.`;
             document.getElementById('modalVerSubtitle').textContent = `Score: ${lead.score} | SSL: ${lead.status_ssl} | Gerada em: ${new Date(lead.created_at).toLocaleString('pt-BR')}`;
 
             // Renderiza Markdown
-            const html = marked.parse(lead.detalhes_tecnicos || 'Sem conteúdo.');
+            // Sanitiza HTML gerado pelo Markdown para prevenir XSS armazenado
+            const html = DOMPurify.sanitize(marked.parse(lead.detalhes_tecnicos || 'Sem conteúdo.'));
             document.getElementById('modalVerConteudo').innerHTML = html;
         }
 
