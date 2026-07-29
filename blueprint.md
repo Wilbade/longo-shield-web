@@ -26,3 +26,14 @@ As principais capacidades do sistema incluem:
 ### Correção de Datas no CRM (Leads e IA)
 - **Fuso Horário Local**: Na tabela do CRM (`wl.leads.html`), as datas de entrada dos leads foram ajustadas para forçar o fuso horário oficial de Brasília (`America/Sao_Paulo`), prevenindo distorções no horário que ocorriam em diferentes navegadores ou servidores base.
 - **Data Dinâmica da Proposta (Gemini)**: Substituída a orientação de data fixa no prompt da IA, exigindo agora que o Gemini escreva a data atual real no cabeçalho das propostas geradas, resolvendo o problema onde a IA utilizava datas base de treinamento (ex: "22 de Maio de 2024").
+
+### AppSec, Integrações e Otimização Comercial (Atualizações Mais Recentes)
+- **Botão de Re-Verificação (CRM)**: Adicionado botão (🔄) na interface de leads para permitir a auditoria forçada e repetitiva de um domínio antigo no banco, com atualização de score em tempo real sem duplicar linhas de banco.
+- **Content Security Policy (CSP)**: Flexibilização controlada do `img-src` e `connect-src` no `index.html` e `wl.leads.html` para permitir que scripts Client-Side consigam verificar assets de infraestrutura de terceiros (como a detecção de diretórios `/wp-includes/` via injeção invisível de imagem).
+- **Detecção Frontend de WordPress**: Implementada lógica `cross-origin` para tentar identificar instalações nativas do WP diretamente pelo JavaScript, retornando metadados enriquecidos para o CRM.
+- **Exposição de Dados Técnicos em UI**: A interface pública (`index.html`) foi expandida com um novo *card* visual ("Infra e DNS") para expor aos visitantes a plataforma detectada e falhas de registros DNS (como a falta de SPF/BIMI) descobertas durante a análise.
+- **Prompt Engineering "Tri-Partite" (3 em 1)**: O prompt da Inteligência Artificial (Google Gemini) foi inteiramente re-arquitetado. Em vez de gerar apenas um documento denso, agora ele gera três seções especializadas divididas por um marcador estrutural `[DIVISAO_WL]`:
+  1. Cold Mail curto, persuasivo e focado na dor (Prospecção).
+  2. Proposta Comercial completa em Markdown.
+  3. Guia Operacional Técnico (SOP) para auxiliar as configurações técnicas após o fechamento.
+- **Automação de E-mail Client-Side (Zero-Cost)**: Inserido o botão "📩 Enviar E-mail" no CRM que extrai via `Regex` apenas a 'Seção 1 (Cold Mail)' do texto do Gemini e abre nativamente o Webmail do Gmail (`https://mail.google.com/mail/?view=cm...`) em uma nova aba, preenchido automaticamente com Assunto, Destinatário e Corpo, evadindo falhas silenciosas de protocolos `mailto:` no Windows.
