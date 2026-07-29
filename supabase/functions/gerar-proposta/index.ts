@@ -55,6 +55,7 @@ Escreva uma proposta estruturada e formal contendo: Diagnóstico Técnico Detalh
 Crie um passo-a-passo técnico (Standard Operating Procedure) do que eu (Especialista) devo fazer na prática no painel do cliente para corrigir essas vulnerabilidades assim que o contrato for assinado.
 
 Dados para basear toda a análise:
+- Data Atual: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
 - Score Final: ${lead.score}
 - SSL Ativo: ${lead.status_ssl}
 - Reputação/Vírus: ${lead.reputacao}

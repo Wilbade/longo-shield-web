@@ -396,6 +396,7 @@ Escreva uma proposta estruturada e formal contendo: Diagnóstico Técnico Detalh
 Crie um passo-a-passo técnico (Standard Operating Procedure) do que eu (Especialista) devo fazer na prática no painel do cliente para corrigir essas vulnerabilidades assim que o contrato for assinado.
 
 Dados para basear toda a análise:
+- Data Atual: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
 - Score de Resiliência: ${lead.score}
 - SSL/TLS: ${lead.status_ssl}
 - Reputação: ${lead.reputacao}
@@ -488,7 +489,11 @@ Dados para basear toda a análise:
                 corpo = corpo.trim();
                 
                 const body = encodeURIComponent(corpo);
-                window.location.href = `mailto:${destinatario}?subject=${assunto}&body=${body}`;
+                
+                // Como o Chrome costuma bloquear 'mailto:' se o Windows não tiver app de e-mail padrão, 
+                // e como o e-mail da WL TEC está no Google (Gmail), abrimos direto a aba do Gmail.
+                const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${destinatario}&su=${assunto}&body=${body}`;
+                window.open(gmailUrl, '_blank');
             }
         }
 
