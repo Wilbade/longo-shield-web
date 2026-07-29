@@ -37,18 +37,24 @@ serve(async (req) => {
       throw new Error('Chave do Gemini não configurada no Supabase (Secrets).')
     }
 
-    const promptText = `Aja como um engenheiro de segurança sênior. 
-Analise os dados deste Lead (Domínio auditado) e crie um parágrafo técnico, persuasivo e altamente profissional que possa ser enviado no corpo de um e-mail. 
-Não use saudações, vá direto ao ponto técnico focando na gravidade e na venda da nossa solução de Blindagem Digital (WL TEC).
+    const promptText = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC.
+Telefone/WhatsApp: 11 99531-4831 | Email: contato@wl.tec.br | Site: wl.tec.br
+
+Escreva uma abordagem comercial DIRETA E CURTA (máximo de 3 a 4 parágrafos) para o domínio **${lead.dominio}**. 
+O objetivo é colar este texto diretamente no CORPO DE UM E-MAIL (Cold Mail) para o diretor da empresa. NÃO seja prolixo, não crie documentos longos nem listas gigantes.
+
 Dados:
 - Domínio: ${lead.dominio}
 - Score Final: ${lead.score}
 - Reputação/Vírus: ${lead.reputacao}
 - SSL Ativo: ${lead.status_ssl}
-- Velocidade: ${lead.velocidade}
-- Plataforma/Servidor: ${lead.plataforma}
+- Plataforma e Infraestrutura (MUITO IMPORTANTE): ${lead.plataforma}
 
-A proposta deve conter: Diagnóstico Técnico detalhado, Riscos Identificados (especialmente se houver vulnerabilidades no e-mail como ausência de SPF/BIMI ou uso de CMS como WordPress), Plano de ação recomendado (Blindagem Digital WL TEC) e Investimento sugerido.`;
+Regras de Ouro:
+1. Vá direto ao ponto: cite o domínio do cliente e destaque os riscos mais críticos que você encontrou na variável Plataforma (ex: falta de SPF, falta de BIMI, uso de WordPress vulnerável, ausência de DMARC).
+2. Apresente a WL TEC e a nossa solução de Blindagem Digital como a resolução rápida para esses riscos.
+3. Termine com uma Chamada para Ação (Call to Action) chamativa para o cliente responder o e-mail ou chamar no WhatsApp.
+4. Assine como William Longo no final. Use Markdown apenas para colocar termos-chave em **negrito**.`;
 
     // Request direto ao Google Gemini usando a chave do servidor, sem expor no frontend
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
