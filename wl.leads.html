@@ -253,9 +253,9 @@
 
                 let btnAcao;
                 if (temProposta) {
-                    btnAcao = `<button class="btn btn-ver" onclick='verProposta(${leadJson})'>📄 VER</button>`;
+                    btnAcao = `<div style="display:flex;gap:4px;"><button class="btn btn-ver" onclick='verProposta(${leadJson})'>📄 VER</button><button class="btn btn-ver" style="padding:2px 6px;" onclick='reverificarLead(${leadJson}, this)' title="Re-verificar Infraestrutura">🔄</button></div>`;
                 } else {
-                    btnAcao = `<button class="btn btn-ia" onclick='gerarPropostaIA(${leadJson})'>✨ ANALISAR</button>`;
+                    btnAcao = `<div style="display:flex;gap:4px;"><button class="btn btn-ia" onclick='gerarPropostaIA(${leadJson})'>✨ ANALISAR</button><button class="btn btn-ver" style="padding:2px 6px;" onclick='reverificarLead(${leadJson}, this)' title="Re-verificar Infraestrutura">🔄</button></div>`;
                 }
 
                 const tr = document.createElement('tr');
@@ -280,6 +280,68 @@
             document.getElementById('statCriticos').textContent = leads.filter(l => l.score === 'Crítico').length;
             document.getElementById('statEmails').textContent = leads.filter(l => l.email).length;
             document.getElementById('statPropostas').textContent = leads.filter(l => l.detalhes_tecnicos && l.detalhes_tecnicos.trim()).length;
+        }
+
+        // ========== RE-VERIFICAR LEAD ==========
+        async function reverificarLead(lead, btn) {
+            btn.innerText = "⏳";
+            btn.disabled = true;
+            try {
+                const dominio = lead.dominio;
+                const start = Date.now();
+                
+                const dmarcData = await fetch(`https://dns.google/resolve?name=_dmarc.${dominio}&type=TXT`).then(r => r.json()).catch(() => ({}));
+                const temDmarc = !!(dmarcData.Answer);
+                
+                let sslOk = false;
+                try {
+                    const ctrl = new AbortController();
+                    setTimeout(() => ctrl.abort(), 3500);
+                    await fetch(`https://${dominio}`, { mode: 'no-cors', signal: ctrl.signal });
+                    sslOk = true;
+                } catch (e) { sslOk = false; }
+                
+                const duration = (Date.now() - start) / 1000;
+                
+                let isWordPress = false;
+                try {
+                    isWordPress = await new Promise((resolve) => {
+                        const img = new Image();
+                        img.onload = () => resolve(true);
+                        img.onerror = () => resolve(false);
+                        img.src = `https://${dominio}/wp-includes/images/w-logo-blue.png`;
+                        setTimeout(() => resolve(false), 2500);
+                    });
+                } catch(e) { }
+
+                let plataforma = isWordPress ? "WordPress (Análise de Vulnerabilidade recomendada)" : "Infraestrutura Proprietária / Cloud";
+                
+                let totalAlertas = 0;
+                try {
+                    const { data } = await _supabase.functions.invoke('rapid-worker', { body: { domain: dominio } });
+                    totalAlertas = data?.data?.attributes?.last_analysis_stats ? (data.data.attributes.last_analysis_stats.malicious + data.data.attributes.last_analysis_stats.suspicious) : 0;
+                } catch(e) {}
+                
+                let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
+                const velStr = `${duration.toFixed(1)}s`;
+                
+                const { error } = await _supabase.from('leads').update({
+                    score: score,
+                    status_ssl: sslOk ? "Ativo" : "Falha",
+                    reputacao: totalAlertas > 0 ? "Alertas Detectados" : "Limpo",
+                    velocidade: velStr,
+                    plataforma: plataforma
+                }).eq('id', lead.id);
+                
+                if (error) throw error;
+                
+                carregarLeads(); // recarrega a tabela atualizada
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao reverificar.");
+                btn.innerText = "🔄";
+                btn.disabled = false;
+            }
         }
 
         // ========== GERAR PROPOSTA IA ==========
