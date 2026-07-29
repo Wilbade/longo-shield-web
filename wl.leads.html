@@ -290,8 +290,30 @@
                 const dominio = lead.dominio;
                 const start = Date.now();
                 
-                const dmarcData = await fetch(`https://dns.google/resolve?name=_dmarc.${dominio}&type=TXT`).then(r => r.json()).catch(() => ({}));
+                const [dmarcData, spfData, bimiData, mxData] = await Promise.all([
+                    fetch(`https://dns.google/resolve?name=_dmarc.${dominio}&type=TXT`).then(r => r.json()).catch(() => ({})),
+                    fetch(`https://dns.google/resolve?name=${dominio}&type=TXT`).then(r => r.json()).catch(() => ({})),
+                    fetch(`https://dns.google/resolve?name=default._bimi.${dominio}&type=TXT`).then(r => r.json()).catch(() => ({})),
+                    fetch(`https://dns.google/resolve?name=${dominio}&type=MX`).then(r => r.json()).catch(() => ({}))
+                ]);
+
                 const temDmarc = !!(dmarcData.Answer);
+                const temSpf = spfData.Answer ? spfData.Answer.some(a => (a.data || '').includes('v=spf1')) : false;
+                const temBimi = !!(bimiData.Answer && bimiData.Answer.length > 0);
+
+                let provedor = "Desconhecido";
+                if (mxData.Answer) {
+                    const mxStr = mxData.Answer.map(a => a.data).join(' ').toLowerCase();
+                    if (mxStr.includes('google')) provedor = "Google Workspace";
+                    else if (mxStr.includes('outlook') || mxStr.includes('protection')) provedor = "Microsoft 365";
+                    else if (mxStr.includes('locaweb')) provedor = "Locaweb";
+                    else if (mxStr.includes('titan')) provedor = "Titan Mail";
+                    else if (mxStr.includes('zoho')) provedor = "Zoho Mail";
+                    else if (mxStr.includes('hostgator')) provedor = "HostGator";
+                    else provedor = "Outro Provedor";
+                } else {
+                    provedor = "Sem E-mail (MX)";
+                }
                 
                 let sslOk = false;
                 try {
@@ -314,7 +336,8 @@
                     });
                 } catch(e) { }
 
-                let plataforma = isWordPress ? "WordPress (Análise de Vulnerabilidade recomendada)" : "Infraestrutura Proprietária / Cloud";
+                let basePlataforma = isWordPress ? "WordPress (Análise de Vulnerabilidade recomendada)" : "Infraestrutura Proprietária / Cloud";
+                let plataforma = `${basePlataforma} | E-mail: ${provedor} | SPF: ${temSpf ? 'Ok' : 'Falha'} | BIMI: ${temBimi ? 'Ok' : 'Ausente'}`;
                 
                 let totalAlertas = 0;
                 try {
@@ -366,7 +389,7 @@ Dados técnicos coletados:
 - Velocidade de Resposta: ${lead.velocidade || 'N/A'}
 - Plataforma: ${lead.plataforma || 'N/A'}
 
-A proposta deve conter: Diagnóstico, Riscos identificados, Plano de ação recomendado e Investimento sugerido.
+A proposta deve conter: Diagnóstico Técnico detalhado, Riscos Identificados (se houver vulnerabilidades no e-mail como ausência de SPF/BIMI ou uso de CMS como WordPress), Plano de ação recomendado (Blindagem Digital WL TEC) e Investimento sugerido.
 Use formatação Markdown com headers, bullet points e negrito. No cabeçalho da proposta inclua a Data atual: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
 
             try {

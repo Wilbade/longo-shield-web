@@ -46,7 +46,9 @@ Dados:
 - Reputação/Vírus: ${lead.reputacao}
 - SSL Ativo: ${lead.status_ssl}
 - Velocidade: ${lead.velocidade}
-- Plataforma/Servidor: ${lead.plataforma}`;
+- Plataforma/Servidor: ${lead.plataforma}
+
+A proposta deve conter: Diagnóstico Técnico detalhado, Riscos Identificados (especialmente se houver vulnerabilidades no e-mail como ausência de SPF/BIMI ou uso de CMS como WordPress), Plano de ação recomendado (Blindagem Digital WL TEC) e Investimento sugerido.`;
 
     // Request direto ao Google Gemini usando a chave do servidor, sem expor no frontend
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;

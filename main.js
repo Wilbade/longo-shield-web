@@ -226,12 +226,31 @@ async function iniciarDiagnostico() {
 
     try {
         const start = Date.now();
-        const [dmarcData, totalAlertas] = await Promise.all([
+        const [dmarcData, totalAlertas, spfData, mxData, bimiData] = await Promise.all([
             fetch(`https://dns.google/resolve?name=_dmarc.${dominio}&type=TXT`).then(r => r.json()).catch(() => ({})),
-            checkReputation(dominio)
+            checkReputation(dominio),
+            fetch(`https://dns.google/resolve?name=${dominio}&type=TXT`).then(r => r.json()).catch(() => ({})),
+            fetch(`https://dns.google/resolve?name=${dominio}&type=MX`).then(r => r.json()).catch(() => ({})),
+            fetch(`https://dns.google/resolve?name=default._bimi.${dominio}&type=TXT`).then(r => r.json()).catch(() => ({}))
         ]);
 
         const temDmarc = !!(dmarcData.Answer);
+        const temSpf = spfData.Answer ? spfData.Answer.some(a => (a.data || '').includes('v=spf1')) : false;
+        const temBimi = !!(bimiData.Answer && bimiData.Answer.length > 0);
+
+        let provedor = "Desconhecido";
+        if (mxData.Answer) {
+            const mxStr = mxData.Answer.map(a => a.data).join(' ').toLowerCase();
+            if (mxStr.includes('google')) provedor = "Google Workspace";
+            else if (mxStr.includes('outlook') || mxStr.includes('protection')) provedor = "Microsoft 365";
+            else if (mxStr.includes('locaweb')) provedor = "Locaweb";
+            else if (mxStr.includes('titan')) provedor = "Titan Mail";
+            else if (mxStr.includes('zoho')) provedor = "Zoho Mail";
+            else if (mxStr.includes('hostgator')) provedor = "HostGator";
+            else provedor = "Outro Provedor";
+        } else {
+            provedor = "Sem E-mail (MX)";
+        }
         let sslOk = false;
         try {
             const ctrl = new AbortController();
@@ -254,7 +273,8 @@ async function iniciarDiagnostico() {
             });
         } catch(e) { }
 
-        let plataforma = isWordPress ? "WordPress (Análise de Vulnerabilidade recomendada)" : "Infraestrutura Proprietária / Cloud";
+        let basePlataforma = isWordPress ? "WordPress (Análise de Vulnerabilidade recomendada)" : "Infraestrutura Proprietária / Cloud";
+        let plataforma = `${basePlataforma} | E-mail: ${provedor} | SPF: ${temSpf ? 'Ok' : 'Falha'} | BIMI: ${temBimi ? 'Ok' : 'Ausente'}`;
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `${duration.toFixed(1)}s`;
