@@ -244,7 +244,8 @@
             corpo.innerHTML = '';
 
             _leadsCache.forEach(lead => {
-                const dt = new Date(lead.created_at).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+                const dtOriginal = new Date(lead.created_at);
+                const dt = dtOriginal.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
                 const classeScore = lead.score === 'A+' ? 'aplus' : (lead.score === 'Crítico' ? 'critico' : 'alerta');
                 const sslClass = (lead.status_ssl === 'Ativo') ? 'badge-ssl-ok' : 'badge-ssl-fail';
                 const temProposta = lead.detalhes_tecnicos && lead.detalhes_tecnicos.trim().length > 0;
@@ -304,9 +305,12 @@ Dados técnicos coletados:
 - Plataforma: ${lead.plataforma || 'N/A'}
 
 A proposta deve conter: Diagnóstico, Riscos identificados, Plano de ação recomendado e Investimento sugerido.
-Use formatação Markdown com headers, bullet points e negrito.`;
+Use formatação Markdown com headers, bullet points e negrito. No cabeçalho da proposta inclua a Data atual: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
 
             try {
+                // =========================================================================
+                // 🛑 AVISO DE APPSEC: CHAMADA CLIENT-SIDE (INSEGURA)
+                // =========================================================================
                 const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                 const response = await fetch(url, {
                     method: 'POST',
@@ -315,6 +319,17 @@ Use formatação Markdown com headers, bullet points e negrito.`;
                 });
                 const resJson = await response.json();
                 const textoGerado = resJson.candidates[0].content.parts[0].text;
+
+                // =========================================================================
+                // ✅ CHAMADA SEGURA (EDGE FUNCTION) - Descomente após o deploy no Supabase
+                // =========================================================================
+                /*
+                const { data, error: edgeError } = await _supabase.functions.invoke('gerar-proposta', {
+                    body: { lead: lead }
+                });
+                if (edgeError) throw edgeError;
+                const textoGerado = data.texto;
+                */
 
                 document.getElementById('textoProposta').value = textoGerado;
 

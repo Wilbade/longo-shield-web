@@ -34,18 +34,18 @@ let _dadosDiagnostico = null;
 // 4. PERSISTÊNCIA ROBUSTA — Fallback para localStorage
 function salvarFallbackLocal(dominio, dados) {
     try {
-        const pending = JSON.parse(localStorage.getItem('wl_leads_pendentes') || '[]');
+        const pending = JSON.parse(sessionStorage.getItem('wl_leads_pendentes') || '[]');
         pending.push({ dominio, dados, timestamp: new Date().toISOString() });
-        localStorage.setItem('wl_leads_pendentes', JSON.stringify(pending));
+        sessionStorage.setItem('wl_leads_pendentes', JSON.stringify(pending));
         console.log('[Fallback] Lead salvo localmente para reenvio.');
     } catch (e) {
-        console.warn('[Fallback] localStorage indisponível:', e);
+        console.warn('[Fallback] sessionStorage indisponível:', e);
     }
 }
 
 async function reenviarLeadsPendentes() {
     try {
-        const pending = JSON.parse(localStorage.getItem('wl_leads_pendentes') || '[]');
+        const pending = JSON.parse(sessionStorage.getItem('wl_leads_pendentes') || '[]');
         if (pending.length === 0) return;
 
         const reenviados = [];
@@ -67,7 +67,7 @@ async function reenviarLeadsPendentes() {
 
         if (reenviados.length > 0) {
             const restantes = pending.filter(p => !reenviados.includes(p));
-            localStorage.setItem('wl_leads_pendentes', JSON.stringify(restantes));
+            sessionStorage.setItem('wl_leads_pendentes', JSON.stringify(restantes));
             console.log(`[Fallback] ${reenviados.length} lead(s) reenviado(s) com sucesso.`);
         }
     } catch (e) {
@@ -91,17 +91,11 @@ async function checkReputation(domain) {
 // 6. CAPTURA UNIFICADA (RPC Seguro) — Anti-Duplicidade
 // Usa função SECURITY DEFINER no Supabase para upsert seguro sem expor SELECT.
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
-    let ipUsuario = '0.0.0.0';
-    let localizacao = '';
-
-    try {
-        const resIp = await fetch('https://ipapi.co/json/');
-        const dataIp = await resIp.json();
-        ipUsuario = dataIp.ip || '0.0.0.0';
-        localizacao = `${dataIp.city || ''}, ${dataIp.region || ''}`;
-    } catch (e) {
-        console.warn('[GeoIP] Falha na geolocalização, continuando sem IP:', e.message);
-    }
+    // Refatoração AppSec: A captura de IP client-side foi removida.
+    // O IP e a Localização agora devem ser capturados nativamente pelo Supabase 
+    // ou via Edge Functions para garantir conformidade total com a LGPD e evitar APIs de terceiros.
+    let ipUsuario = 'Capturado via Backend';
+    let localizacao = 'Sigiloso (LGPD)';
 
     const params = {
         p_dominio: dominio,
