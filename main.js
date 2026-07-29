@@ -303,6 +303,7 @@ async function iniciarDiagnostico() {
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🔒 Conexão Segura: ${sslOk ? 'Ativa' : 'Falha'}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">⚡ Resposta: ${velStr}</div>
                     <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">🦠 Saúde: ${totalAlertas > 0 ? 'Risco' : 'Limpo'}</div>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; grid-column: 1 / -1; font-size: 0.85rem;">🌐 <strong>Infra e DNS:</strong> ${escapeHTML(plataforma)}</div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button id="btnPDF" class="refresh-btn" style="flex: 1;">📥 DOSSIÊ PDF</button>

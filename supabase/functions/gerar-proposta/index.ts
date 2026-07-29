@@ -40,21 +40,25 @@ serve(async (req) => {
     const promptText = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC.
 Telefone/WhatsApp: 11 99531-4831 | Email: contato@wl.tec.br | Site: wl.tec.br
 
-Escreva uma abordagem comercial DIRETA E CURTA (máximo de 3 a 4 parágrafos) para o domínio **${lead.dominio}**. 
-O objetivo é colar este texto diretamente no CORPO DE UM E-MAIL (Cold Mail) para o diretor da empresa. NÃO seja prolixo, não crie documentos longos nem listas gigantes.
+Escreva um dossiê técnico e comercial contendo EXATAMENTE 3 seções, rigorosamente separadas pela tag secreta [DIVISAO_WL]. Não escreva nada antes da primeira tag.
 
-Dados:
-- Domínio: ${lead.dominio}
+[DIVISAO_WL]
+1. E-MAIL DE PROSPECÇÃO (Cold Mail)
+Escreva um e-mail persuasivo, agressivo comercialmente e curto (máx 3 parágrafos) para o diretor da empresa dona do domínio **${lead.dominio}**. Vá direto ao ponto, cite os riscos encontrados na plataforma (ex: falta de SPF/BIMI) e chame para uma reunião da WL TEC. Assine como William Longo.
+
+[DIVISAO_WL]
+2. PROPOSTA COMERCIAL COMPLETA (PDF)
+Escreva uma proposta estruturada e formal contendo: Diagnóstico Técnico Detalhado, Riscos Identificados de forma técnica, Plano de Ação (solução Blindagem Digital) e Investimento sugerido. Use Markdown.
+
+[DIVISAO_WL]
+3. GUIA TÉCNICO INTERNO DE CORREÇÃO (SOP)
+Crie um passo-a-passo técnico (Standard Operating Procedure) do que eu (Especialista) devo fazer na prática no painel do cliente para corrigir essas vulnerabilidades assim que o contrato for assinado.
+
+Dados para basear toda a análise:
 - Score Final: ${lead.score}
-- Reputação/Vírus: ${lead.reputacao}
 - SSL Ativo: ${lead.status_ssl}
-- Plataforma e Infraestrutura (MUITO IMPORTANTE): ${lead.plataforma}
-
-Regras de Ouro:
-1. Vá direto ao ponto: cite o domínio do cliente e destaque os riscos mais críticos que você encontrou na variável Plataforma (ex: falta de SPF, falta de BIMI, uso de WordPress vulnerável, ausência de DMARC).
-2. Apresente a WL TEC e a nossa solução de Blindagem Digital como a resolução rápida para esses riscos.
-3. Termine com uma Chamada para Ação (Call to Action) chamativa para o cliente responder o e-mail ou chamar no WhatsApp.
-4. Assine como William Longo no final. Use Markdown apenas para colocar termos-chave em **negrito**.`;
+- Reputação/Vírus: ${lead.reputacao}
+- Plataforma/DNS (CRÍTICO): ${lead.plataforma}`;
 
     // Request direto ao Google Gemini usando a chave do servidor, sem expor no frontend
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
