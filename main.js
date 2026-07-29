@@ -91,11 +91,17 @@ async function checkReputation(domain) {
 // 6. CAPTURA UNIFICADA (RPC Seguro) — Anti-Duplicidade
 // Usa função SECURITY DEFINER no Supabase para upsert seguro sem expor SELECT.
 async function capturarLead(dominio, score, ssl, reputacao, velocidade, plataforma) {
-    // Refatoração AppSec: A captura de IP client-side foi removida.
-    // O IP e a Localização agora devem ser capturados nativamente pelo Supabase 
-    // ou via Edge Functions para garantir conformidade total com a LGPD e evitar APIs de terceiros.
-    let ipUsuario = 'Capturado via Backend';
-    let localizacao = 'Sigiloso (LGPD)';
+    let ipUsuario = '0.0.0.0';
+    let localizacao = '';
+
+    try {
+        const resIp = await fetch('https://ipapi.co/json/');
+        const dataIp = await resIp.json();
+        ipUsuario = dataIp.ip || '0.0.0.0';
+        localizacao = `${dataIp.city || ''}, ${dataIp.region || ''}`;
+    } catch (e) {
+        console.warn('[GeoIP] Falha na geolocalização, continuando sem IP:', e.message);
+    }
 
     const params = {
         p_dominio: dominio,
@@ -236,8 +242,19 @@ async function iniciarDiagnostico() {
 
         const duration = (Date.now() - start) / 1000;
 
-        // Identificação de infraestrutura
-        let plataforma = (dominio.includes('santini')) ? "WordPress (Análise de Vulnerabilidade necessária)" : "Infraestrutura Proprietária / Cloud";
+        // Identificação de infraestrutura (Técnica cross-origin de detecção de WP via Assets)
+        let isWordPress = false;
+        try {
+            isWordPress = await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = `https://${dominio}/wp-includes/images/w-logo-blue.png`;
+                setTimeout(() => resolve(false), 2500); // Timeout
+            });
+        } catch(e) { }
+
+        let plataforma = isWordPress ? "WordPress (Análise de Vulnerabilidade recomendada)" : "Infraestrutura Proprietária / Cloud";
         let score = (sslOk && temDmarc && totalAlertas === 0) ? "A+" : "Crítico";
         let cor = score === "A+" ? "#00FF00" : "#FF4444";
         const velStr = `${duration.toFixed(1)}s`;
