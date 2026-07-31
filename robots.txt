@@ -1,6 +1,160 @@
+# ============================================================
+#  WL TEC — robots.txt
+#  Estratégia: Aberto para rastreadores legítimos e IAs de busca.
+#  Áreas privadas e bots de treinamento puro bloqueados.
+#  Atualizado: 2026-07-31
+# ============================================================
+
+# ── Regra geral para todos os crawlers ──────────────────────
 User-agent: *
 Allow: /
+Allow: /manutencao/
+Disallow: /os/
 Disallow: /wl.leads.html
+
+# ── OPENAI ──────────────────────────────────────────────────
+# GPTBot: coleta conteúdo para treinar modelos (permitido — visibilidade no ChatGPT)
+User-agent: GPTBot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# OAI-SearchBot: motor de busca em tempo real do ChatGPT Search
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ChatGPT-User: busca ao vivo disparada pelo usuário no ChatGPT
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── GOOGLE ──────────────────────────────────────────────────
+# Googlebot: indexador principal do Google Search
+User-agent: Googlebot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# Google-Extended: alimenta Gemini, Search Generative Experience (SGE) e AI Overviews
+User-agent: Google-Extended
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# Googlebot-Image: indexador de imagens
+User-agent: Googlebot-Image
+Allow: /
 Disallow: /os/
 
+# ── ANTHROPIC / CLAUDE ──────────────────────────────────────
+# ClaudeBot: indexador para treinar Claude (Anthropic)
+User-agent: ClaudeBot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# Claude-Web (antigamente anthropic-ai): busca em tempo real do Claude
+User-agent: Claude-Web
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# Compatibilidade com nome legado
+User-agent: anthropic-ai
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── PERPLEXITY ───────────────────────────────────────────────
+# PerplexityBot: indexador principal do Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# Perplexity-User: busca ao vivo disparada pelo usuário
+User-agent: Perplexity-User
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── META / LLAMA ─────────────────────────────────────────────
+# Meta-ExternalAgent: rastreador de IA da Meta (Llama)
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# Meta-ExternalFetcher: busca em tempo real da Meta
+User-agent: Meta-ExternalFetcher
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── APPLE ────────────────────────────────────────────────────
+# Applebot: rastreador geral da Apple (Spotlight, Siri)
+User-agent: Applebot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# Applebot-Extended: alimenta Apple Intelligence
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── MICROSOFT / BING ─────────────────────────────────────────
+# Bingbot: indexador do Bing (alimenta Copilot)
+User-agent: bingbot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── YOU.COM ──────────────────────────────────────────────────
+User-agent: YouBot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── DUCKDUCKGO ───────────────────────────────────────────────
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── COHERE ───────────────────────────────────────────────────
+User-agent: cohere-ai
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── COMMON CRAWL ─────────────────────────────────────────────
+# CCBot: usado por Common Crawl, base de dados de muitos LLMs
+User-agent: CCBot
+Allow: /
+Disallow: /os/
+Disallow: /wl.leads.html
+
+# ── BOTS MALICIOSOS / SCRAPERS NÃO AUTORIZADOS ───────────────
+# Scrapers comerciais agressivos — bloqueados totalmente
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# ── SITEMAP ──────────────────────────────────────────────────
 Sitemap: https://wl.tec.br/sitemap.xml
