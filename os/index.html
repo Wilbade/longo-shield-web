@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WL TEC - Gestão de Ordens de Serviço</title>
+    
+    <!-- Design System e Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+
+    <!-- CDNs -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <p id="loadingMessage">Carregando...</p>
+    </div>
+
+    <header>
+        <div class="header-container">
+            <h1><span class="text-cyan">WL</span> <span class="text-amber">TEC</span> | OS</h1>
+            <nav>
+                <button id="btnNovaOs" class="btn btn-primary active">Nova OS</button>
+                <button id="btnListaOs" class="btn btn-secondary">Lista de OS</button>
+                <button id="btnLeadsOs" class="btn btn-secondary">
+                    🔔 Leads Web
+                    <span id="leadsBadge" class="leads-badge" style="display:none">0</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- SEÇÃO: NOVA OS -->
+        <section id="secNovaOs" class="section-active">
+            <h2 class="section-title">Criar Nova Ordem de Serviço</h2>
+            
+            <form id="formNovaOs" class="card-form">
+                <div class="form-grid">
+                    <!-- Dados do Cliente -->
+                    <div class="form-group full-width">
+                        <h3>1. Dados do Cliente</h3>
+                    </div>
+                    <div class="form-group">
+                        <label for="clienteNome">Nome Completo *</label>
+                        <input type="text" id="clienteNome" required placeholder="Ex: João da Silva">
+                    </div>
+                    <div class="form-group">
+                        <label for="clienteTelefone">Telefone / WhatsApp *</label>
+                        <input type="tel" id="clienteTelefone" required placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label for="clienteCpf">CPF / CNPJ</label>
+                        <input type="text" id="clienteCpf" placeholder="000.000.000-00">
+                    </div>
+
+                    <!-- Dados do Equipamento -->
+                    <div class="form-group full-width mt-4">
+                        <h3>2. Dados do Equipamento</h3>
+                    </div>
+                    <div class="form-group">
+                        <label for="equipamento">Equipamento/Modelo *</label>
+                        <input type="text" id="equipamento" required placeholder="Ex: Notebook Dell Inspiron 15">
+                    </div>
+                    <div class="form-group">
+                        <label for="numeroSerie">Número de Série (S/N)</label>
+                        <input type="text" id="numeroSerie" placeholder="Ex: ABC12345">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="defeitoRelatado">Defeito Relatado *</label>
+                        <textarea id="defeitoRelatado" rows="3" required placeholder="Descreva o problema informado pelo cliente..."></textarea>
+                    </div>
+
+                    <!-- Fotos (Opcional na entrada, mas bom ter) -->
+                    <div class="form-group full-width mt-4">
+                        <h3>3. Evidências / Fotos (Opcional)</h3>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="fotosUpload" multiple accept="image/*" class="file-input">
+                            <label for="fotosUpload" class="btn btn-secondary btn-block">Tirar Foto ou Anexar Imagem</label>
+                        </div>
+                        <div id="fotosPreview" class="fotos-preview-grid"></div>
+                    </div>
+
+                    <!-- Assinatura do Cliente -->
+                    <div class="form-group full-width mt-4">
+                        <h3>4. Assinatura do Cliente</h3>
+                        <p class="text-muted text-sm mb-2">Assine no quadro abaixo para concordar com o termo de entrada.</p>
+                        <div class="signature-wrapper">
+                            <canvas id="signatureCanvas" width="400" height="200"></canvas>
+                        </div>
+                        <div class="signature-actions">
+                            <button type="button" id="btnClearSignature" class="btn btn-outline text-sm">Limpar Assinatura</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions mt-6">
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">Gerar OS e Salvar</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- SEÇÃO: LISTA DE OS -->
+        <section id="secListaOs" class="hidden">
+            <div class="flex-between">
+                <h2 class="section-title">Ordens de Serviço Ativas</h2>
+                <div class="filters">
+                    <select id="filterStatus" class="select-input">
+                        <option value="Todos">Todos os Status</option>
+                        <option value="Aberto">Aberto</option>
+                        <option value="Em Orçamento">Em Orçamento</option>
+                        <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+                        <option value="Em Reparo">Em Reparo</option>
+                        <option value="Concluído">Concluído</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="osListContainer" class="os-grid">
+                <!-- Cards populados via JS -->
+            </div>
+        </section>
+
+        <!-- SEÇÃO: LEADS WEB (pre_chamados) -->
+        <section id="secLeadsOs" class="hidden">
+            <div class="flex-between">
+                <h2 class="section-title">🔔 Leads Web — Solicitações do Site</h2>
+                <button id="btnRefreshLeads" class="btn btn-secondary">↻ Atualizar</button>
+            </div>
+            <p class="text-muted text-sm" style="margin-bottom:1.5rem">
+                Clientes que preencheram o formulário do site. Mesmo que não tenham enviado o WhatsApp, o contato já está salvo aqui.
+            </p>
+            <div id="leadsContainer" class="os-grid">
+                <!-- Cards de leads populados via JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Ver Fotos -->
+    <div id="modalFotos" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Fotos da OS</h2>
+                <button id="btnCloseModalFotos" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modalFotosGrid" class="fotos-preview-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
