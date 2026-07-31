@@ -44,10 +44,15 @@ As principais capacidades do sistema incluem:
 - **Dados Estruturados JSON-LD (Schema.org)**:
   - `LocalBusiness`: Mapeamento da empresa, horário de funcionamento, coordenadas geográficas, cidades atendidas (Santo André, SBC, São Caetano) e catálogo de serviços.
   - `FAQPage`: Estrutura de perguntas e respostas para leitura por robôs do Google e IAs gerativas (ChatGPT, Gemini, Perplexity, Claude).
-- **Autenticação & Barreira de Segurança no `/os/`**:
-  - Tela de login flutuante (`#loginOverlay`) com integração ao **Supabase Auth** (`signInWithPassword`) e verificação anti-bot via **Cloudflare Turnstile** (`data-sitekey="0x4AAAAAADi04phstlIV5BIH"`).
-  - Bloqueio completo da interface do painel `/os/` para usuários não autenticados.
-  - Verificação persistente de sessão via `db.auth.getSession()` e botão de encerramento seguro de sessão (`🚪 Sair`).
+- **Micro-SaaS Operacional & DRE Financeiro no Painel `/os/`**:
+  - **Módulo de Estoque (`📦 Estoque`)**: Tabela de itens (SSDs NVMe/SATA, RAM, Telas, Baterias, Insumos) pré-populada com valores reais de mercado (Custo vs. Preço de Venda) e alertas visuais de reestoque quando `quantidade <= quantidade_minima`.
+  - **Diretório de Terceiros & Fornecedores (`🤝 Terceiros`)**: Gestão de parceiros terceirizados (ex: Laboratório de Reparo de Placas BGA / Reballing, BringIT Distribuidora de Telas) com controle de especialidades e prazos.
+  - **DRE Financeiro Mensal (`📊 Financeiro & DRE`)**: Painel de cálculo automático do **Lucro Líquido Real do Mês** e Margem de Lucro (%):
+    - `Faturamento Bruto` (OSs Concluídas) - `Custo de Peças` (Estoque) - `Deslocamento/Gasolina` - `Custos Fixos/Investimentos` (Ads R$ 300, Panfletos R$ 150, Insumos R$ 350) = **LUCRO LÍQUIDO REAL (R$)**.
+  - **Baixa Automática de Estoque**: Seleção de peças consumidas no modal de edição da OS com atualização automática da quantidade em estoque.
+- **Anexo Opcional de Foto pelo Cliente (`/manutencao/`)**:
+  - Campo de upload de foto (`#fotoCliente`) no formulário de pré-chamado da Landing Page.
+  - Upload automático para o bucket `fotos-os` do Supabase Storage e exibição do botão `📷 Foto do Cliente` diretamente nos cards do painel de **Leads Web**.
 - **Banner Universal Auditável Ultra-Compacto (`cookie-banner.js`)**: Ajustado para design slim com altura reduzida (padding `0.75rem`), texto direto ("Usamos cookies para segurança e funcionamento do site") e botões responsivos lado a lado no mobile.
 - **Favicons Criativos Exclusivos em SVG**:
   - **`/os/`**: Favicon em SVG de alta resolução no formato de distintivo Dark Mode com escudo ciano/âmbar e sigla **OS**.

@@ -185,6 +185,26 @@
     /* ── Supabase Insert ───────────────────────────────────── */
     async function salvarNoBanco(dados) {
         try {
+            let fotoPublicUrl = null;
+
+            // Se o cliente anexou uma foto da tela/equipamento, faz o upload para o bucket fotos-os
+            const inputFoto = document.getElementById('fotoCliente');
+            if (inputFoto && inputFoto.files && inputFoto.files[0]) {
+                try {
+                    const file = inputFoto.files[0];
+                    const ext = file.name.split('.').pop() || 'jpg';
+                    const fileName = `cliente_${Date.now()}_${Math.random().toString(36).substring(2,7)}.${ext}`;
+                    
+                    const { error: uploadErr } = await db.storage.from('fotos-os').upload(fileName, file);
+                    if (!uploadErr) {
+                        const { data: urlData } = db.storage.from('fotos-os').getPublicUrl(fileName);
+                        fotoPublicUrl = urlData.publicUrl;
+                    }
+                } catch (eFoto) {
+                    console.warn('[WL TEC] Upload foto cliente:', eFoto);
+                }
+            }
+
             const payload = {
                 nome_cliente:     dados.nome,
                 whatsapp:         dados.whatsapp,
@@ -196,6 +216,7 @@
                 equipamento:      dados.equipamento,
                 defeito_relatado: dados.defeito,
                 leva_e_traz:      dados.levaTraz,
+                foto_url:         fotoPublicUrl,
                 status:           'Solicitação Web',
                 origem:           'Landing Page /manutencao/',
                 criado_em:        new Date().toISOString(),

@@ -65,6 +65,9 @@
                     🔔 Leads Web
                     <span id="leadsBadge" class="leads-badge" style="display:none">0</span>
                 </button>
+                <button id="btnEstoque" class="btn btn-secondary">📦 Estoque</button>
+                <button id="btnTerceiros" class="btn btn-secondary">🤝 Terceiros</button>
+                <button id="btnDre" class="btn btn-secondary">📊 Financeiro &amp; DRE</button>
                 <button id="btnLogout" class="btn btn-outline" style="margin-left:0.5rem">🚪 Sair</button>
             </nav>
         </div>
@@ -174,6 +177,104 @@
                 <!-- Cards de leads populados via JS -->
             </div>
         </section>
+
+        <!-- SEÇÃO: ESTOQUE -->
+        <section id="secEstoque" class="hidden">
+            <div class="flex-between">
+                <h2 class="section-title">📦 Controle de Estoque de Peças &amp; Insumos</h2>
+                <button id="btnAbrirModalEstoque" class="btn btn-primary">➕ Novo Item no Estoque</button>
+            </div>
+            <p class="text-muted text-sm mb-4">
+                Gerencie SSDs, memórias RAM, telas, baterias e insumos. O sistema gera alertas quando a quantidade atingir o nível mínimo de segurança.
+            </p>
+            <div class="card-table">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Item / Peça</th>
+                            <th>Categoria</th>
+                            <th>Qtd</th>
+                            <th>Qtd Mínima</th>
+                            <th>Custo Unit.</th>
+                            <th>Preço Venda</th>
+                            <th>Fornecedor</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaEstoque">
+                        <!-- Linhas dinâmicas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: TERCEIROS / FORNECEDORES -->
+        <section id="secTerceiros" class="hidden">
+            <div class="flex-between">
+                <h2 class="section-title">🤝 Terceiros &amp; Fornecedores (Parceiros Externos)</h2>
+                <button id="btnAbrirModalTerceiro" class="btn btn-primary">➕ Cadastrar Terceiro / Parceiro</button>
+            </div>
+            <p class="text-muted text-sm mb-4">
+                Cadastre laboratórios de reparo de placas BGA, reballing, fornecedores de telas raras e serviços terceirizados.
+            </p>
+            <div id="gridTerceiros" class="os-grid">
+                <!-- Cards de fornecedores/parceiros via JS -->
+            </div>
+        </section>
+
+        <!-- SEÇÃO: FINANCEIRO & DRE MENSAL -->
+        <section id="secDre" class="hidden">
+            <div class="flex-between">
+                <h2 class="section-title">📊 Financeiro &amp; DRE Mensal (Lucro Líquido Real)</h2>
+                <button id="btnAbrirModalCusto" class="btn btn-secondary">➕ Novo Custo / Investimento</button>
+            </div>
+
+            <!-- CARDS DE METRICAS FINANCEIRAS -->
+            <div class="metrics-grid mt-4">
+                <div class="metric-card cyan">
+                    <div class="metric-title">Faturamento Bruto (Mês)</div>
+                    <div class="metric-value" id="dreFaturamento">R$ 0,00</div>
+                    <div class="metric-sub">Soma de OS Concluídas</div>
+                </div>
+                <div class="metric-card red">
+                    <div class="metric-title">(-) Custos de Peças (COGS)</div>
+                    <div class="metric-value" id="dreCustosPecas">R$ 0,00</div>
+                    <div class="metric-sub">Estoque consumido</div>
+                </div>
+                <div class="metric-card ambar">
+                    <div class="metric-title">(-) Deslocamento &amp; Veículo</div>
+                    <div class="metric-value" id="dreDeslocamento">R$ 0,00</div>
+                    <div class="metric-sub">Gasolina + Degradação</div>
+                </div>
+                <div class="metric-card purple">
+                    <div class="metric-title">(-) Investimentos &amp; Fixos</div>
+                    <div class="metric-value" id="dreCustosFixos">R$ 0,00</div>
+                    <div class="metric-sub">Ads, Panfletos, Bancada</div>
+                </div>
+                <div class="metric-card green highlight-card">
+                    <div class="metric-title">(=) LUCRO LÍQUIDO REAL</div>
+                    <div class="metric-value" id="dreLucroLiquido">R$ 0,00</div>
+                    <div class="metric-sub" id="dreMargem">Margem: 0%</div>
+                </div>
+            </div>
+
+            <h3 class="section-title mt-6">Histórico de Custos Fixos &amp; Investimentos Comerciais</h3>
+            <div class="card-table mt-2">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Valor (R$)</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaCustosFixos">
+                        <!-- Linhas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </main>
 
     <!-- Modal Ver Fotos -->
@@ -185,6 +286,203 @@
             </div>
             <div class="modal-body">
                 <div id="modalFotosGrid" class="fotos-preview-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar / Atualizar OS (Esteira de Reparo & Financeiro) -->
+    <div id="modalEditarOs" class="modal hidden">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h2>⚙️ Atualizar Ordem de Serviço</h2>
+                <button id="btnCloseModalEditar" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarOs">
+                    <input type="hidden" id="editOsId">
+                    
+                    <div class="form-group">
+                        <label for="editStatus">Status da OS *</label>
+                        <select id="editStatus" class="select-input" required>
+                            <option value="Aberto">Aberto</option>
+                            <option value="Em Orçamento">Em Orçamento</option>
+                            <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+                            <option value="Em Reparo">Em Reparo</option>
+                            <option value="Concluído">Concluído</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+
+                    <div class="form-grid mt-4" style="grid-template-columns: 1fr 1fr; gap:1rem;">
+                        <div class="form-group">
+                            <label for="editValor">Valor Total Cobrado do Cliente (R$)</label>
+                            <input type="number" step="0.01" id="editValor" placeholder="Ex: 350.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="editDeslocamento">Custo Deslocamento/Gasolina (R$)</label>
+                            <input type="number" step="0.01" id="editDeslocamento" placeholder="Ex: 20.00 (Leva & Traz)">
+                        </div>
+                    </div>
+
+                    <!-- Peça do Estoque a Baixar -->
+                    <div class="form-group mt-4">
+                        <label for="editPecaEstoque">Peça do Estoque Consumida <span class="label-optional">(dá baixa automática no estoque)</span></label>
+                        <select id="editPecaEstoque" class="select-input">
+                            <option value="">Nenhuma peça de estoque utilizada</option>
+                        </select>
+                    </div>
+
+                    <!-- Serviço Terceirizado -->
+                    <div class="form-group mt-4">
+                        <label for="editParceiroTerceiro">Serviço Terceirizado / Parceiro <span class="label-optional">(ex: Reparo BGA / Reballing)</span></label>
+                        <select id="editParceiroTerceiro" class="select-input">
+                            <option value="">Nenhum serviço terceirizado</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <label for="editDiagnostico">O Que Precisa Fazer / Diagnóstico Técnico</label>
+                        <textarea id="editDiagnostico" rows="2" placeholder="Ex: Troca de SSD NVMe 512GB + Limpeza Térmica Preventiva..."></textarea>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <label for="editServicoRealizado">O Que Foi Feito (Laudo Concluído)</label>
+                        <textarea id="editServicoRealizado" rows="2" placeholder="Ex: SSD instalado, Windows ativado e testes de temperatura concluídos."></textarea>
+                    </div>
+
+                    <div class="form-group mt-4">
+                        <label for="editPix">Chave PIX Copia e Cola / Chave PIX</label>
+                        <input type="text" id="editPix" placeholder="Cole o código PIX Copia e Cola ou sua chave PIX aqui...">
+                    </div>
+
+                    <div class="form-actions mt-6">
+                        <button type="submit" class="btn btn-primary btn-block">💾 Salvar Alterações &amp; Atualizar DRE</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Item de Estoque -->
+    <div id="modalNovoItemEstoque" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>📦 Cadastrar Peça / Insumo no Estoque</h2>
+                <button id="btnCloseModalEstoque" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoItemEstoque">
+                    <div class="form-group">
+                        <label for="stockNome">Nome do Item *</label>
+                        <input type="text" id="stockNome" required placeholder="Ex: SSD NVMe 512GB Kingston">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="stockCategoria">Categoria *</label>
+                        <select id="stockCategoria" class="select-input" required>
+                            <option value="SSD">SSD</option>
+                            <option value="RAM">Memória RAM</option>
+                            <option value="Tela">Tela / Display</option>
+                            <option value="Bateria">Bateria</option>
+                            <option value="Insumo">Insumo de Bancada</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-grid mt-3" style="grid-template-columns: 1fr 1fr; gap:1rem;">
+                        <div class="form-group">
+                            <label for="stockQtd">Quantidade *</label>
+                            <input type="number" id="stockQtd" required value="1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="stockQtdMin">Qtd Mínima (Alerta)</label>
+                            <input type="number" id="stockQtdMin" required value="2" min="1">
+                        </div>
+                    </div>
+                    <div class="form-grid mt-3" style="grid-template-columns: 1fr 1fr; gap:1rem;">
+                        <div class="form-group">
+                            <label for="stockCusto">Custo Unitário (R$) *</label>
+                            <input type="number" step="0.01" id="stockCusto" required placeholder="Ex: 180.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="stockVenda">Preço Venda Sugerido (R$)</label>
+                            <input type="number" step="0.01" id="stockVenda" placeholder="Ex: 320.00">
+                        </div>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="stockFornecedor">Fornecedor / Origem</label>
+                        <input type="text" id="stockFornecedor" placeholder="Ex: Mercado Livre / Kabum">
+                    </div>
+                    <div class="form-actions mt-6">
+                        <button type="submit" class="btn btn-primary btn-block">💾 Cadastrar no Estoque</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Terceiro / Parceiro -->
+    <div id="modalNovoTerceiro" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>🤝 Cadastrar Terceiro / Parceiro</h2>
+                <button id="btnCloseModalTerceiro" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoTerceiro">
+                    <div class="form-group">
+                        <label for="tercNome">Nome do Parceiro / Laboratório *</label>
+                        <input type="text" id="tercNome" required placeholder="Ex: Laboratório BGA ABC">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="tercEspecialidade">Especialidade / Serviço *</label>
+                        <input type="text" id="tercEspecialidade" required placeholder="Ex: Reparo BGA / Reballing Placa Mãe">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="tercTelefone">Telefone / WhatsApp</label>
+                        <input type="tel" id="tercTelefone" placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="tercObs">Observações / Custo Médio</label>
+                        <textarea id="tercObs" rows="2" placeholder="Ex: Custo médio BGA: R$ 300-350. Prazo: 3 dias."></textarea>
+                    </div>
+                    <div class="form-actions mt-6">
+                        <button type="submit" class="btn btn-primary btn-block">💾 Cadastrar Parceiro</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Novo Custo Fixo / Investimento -->
+    <div id="modalNovoCustoFixo" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>📊 Cadastrar Custo Fixo / Investimento</h2>
+                <button id="btnCloseModalCusto" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="formNovoCustoFixo">
+                    <div class="form-group">
+                        <label for="custoDescricao">Descrição do Custo *</label>
+                        <input type="text" id="custoDescricao" required placeholder="Ex: Campanha Google Ads de Março">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="custoCategoria">Categoria *</label>
+                        <select id="custoCategoria" class="select-input" required>
+                            <option value="Marketing">Marketing (Google Ads / Panfletos)</option>
+                            <option value="Insumos">Insumos de Bancada</option>
+                            <option value="Ferramentas">Ferramentas / Equipamentos</option>
+                            <option value="Logística">Logística / Transporte</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="custoValor">Valor (R$) *</label>
+                        <input type="number" step="0.01" id="custoValor" required placeholder="Ex: 300.00">
+                    </div>
+                    <div class="form-actions mt-6">
+                        <button type="submit" class="btn btn-primary btn-block">💾 Cadastrar Custo</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
