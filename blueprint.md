@@ -61,18 +61,24 @@ As principais capacidades do sistema incluem:
 ### Módulo /os/ (Gestão de OS de Bancada)
 - Criada a estrutura de arquivos `/os/index.html`, `/os/style.css` e `/os/app.js`.
 - Configurada conexão com Supabase BaaS (URL: `https://giikoiqpnzgmhcqiuvhs.supabase.co`).
-- Gerado script SQL para criação das tabelas `clientes_os`, `ordens_servico` e `pre_chamados` com RLS habilitado e criação do bucket de storage `fotos-os`.
+- Gerado script SQL para criação das tabelas `clientes_os`, `ordens_servico`, `pre_chamados` e `lgpd_consentimentos` com RLS habilitado e bucket de storage `fotos-os`.
 - Adicionada aba "🔔 Leads Web" no painel de OS para listar solicitações vindas do site com conversão em 1 clique para OS.
+- Implementada barreira de login com **Supabase Auth** (`signInWithPassword`) e verificação anti-bot via **Cloudflare Turnstile** (`data-sitekey="0x4AAAAAADi04phstlIV5BIH"`).
+- Aplicada sanitização anti-XSS (`escapeHTML()`) em todas as renderizações dinâmicas e validação de MIME type de imagens no upload.
+- Adicionado Favicon SVG em alta resolução com escudo Ciano/Âmbar e sigla **OS**.
 
 ### Módulo /manutencao/ (Landing Page Comercial)
 - Criada a landing page em `/manutencao/index.html`, `/manutencao/style.css` e `/manutencao/app.js`.
 - Adicionado banner interativo para o serviço "Leva & Traz".
 - Integrada consulta de CEP em tempo real via API ViaCEP com animação de revelação de campos.
 - Implementado formulário de pré-abertura de chamado com envio automático para o Supabase e redirecionamento para o WhatsApp com mensagem formatada contendo o endereço completo.
-- Inseridas meta tags GEO-SEO, schemas JSON-LD (`LocalBusiness` + `FAQPage`) e seção FAQ visível com `<details>`.
-- Ajustada a estilização do botão "Agendar Retirada" no header para o estilo dourado (`btn-amber`).
+- Inseridas meta tags GEO-SEO, schemas JSON-LD (`LocalBusiness` + `FAQPage`), cabeçalho CSP e seção FAQ visível com `<details>`.
+- Criada a página de Política de Privacidade dedicada à manutenção (`/manutencao/privacidade.html`) com garantia de **sigilo de dados em equipamentos**.
+- Adicionado Favicon SVG exclusivo com notebook Ciano e raio Dourado ⚡.
 
-### Infraestrutura & SEO Global
-- Atualizado `robots.txt` com mapeamento granular de robôs de IA e bloqueio de scrapers.
+### Segurança, LGPD & SEO Global
+- Criada a página de Política de Privacidade de Cibersegurança Corporativa (`/politica-de-privacidade.html`).
+- Desenvolvido o componente universal ultra-compacto `cookie-banner.js` com redirecionamento contextual de política, salvamento em `localStorage` e registro de auditoria no Supabase (`lgpd_consentimentos`).
+- Criado o arquivo padronizado `/llms.txt` para consumo e citação por robôs de Inteligência Artificial.
+- Atualizado `robots.txt` com mapeamento de 20+ robôs de IA, bloqueio de scrapers comerciais e proteção de rotas privadas.
 - Atualizado `sitemap.xml` para incluir a rota `/manutencao/`.
-- Mantidas rigorosamente as regras de isolamento (arquivos da raiz mantidos seguros).
