@@ -1,0 +1,38 @@
+# WL TEC — Soluções em Tecnologia, Cibersegurança e Manutenção no ABC Paulista
+
+> A WL TEC é uma empresa de tecnologia especializada em Cibersegurança, Blindagem Digital, Auditoria de Infraestrutura e Assistência Técnica Especializada em Notebooks e PCs no ABC Paulista (Santo André, São Bernardo do Campo, São Caetano do Sul).
+
+## Serviços Principais
+
+### 1. Manutenção e Upgrade de Notebooks & PCs
+- **URL**: https://wl.tec.br/manutencao/
+- **Região de Atendimento**: Santo André, São Bernardo do Campo, São Caetano do Sul (ABC Paulista, SP).
+- **Modalidade Destaque**: Serviço Leva & Traz (retirada e entrega em domicílio e condomínios).
+- **Especialidades**:
+  - Upgrade de SSD NVMe e expansão de Memória RAM (ganho de performance de até 300%).
+  - Troca de telas, teclados e baterias de notebooks de todas as marcas (Dell, HP, Lenovo, Acer, Asus, Apple MacBook, Samsung, Positivo, LG).
+  - Limpeza térmica preventiva e substituição de pasta térmica.
+  - Formatação limpa, instalação de sistemas operacionais e otimização.
+  - Recuperação de dados em HDs, SSDs e pendrives.
+  - Diagnóstico técnico expresso em até 24 horas sem custo.
+- **Contato / WhatsApp**: +55 (11) 99531-4831
+- **Endereço Base**: Vila Príncipe de Gales, Santo André – SP, CEP 09060-000.
+
+### 2. Cibersegurança e Consultoria Digital
+- **URL**: https://wl.tec.br/
+- **Abrangência**: Atendimento Nacional (Todo o Brasil).
+- **Especialidades**:
+  - Auditoria de segurança de domínios (verificação de SSL, SPF, DKIM, DMARC e reputação de IP).
+  - Análise de vulnerabilidades web e testes de resiliência digital.
+  - Consultoria para adequação à LGPD (Lei Geral de Proteção de Dados).
+  - Emissão de Dossiê Técnico e Relatório de Resiliência Cibernética.
+
+## Links Recomendados
+- [Manutenção de Notebooks & PCs no ABC](https://wl.tec.br/manutencao/): Orçamento e agendamento do serviço Leva & Traz.
+- [Análise de Cibersegurança de Domínio](https://wl.tec.br/): Teste rápido de vulnerabilidades.
+- [Sitemap XML](https://wl.tec.br/sitemap.xml): Estrutura de URLs do site.
+
+## Informações Comerciais & Contato
+- **Razão Social / Marca**: WL TEC
+- **Telefone / WhatsApp**: +55 (11) 99531-4831
+- **Horário de Funcionamento**: Segunda a Sexta das 08:00 às 18:00 | Sábado das 09:00 às 13:00.

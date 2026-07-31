@@ -13,6 +13,18 @@ const db = createClient(
     'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB'
 );
 
+// ── DOM: Autenticação & Modais ──────────────────────────────
+const loginOverlay = document.getElementById('loginOverlay');
+const mainHeader   = document.getElementById('mainHeader');
+const authForm     = document.getElementById('auth-form');
+const inputEmail   = document.getElementById('email');
+const inputPass    = document.getElementById('password');
+const btnAuth      = document.getElementById('btn-auth');
+const authSpinner  = document.getElementById('authSpinner');
+const authLabel    = document.getElementById('authLabel');
+const errorAuth    = document.getElementById('error-auth');
+const btnLogout    = document.getElementById('btnLogout');
+
 // ── DOM: Navegação ───────────────────────────────────────────
 const btnNovaOs   = document.getElementById('btnNovaOs');
 const btnListaOs  = document.getElementById('btnListaOs');
@@ -23,6 +35,92 @@ const secListaOs  = document.getElementById('secListaOs');
 const secLeadsOs  = document.getElementById('secLeadsOs');
 
 const leadsBadge  = document.getElementById('leadsBadge');
+
+// ── Autenticação de Sessão (Supabase Auth) ───────────────────
+async function checkAuthSession() {
+    try {
+        const { data: { session }, error } = await db.auth.getSession();
+        if (error || !session) {
+            // Não logado: exibe o formulário de login e oculta o painel
+            loginOverlay.style.display = 'flex';
+            mainHeader.classList.add('hidden');
+            allSections.forEach(s => s.classList.add('hidden'));
+        } else {
+            // Logado: libera a interface do painel
+            loginOverlay.style.display = 'none';
+            mainHeader.classList.remove('hidden');
+            switchSection(secNovaOs, btnNovaOs);
+            contarLeadsNovos();
+        }
+    } catch (err) {
+        console.error('Erro na checagem de sessão:', err);
+    }
+}
+
+// ── Login Handler (Turnstile + Supabase Auth) ────────────────
+authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorAuth.textContent = '';
+
+    const email    = inputEmail.value.trim();
+    const password = inputPass.value.trim();
+
+    if (!email || !password) {
+        errorAuth.textContent = 'Por favor, informe a conta e a senha.';
+        return;
+    }
+
+    // Validação do token do Cloudflare Turnstile
+    let turnstileToken = '';
+    if (window.turnstile) {
+        turnstileToken = window.turnstile.getResponse();
+        if (!turnstileToken) {
+            errorAuth.textContent = 'Por favor, complete a verificação de segurança (Turnstile).';
+            return;
+        }
+    }
+
+    // UI Loading
+    btnAuth.disabled = true;
+    authSpinner.style.display = 'inline-block';
+    authLabel.textContent = 'Validando...';
+
+    try {
+        const { data, error } = await db.auth.signInWithPassword({
+            email: email,
+            password: password,
+        });
+
+        if (error) {
+            throw error;
+        }
+
+        // Sucesso
+        errorAuth.textContent = '';
+        authForm.reset();
+        if (window.turnstile) window.turnstile.reset();
+        await checkAuthSession();
+
+    } catch (err) {
+        console.error('Erro de autenticação:', err);
+        errorAuth.textContent = err.message === 'Invalid login credentials'
+            ? 'Credenciais inválidas. Verifique seu e-mail e senha.'
+            : (err.message || 'Erro ao autenticar. Tente novamente.');
+        if (window.turnstile) window.turnstile.reset();
+    } finally {
+        btnAuth.disabled = false;
+        authSpinner.style.display = 'none';
+        authLabel.textContent = 'Validar Credenciais';
+    }
+});
+
+// ── Logout Handler ───────────────────────────────────────────
+btnLogout.addEventListener('click', async () => {
+    showLoading('Encerrando sessão...');
+    await db.auth.signOut();
+    hideLoading();
+    checkAuthSession();
+});
 
 // ── DOM: Loading ─────────────────────────────────────────────
 const loadingOverlay = document.getElementById('loadingOverlay');
@@ -76,13 +174,28 @@ setTimeout(resizeCanvas, 100);
 
 btnClearSignature.addEventListener('click', () => signaturePad.clear());
 
-// ── Upload de Fotos ──────────────────────────────────────────
+// ── Sanitização Anti-XSS ────────────────────────────────────
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"']/g, match => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[match]));
+}
+
+// ── Upload de Fotos (Validação de Tipos) ──────────────────────
 const fotosUpload  = document.getElementById('fotosUpload');
 const fotosPreview = document.getElementById('fotosPreview');
 let selectedFiles  = [];
 
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 fotosUpload.addEventListener('change', (e) => {
-    Array.from(e.target.files).forEach(file => {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            alert(`O arquivo "${file.name}" não é uma imagem válida (apenas JPG, PNG ou WEBP).`);
+            continue;
+        }
         selectedFiles.push(file);
         const reader = new FileReader();
         reader.onload = ev => {
@@ -92,7 +205,7 @@ fotosUpload.addEventListener('change', (e) => {
             fotosPreview.appendChild(img);
         };
         reader.readAsDataURL(file);
-    });
+    }
 });
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -212,8 +325,12 @@ function renderOsList(ordens) {
         return;
     }
     ordens.forEach(os => {
-        const nome  = os.clientes_os?.nome || 'Cliente Desconhecido';
-        const tel   = os.clientes_os?.telefone || '';
+        const nome  = escapeHTML(os.clientes_os?.nome || 'Cliente Desconhecido');
+        const tel   = escapeHTML(os.clientes_os?.telefone || '');
+        const equip = escapeHTML(os.equipamento);
+        const def   = escapeHTML(os.defeito_relatado);
+        const statusClean = escapeHTML(os.status);
+
         const card  = document.createElement('div');
         card.className = 'os-card';
         card.innerHTML = `
@@ -222,16 +339,16 @@ function renderOsList(ordens) {
                     <h3>${nome}</h3>
                     <span class="os-id">Data: ${new Date(os.criado_em).toLocaleDateString('pt-BR')}</span>
                 </div>
-                <span class="os-status status-${os.status.toLowerCase().replace(/ /g,'-')}">${os.status}</span>
+                <span class="os-status status-${statusClean.toLowerCase().replace(/ /g,'-')}">${statusClean}</span>
             </div>
             <div class="os-body">
-                <p><strong>Equip:</strong> ${os.equipamento}</p>
-                <p><strong>Defeito:</strong> ${os.defeito_relatado}</p>
+                <p><strong>Equip:</strong> ${equip}</p>
+                <p><strong>Defeito:</strong> ${def}</p>
                 <p><strong>Valor:</strong> R$ ${os.valor_total ? os.valor_total.toFixed(2) : 'A definir'}</p>
             </div>
             <div class="os-actions">
-                <button class="btn btn-secondary btn-action" onclick="gerarPDF('${os.id}')">Gerar PDF</button>
-                <button class="btn btn-primary btn-action" onclick="enviarWhatsApp('${tel}','${nome}','${os.equipamento}',${os.valor_total||0},'${os.pix_copia_cola||''}')">WhatsApp + PIX</button>
+                <button class="btn btn-secondary btn-action" onclick="gerarPDF('${escapeHTML(os.id)}')">Gerar PDF</button>
+                <button class="btn btn-primary btn-action" onclick="enviarWhatsApp('${tel}','${nome}','${equip}',${os.valor_total||0},'${escapeHTML(os.pix_copia_cola||'')}')">WhatsApp + PIX</button>
                 ${os.fotos_urls?.length ? `<button class="btn btn-outline btn-action" onclick='verFotos(${JSON.stringify(os.fotos_urls)})'>Ver Fotos</button>` : ''}
             </div>`;
         osListContainer.appendChild(card);
@@ -296,16 +413,19 @@ function renderLeads(leads) {
         return;
     }
 
-    // Determina quais são "novos" (últimas 24h) para exibir o ponto laranja
     const ontem = Date.now() - 86400000;
 
     leads.forEach(lead => {
         const isNovo   = new Date(lead.criado_em).getTime() > ontem;
         const levaTraz = lead.leva_e_traz;
 
-        // Monta endereço completo se existir
+        const nomeClean = escapeHTML(lead.nome_cliente || '—');
+        const wppClean  = escapeHTML(lead.whatsapp || '—');
+        const equipClean = escapeHTML(lead.equipamento || '—');
+        const defClean  = escapeHTML(lead.defeito_relatado || '—');
+
         const endParts = [lead.logradouro, lead.numero, lead.complemento, lead.bairro_cidade, lead.cep ? `CEP: ${lead.cep}` : ''].filter(Boolean);
-        const endStr   = endParts.join(', ');
+        const endStr   = escapeHTML(endParts.join(', '));
 
         const card = document.createElement('div');
         card.className = `lead-card${levaTraz ? ' lead-leva-traz' : ''}`;
@@ -313,26 +433,26 @@ function renderLeads(leads) {
             ${isNovo ? '<div class="lead-new-dot" title="Novo nas últimas 24h"></div>' : ''}
             <div class="lead-header">
                 <div>
-                    <div class="lead-name">${lead.nome_cliente || '—'}</div>
+                    <div class="lead-name">${nomeClean}</div>
                     <div class="lead-date">${formatDate(lead.criado_em)}</div>
                 </div>
                 <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
-                    <span class="lead-pill">📱 ${lead.whatsapp || '—'}</span>
+                    <span class="lead-pill">📱 ${wppClean}</span>
                     ${levaTraz ? '<span class="lead-pill leva">🚗 Leva &amp; Traz</span>' : ''}
                 </div>
             </div>
             <div class="lead-body">
-                <p><strong>Equipamento:</strong> ${lead.equipamento || '—'}</p>
-                <p><strong>Defeito:</strong> ${lead.defeito_relatado || '—'}</p>
+                <p><strong>Equipamento:</strong> ${equipClean}</p>
+                <p><strong>Defeito:</strong> ${defClean}</p>
                 ${endStr ? `<div class="lead-address">📍 ${endStr}</div>` : ''}
             </div>
             <div class="lead-actions">
                 <button class="btn-wpp"
-                    onclick="contatarLead('${(lead.whatsapp||'').replace(/\D/g,'')}','${(lead.nome_cliente||'').replace(/'/g,"\\'")}','${(lead.equipamento||'').replace(/'/g,"\\'")}')">
+                    onclick="contatarLead('${wppClean.replace(/\D/g,'')}','${nomeClean.replace(/'/g,"\\'")}','${equipClean.replace(/'/g,"\\'")}')">
                     💬 Chamar no WhatsApp
                 </button>
                 <button class="btn-converter"
-                    onclick="converterEmOS('${lead.nome_cliente||''}','${lead.whatsapp||''}','${lead.equipamento||''}','${lead.defeito_relatado||''}')">
+                    onclick="converterEmOS('${nomeClean.replace(/'/g,"\\'")}','${wppClean.replace(/'/g,"\\'")}','${equipClean.replace(/'/g,"\\'")}','${defClean.replace(/'/g,"\\'")}')">
                     ➕ Converter em OS
                 </button>
             </div>`;
@@ -435,5 +555,5 @@ window.gerarPDF = async function(osId) {
     }
 };
 
-// ── Inicialização: conta leads novos ao carregar ─────────────
-contarLeadsNovos();
+// ── Inicialização: Verifica a sessão do usuário ao carregar ──
+checkAuthSession();

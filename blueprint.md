@@ -44,6 +44,15 @@ As principais capacidades do sistema incluem:
 - **Dados Estruturados JSON-LD (Schema.org)**:
   - `LocalBusiness`: Mapeamento da empresa, horário de funcionamento, coordenadas geográficas, cidades atendidas (Santo André, SBC, São Caetano) e catálogo de serviços.
   - `FAQPage`: Estrutura de perguntas e respostas para leitura por robôs do Google e IAs gerativas (ChatGPT, Gemini, Perplexity, Claude).
+- **Autenticação & Barreira de Segurança no `/os/`**:
+  - Tela de login flutuante (`#loginOverlay`) com integração ao **Supabase Auth** (`signInWithPassword`) e verificação anti-bot via **Cloudflare Turnstile** (`data-sitekey="0x4AAAAAADi04phstlIV5BIH"`).
+  - Bloqueio completo da interface do painel `/os/` para usuários não autenticados.
+  - Verificação persistente de sessão via `db.auth.getSession()` e botão de encerramento seguro de sessão (`🚪 Sair`).
+- **Banner Universal Auditável Ultra-Compacto (`cookie-banner.js`)**: Ajustado para design slim com altura reduzida (padding `0.75rem`), texto direto ("Usamos cookies para segurança e funcionamento do site") e botões responsivos lado a lado no mobile.
+- **Favicons Criativos Exclusivos em SVG**:
+  - **`/os/`**: Favicon em SVG de alta resolução no formato de distintivo Dark Mode com escudo ciano/âmbar e sigla **OS**.
+  - **`/manutencao/`**: Favicon em SVG com chassi de notebook ciano e raio dourado ⚡ (alta velocidade de reparo).
+- **Padrão `/llms.txt`**: Criado o arquivo padronizado `llms.txt` na raiz do site (`https://wl.tec.br/llms.txt`) em formato Markdown estruturado para facilitar a leitura, indexação e citação precisa por assistentes e motores de busca baseados em IA (ChatGPT, Perplexity, Claude, Gemini).
 - **Reestruturação do `robots.txt`**: Mapeamento e permissão explícita de mais de 20 crawlers legítimos e IAs de busca (`OAI-SearchBot`, `ChatGPT-User`, `Google-Extended`, `ClaudeBot`, `Claude-Web`, `PerplexityBot`, `Meta-ExternalAgent`, `Applebot-Extended`, `bingbot`), mantendo bloqueio em scrapers comerciais agressivos (`AhrefsBot`, `SemrushBot`) e proteção total das rotas administrativas (`/os/` e `/wl.leads.html`).
 - **Sitemap.xml**: Inclusão da rota `https://wl.tec.br/manutencao/` com prioridade 0.9 e frequência de atualização semanal.
 

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- Content Security Policy (CSP) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://giikoiqpnzgmhcqiuvhs.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*; connect-src 'self' https://giikoiqpnzgmhcqiuvhs.supabase.co https://viacep.com.br; frame-src 'self'; form-action 'self'; base-uri 'self';">
+
     <!-- ====================================================
          SEO LOCAL + GEO + OPEN GRAPH
     ==================================================== -->
@@ -12,6 +15,7 @@
     <meta name="keywords" content="conserto de notebook santo andre, manutencao de pc sao bernardo, assistencia tecnica notebook abc, upgrade ssd principe de gales, leva e traz notebook santo andre, formatacao notebook abc paulista">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://wl.tec.br/manutencao/">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a0c10'/><rect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%23FFB300' stroke-width='3'/><rect x='14' y='14' width='36' height='24' rx='4' fill='none' stroke='%2300FFFF' stroke-width='3'/><path d='M8 44 H56 L52 48 H12 Z' fill='%2300FFFF'/><path d='M34 18 L26 28 H33 L29 36 L39 26 H32 Z' fill='%23FFB300'/></svg>">
 
     <!-- Geo-localização (Google Maps + Bing Local) -->
     <meta name="geo.region" content="BR-SP">
@@ -555,7 +559,8 @@
                             <div class="btn-spinner" aria-hidden="true"></div>
                             <span class="btn-text">🚀 ABRIR CHAMADO E AGENDAR</span>
                         </button>
-                        <p class="form-privacy">🔒 Seus dados são usados apenas para o atendimento. Nunca compartilhados.</p>
+                        <p class="form-privacy">🔒 Seus dados são usados exclusivamente para o atendimento (LGPD). Nunca compartilhados. <a href="privacidade.html" style="color:var(--cyan);text-decoration:underline;">Ler Política</a>.</p>
+
                     </div>
                 </form>
             </div>
@@ -654,7 +659,7 @@
                 &nbsp;·&nbsp;
                 <a href="https://wl.tec.br/manutencao/">wl.tec.br/manutencao</a>
                 &nbsp;·&nbsp;
-                <a href="https://wl.tec.br" target="_blank" rel="noopener">wl.tec.br</a>
+                <a href="privacidade.html">Política de Privacidade &amp; LGPD</a>
             </p>
             <p style="margin-top:1.25rem; font-size:0.78rem;">© 2026 WL TEC — Todos os direitos reservados.</p>
         </div>
@@ -680,9 +685,10 @@
     <!-- Toast de feedback -->
     <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
-    <!-- App JS -->
+    <!-- App JS & Cookie Banner -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
+    <script src="../cookie-banner.js"></script>
 
 </body>
 </html>

@@ -11,19 +11,51 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a0c10'/><rect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%2300FFFF' stroke-width='3'/><path d='M32 10 L50 20 V34 C50 46 32 54 32 54 C32 54 14 46 14 34 V20 Z' fill='none' stroke='%23FFB300' stroke-width='3'/><text x='32' y='38' font-family='sans-serif' font-weight='900' font-size='20' fill='%2300FFFF' text-anchor='middle'>OS</text></svg>">
 
     <!-- CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body>
+    <!-- OVERLAY DE LOGIN / AUTENTICAÇÃO COM TURNSTILE -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-header">
+                <h2><span class="text-cyan">WL</span> <span class="text-amber">TEC</span> | Acesso Restrito</h2>
+                <p class="text-muted text-sm">Autenticação de Segurança (Supabase + Turnstile)</p>
+            </div>
+
+            <form id="auth-form" novalidate>
+                <div class="form-group">
+                    <label for="email">Conta de Acesso (E-mail)</label>
+                    <input type="email" id="email" placeholder="avaliador1@wtkd.com.br" autocomplete="email" required>
+                </div>
+                <div class="form-group mt-4">
+                    <label for="password">Senha de Segurança</label>
+                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+                </div>
+
+                <div class="cf-turnstile mt-4" data-sitekey="0x4AAAAAADi04phstlIV5BIH" data-theme="dark"></div>
+
+                <button type="submit" class="btn btn-primary btn-block mt-6" id="btn-auth">
+                    <div class="btn-spinner" id="authSpinner" style="display:none"></div>
+                    <span class="btn-label" id="authLabel">Validar Credenciais</span>
+                </button>
+
+                <div id="error-auth" class="error-msg mt-4" role="alert" aria-live="polite"></div>
+            </form>
+        </div>
+    </div>
+
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="spinner"></div>
         <p id="loadingMessage">Carregando...</p>
     </div>
 
-    <header>
+    <header id="mainHeader" class="hidden">
         <div class="header-container">
             <h1><span class="text-cyan">WL</span> <span class="text-amber">TEC</span> | OS</h1>
             <nav>
@@ -33,6 +65,7 @@
                     🔔 Leads Web
                     <span id="leadsBadge" class="leads-badge" style="display:none">0</span>
                 </button>
+                <button id="btnLogout" class="btn btn-outline" style="margin-left:0.5rem">🚪 Sair</button>
             </nav>
         </div>
     </header>
