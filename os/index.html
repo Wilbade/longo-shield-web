@@ -1,44 +1,49 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WL TEC - Gestão de Ordens de Serviço</title>
-    
+
     <!-- Design System e Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a0c10'/><rect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%2300FFFF' stroke-width='3'/><path d='M32 10 L50 20 V34 C50 46 32 54 32 54 C32 54 14 46 14 34 V20 Z' fill='none' stroke='%23FFB300' stroke-width='3'/><text x='32' y='38' font-family='sans-serif' font-weight='900' font-size='20' fill='%2300FFFF' text-anchor='middle'>OS</text></svg>">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a0c10'/><rect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%2300FFFF' stroke-width='3'/><path d='M32 10 L50 20 V34 C50 46 32 54 32 54 C32 54 14 46 14 34 V20 Z' fill='none' stroke='%23FFB300' stroke-width='3'/><text x='32' y='38' font-family='sans-serif' font-weight='900' font-size='20' fill='%2300FFFF' text-anchor='middle'>OS</text></svg>">
 
     <!-- CDNs -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <!-- <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script> -->
 </head>
+
 <body>
-    <!-- OVERLAY DE LOGIN / AUTENTICAÇÃO COM TURNSTILE -->
+    <!-- OVERLAY DE LOGIN / AUTENTICAÇÃO -->
     <div id="loginOverlay" class="login-overlay">
         <div class="login-card">
             <div class="login-header">
                 <h2><span class="text-cyan">WL</span> <span class="text-amber">TEC</span> | Acesso Restrito</h2>
-                <p class="text-muted text-sm">Autenticação de Segurança (Supabase + Turnstile)</p>
+                <p class="text-muted text-sm">Autenticação de Segurança</p>
             </div>
 
             <form id="auth-form" novalidate>
                 <div class="form-group">
-                    <label for="email">Conta de Acesso (E-mail)</label>
-                    <input type="email" id="email" placeholder="avaliador1@wtkd.com.br" autocomplete="email" required>
+                    <label for="email">Conta de Acesso </label>
+                    <input type="email" id="email" placeholder="joãosilva@email.com" autocomplete="email" required>
                 </div>
                 <div class="form-group mt-4">
                     <label for="password">Senha de Segurança</label>
-                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+                    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"
+                        required>
                 </div>
 
-                <div class="cf-turnstile mt-4" data-sitekey="0x4AAAAAADi04phstlIV5BIH" data-theme="dark"></div>
+                <!-- Turnstile comentado temporariamente para testes locais -->
+                <!-- <div class="cf-turnstile mt-4" data-sitekey="0x4AAAAAADi04phstlIV5BIH" data-theme="dark"></div> -->
 
                 <button type="submit" class="btn btn-primary btn-block mt-6" id="btn-auth">
                     <div class="btn-spinner" id="authSpinner" style="display:none"></div>
@@ -59,14 +64,15 @@
         <div class="header-container">
             <h1><span class="text-cyan">WL</span> <span class="text-amber">TEC</span> | OS</h1>
             <nav>
-                <button id="btnNovaOs" class="btn btn-primary active">Nova OS</button>
-                <button id="btnListaOs" class="btn btn-secondary">Lista de OS</button>
+                <button id="btnNovaOs" class="btn btn-primary">➕ Nova OS</button>
+                <button id="btnListaOs" class="btn btn-secondary">📋 Lista de OS</button>
                 <button id="btnLeadsOs" class="btn btn-secondary">
-                    🔔 Leads Web
-                    <span id="leadsBadge" class="leads-badge" style="display:none">0</span>
+                    🔔 Leads Web <span id="leadsBadge" class="badge-count" style="display:none">0</span>
                 </button>
+                <button id="btnClientes" class="btn btn-secondary">👥 Clientes</button>
                 <button id="btnEstoque" class="btn btn-secondary">📦 Estoque</button>
                 <button id="btnTerceiros" class="btn btn-secondary">🤝 Terceiros</button>
+                <button id="btnCrmPreventiva" class="btn btn-secondary">📅 Preventivas (6m)</button>
                 <button id="btnDre" class="btn btn-secondary">📊 Financeiro &amp; DRE</button>
                 <button id="btnLogout" class="btn btn-outline" style="margin-left:0.5rem">🚪 Sair</button>
             </nav>
@@ -77,7 +83,7 @@
         <!-- SEÇÃO: NOVA OS -->
         <section id="secNovaOs" class="section-active">
             <h2 class="section-title">Criar Nova Ordem de Serviço</h2>
-            
+
             <form id="formNovaOs" class="card-form">
                 <div class="form-grid">
                     <!-- Dados do Cliente -->
@@ -93,17 +99,42 @@
                         <input type="tel" id="clienteTelefone" required placeholder="(11) 99999-9999">
                     </div>
                     <div class="form-group">
+                        <label for="clienteEmail">E-mail do Cliente</label>
+                        <input type="email" id="clienteEmail" placeholder="cliente@email.com">
+                    </div>
+                    <div class="form-group">
                         <label for="clienteCpf">CPF / CNPJ</label>
                         <input type="text" id="clienteCpf" placeholder="000.000.000-00">
                     </div>
 
                     <!-- Dados do Equipamento -->
                     <div class="form-group full-width mt-4">
-                        <h3>2. Dados do Equipamento</h3>
+                        <h3>2. Dados do Equipamento &amp; Marca</h3>
                     </div>
                     <div class="form-group">
-                        <label for="equipamento">Equipamento/Modelo *</label>
-                        <input type="text" id="equipamento" required placeholder="Ex: Notebook Dell Inspiron 15">
+                        <label for="clienteMarca">Marca *</label>
+                        <select id="clienteMarca" class="select-input" required>
+                            <option value="Dell">Dell</option>
+                            <option value="Lenovo">Lenovo</option>
+                            <option value="HP">HP / Compaq</option>
+                            <option value="Asus">Asus</option>
+                            <option value="Acer">Acer</option>
+                            <option value="Apple">Apple / MacBook</option>
+                            <option value="Samsung">Samsung</option>
+                            <option value="Positivo/VAIO">Positivo / VAIO</option>
+                            <option value="PC Custom">PC Gamer / Desktop Custom</option>
+                            <option value="Outra">Outra Marca</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="clienteModelo">Modelo / Linha *</label>
+                        <input type="text" id="clienteModelo" required
+                            placeholder="Ex: Inspiron 15 5000 / Latitude 3420 / Nitro 5">
+                    </div>
+                    <div class="form-group">
+                        <label for="equipamento">Tipo Equipamento *</label>
+                        <input type="text" id="equipamento" required
+                            placeholder="Ex: Notebook / PC Desktop / All-in-One">
                     </div>
                     <div class="form-group">
                         <label for="numeroSerie">Número de Série (S/N)</label>
@@ -111,15 +142,17 @@
                     </div>
                     <div class="form-group full-width">
                         <label for="defeitoRelatado">Defeito Relatado *</label>
-                        <textarea id="defeitoRelatado" rows="3" required placeholder="Descreva o problema informado pelo cliente..."></textarea>
+                        <textarea id="defeitoRelatado" rows="3" required
+                            placeholder="Descreva o problema informado pelo cliente..."></textarea>
                     </div>
 
-                    <!-- Fotos (Opcional na entrada, mas bom ter) -->
+                    <!-- Fotos -->
                     <div class="form-group full-width mt-4">
                         <h3>3. Evidências / Fotos (Opcional)</h3>
                         <div class="file-upload-wrapper">
                             <input type="file" id="fotosUpload" multiple accept="image/*" class="file-input">
-                            <label for="fotosUpload" class="btn btn-secondary btn-block">Tirar Foto ou Anexar Imagem</label>
+                            <label for="fotosUpload" class="btn btn-secondary btn-block">Tirar Foto ou Anexar
+                                Imagem</label>
                         </div>
                         <div id="fotosPreview" class="fotos-preview-grid"></div>
                     </div>
@@ -127,12 +160,14 @@
                     <!-- Assinatura do Cliente -->
                     <div class="form-group full-width mt-4">
                         <h3>4. Assinatura do Cliente</h3>
-                        <p class="text-muted text-sm mb-2">Assine no quadro abaixo para concordar com o termo de entrada.</p>
+                        <p class="text-muted text-sm mb-2">Assine no quadro abaixo para concordar com o termo de
+                            entrada.</p>
                         <div class="signature-wrapper">
                             <canvas id="signatureCanvas" width="400" height="200"></canvas>
                         </div>
                         <div class="signature-actions">
-                            <button type="button" id="btnClearSignature" class="btn btn-outline text-sm">Limpar Assinatura</button>
+                            <button type="button" id="btnClearSignature" class="btn btn-outline text-sm">Limpar
+                                Assinatura</button>
                         </div>
                     </div>
                 </div>
@@ -145,9 +180,11 @@
 
         <!-- SEÇÃO: LISTA DE OS -->
         <section id="secListaOs" class="hidden">
-            <div class="flex-between">
+            <div class="flex-between" style="flex-wrap:wrap;gap:1rem;">
                 <h2 class="section-title">Ordens de Serviço Ativas</h2>
-                <div class="filters">
+                <div class="filters" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    <input type="text" id="txtBuscaOs" placeholder="🔍 Buscar por Cliente, OS #, Marca..."
+                        class="select-input" style="min-width:240px">
                     <select id="filterStatus" class="select-input">
                         <option value="Todos">Todos os Status</option>
                         <option value="Aberto">Aberto</option>
@@ -166,12 +203,15 @@
 
         <!-- SEÇÃO: LEADS WEB (pre_chamados) -->
         <section id="secLeadsOs" class="hidden">
-            <div class="flex-between">
+            <div class="flex-between" style="flex-wrap:wrap;gap:1rem;">
                 <h2 class="section-title">🔔 Leads Web — Solicitações do Site</h2>
-                <button id="btnRefreshLeads" class="btn btn-secondary">↻ Atualizar</button>
+                <div style="display:flex;gap:0.5rem">
+                    <button id="btnToggleConvertidos" class="btn btn-outline text-sm">👁️ Exibir Convertidos</button>
+                    <button id="btnRefreshLeads" class="btn btn-secondary">↻ Atualizar</button>
+                </div>
             </div>
             <p class="text-muted text-sm" style="margin-bottom:1.5rem">
-                Clientes que preencheram o formulário do site. Mesmo que não tenham enviado o WhatsApp, o contato já está salvo aqui.
+                Clientes que preencheram o formulário do site.
             </p>
             <div id="leadsContainer" class="os-grid">
                 <!-- Cards de leads populados via JS -->
@@ -185,7 +225,8 @@
                 <button id="btnAbrirModalEstoque" class="btn btn-primary">➕ Novo Item no Estoque</button>
             </div>
             <p class="text-muted text-sm mb-4">
-                Gerencie SSDs, memórias RAM, telas, baterias e insumos. O sistema gera alertas quando a quantidade atingir o nível mínimo de segurança.
+                Gerencie SSDs, memórias RAM, telas, baterias e insumos. O sistema gera alertas quando a quantidade
+                atingir o nível mínimo de segurança.
             </p>
             <div class="card-table">
                 <table class="table-custom">
@@ -215,10 +256,66 @@
                 <button id="btnAbrirModalTerceiro" class="btn btn-primary">➕ Cadastrar Terceiro / Parceiro</button>
             </div>
             <p class="text-muted text-sm mb-4">
-                Cadastre laboratórios de reparo de placas BGA, reballing, fornecedores de telas raras e serviços terceirizados.
+                Cadastre laboratórios de reparo de placas BGA, reballing, fornecedores de telas raras e serviços
+                terceirizados.
             </p>
             <div id="gridTerceiros" class="os-grid">
                 <!-- Cards de fornecedores/parceiros via JS -->
+            </div>
+        </section>
+
+        <!-- SEÇÃO: CRM & MANUTENÇÃO PREVENTIVA (6 MESES) -->
+        <section id="secCrmPreventiva" class="hidden">
+            <div class="flex-between">
+                <h2 class="section-title">📅 CRM &amp; Lembretes de Manutenção Preventiva (6 Meses)</h2>
+            </div>
+            <p class="text-muted text-sm mb-4">
+                Clientes que completaram 6 meses da última manutenção. Envie um aviso no WhatsApp recomendando limpeza
+                interna e troca de pasta térmica.
+            </p>
+            <div class="card-table">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Contato</th>
+                            <th>Equipamento / Marca</th>
+                            <th>Última Manutenção</th>
+                            <th>Vencimento Preventiva</th>
+                            <th>Ação CRM</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaCrmPreventiva">
+                        <!-- Linhas de clientes via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: BASE DE CLIENTES -->
+        <section id="secClientes" class="hidden">
+            <div class="flex-between">
+                <h2 class="section-title">👥 Base de Clientes Cadastrados</h2>
+                <input type="text" id="txtBuscaClientes" placeholder="🔍 Buscar por Nome, Telefone ou CPF..." style="max-width:300px;padding:0.4rem 0.75rem;background:var(--bg-input);border:1px solid var(--border-color);border-radius:var(--radius);color:var(--text-main)">
+            </div>
+            <p class="text-muted text-sm mb-4">
+                Consulte e atualize os dados dos clientes (Telefone, WhatsApp, E-mail e CPF/CNPJ).
+            </p>
+            <div class="card-table">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Nome do Cliente</th>
+                            <th>Telefone / WhatsApp</th>
+                            <th>CPF / CNPJ</th>
+                            <th>E-mail</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaClientes">
+                        <!-- Linhas de clientes via JS -->
+                    </tbody>
+                </table>
             </div>
         </section>
 
@@ -258,6 +355,24 @@
                 </div>
             </div>
 
+            <h3 class="section-title mt-6">📋 Detalhamento de OSs Concluídas &amp; Margem por Atendimento</h3>
+            <div class="card-table mt-2">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Cliente / Equipamento</th>
+                            <th>Deslocamento (R$)</th>
+                            <th>Faturamento (R$)</th>
+                            <th>Lucro OS (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaOsConcluidas">
+                        <!-- Linhas via JS -->
+                    </tbody>
+                </table>
+            </div>
+
             <h3 class="section-title mt-6">Histórico de Custos Fixos &amp; Investimentos Comerciais</h3>
             <div class="card-table mt-2">
                 <table class="table-custom">
@@ -290,17 +405,44 @@
         </div>
     </div>
 
-    <!-- Modal Editar / Atualizar OS (Esteira de Reparo & Financeiro) -->
+    <!-- Modal Editar / Atualizar OS (Esteira de Reparo, Mão de Obra & Financeiro) -->
     <div id="modalEditarOs" class="modal hidden">
-        <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-content" style="max-width: 680px;">
             <div class="modal-header">
-                <h2>⚙️ Atualizar Ordem de Serviço</h2>
+                <h2>⚙️ Atualizar Ordem de Serviço &amp; Orçamento</h2>
                 <button id="btnCloseModalEditar" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="formEditarOs">
                     <input type="hidden" id="editOsId">
-                    
+
+                    <!-- Edição dos Dados do Cliente na OS -->
+                    <div class="form-group p-3 mb-3" style="background:rgba(0,255,255,0.03);border:1px solid var(--border-color);border-radius:var(--radius)">
+                        <label style="font-weight:700;color:var(--color-cyan)">👤 Editar Dados do Cliente &amp; Equipamento nesta OS</label>
+                        <div class="form-grid mt-2" style="grid-template-columns: 1fr 1fr; gap:0.5rem;">
+                            <div>
+                                <label class="text-sm">Nome do Cliente *</label>
+                                <input type="text" id="editClienteNome" required class="text-sm">
+                            </div>
+                            <div>
+                                <label class="text-sm">Telefone / WhatsApp *</label>
+                                <input type="tel" id="editClienteTelefone" required class="text-sm">
+                            </div>
+                            <div>
+                                <label class="text-sm">E-mail do Cliente</label>
+                                <input type="email" id="editClienteEmail" class="text-sm">
+                            </div>
+                            <div>
+                                <label class="text-sm">CPF / CNPJ</label>
+                                <input type="text" id="editClienteCpf" class="text-sm">
+                            </div>
+                            <div class="full-width">
+                                <label class="text-sm">Equipamento / Modelo</label>
+                                <input type="text" id="editEquipamento" class="text-sm">
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="form-group">
                         <label for="editStatus">Status da OS *</label>
                         <select id="editStatus" class="select-input" required>
@@ -313,20 +455,69 @@
                         </select>
                     </div>
 
-                    <div class="form-grid mt-4" style="grid-template-columns: 1fr 1fr; gap:1rem;">
+                    <!-- Decomposição do Valor (Mão de Obra + Peças + Deslocamento) -->
+                    <div class="form-grid mt-4" style="grid-template-columns: 1fr 1fr 1fr; gap:0.75rem;">
                         <div class="form-group">
-                            <label for="editValor">Valor Total Cobrado do Cliente (R$)</label>
-                            <input type="number" step="0.01" id="editValor" placeholder="Ex: 350.00">
+                            <label for="editMaoDeObra">Mão de Obra (R$) *</label>
+                            <input type="number" step="0.01" id="editMaoDeObra"
+                                placeholder="Ex: 150.00 (Formatação/Limpeza)">
                         </div>
                         <div class="form-group">
-                            <label for="editDeslocamento">Custo Deslocamento/Gasolina (R$)</label>
-                            <input type="number" step="0.01" id="editDeslocamento" placeholder="Ex: 20.00 (Leva & Traz)">
+                            <label for="editValorPecas">Peças/Terceiro (R$)</label>
+                            <input type="number" step="0.01" id="editValorPecas" placeholder="Ex: 180.00 (SSD/Tela)">
                         </div>
+                        <div class="form-group">
+                            <label for="editDeslocamento">Custo Deslocamento (R$)</label>
+                            <input type="number" step="0.01" id="editDeslocamento"
+                                placeholder="Ex: 15.00 (Leva & Traz)">
+                        </div>
+                    </div>
+
+                    <div class="form-group mt-2 p-3"
+                        style="background:rgba(0,255,255,0.05);border:1px solid var(--color-cyan);border-radius:var(--radius)">
+                        <label style="color:var(--color-cyan);font-weight:700">💰 Valor Total Cobrado do Cliente: R$
+                            <span id="lblValorTotal">0,00</span></label>
+                        <input type="hidden" id="editValor">
+                    </div>
+
+                    <!-- Calculadora Inteligente de Deslocamento / Leva & Traz -->
+                    <div class="form-group mt-4 p-3"
+                        style="background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:var(--radius)">
+                        <label style="font-weight:700">🚗 Calculadora Automática de Deslocamento (Leva &amp;
+                            Traz)</label>
+                        <div class="form-grid mt-2" style="grid-template-columns: 1fr 1fr 1fr; gap:0.5rem;">
+                            <div>
+                                <label class="text-sm">Veículo:</label>
+                                <select id="calcVeiculo" class="select-input text-sm">
+                                    <option value="carro" selected>🚗 Carro (10km/L - R$ 1,00/km - Pior Caso)</option>
+                                    <option value="moto">🏍️ Moto (20km/L - R$ 0,50/km)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-sm">Região / Bairro:</label>
+                                <select id="calcRegiao" class="select-input text-sm">
+                                    <option value="4">Príncipe de Gales / Local (~4 km)</option>
+                                    <option value="10" selected>Santo André Centro / Bairros (~10 km)</option>
+                                    <option value="16">São Bernardo do Campo (~16 km)</option>
+                                    <option value="12">São Caetano do Sul (~12 km)</option>
+                                    <option value="custom">Km Personalizado...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-sm">Distância (Km Total Ida/Volta):</label>
+                                <input type="number" id="calcKmTotal" class="text-sm" value="10" placeholder="Km total">
+                            </div>
+                        </div>
+                        <button type="button" id="btnCalcularDeslocamento"
+                            class="btn btn-outline btn-block mt-2 text-sm">
+                            ⚡ Calcular &amp; Aplicar Deslocamento
+                        </button>
                     </div>
 
                     <!-- Peça do Estoque a Baixar -->
                     <div class="form-group mt-4">
-                        <label for="editPecaEstoque">Peça do Estoque Consumida <span class="label-optional">(dá baixa automática no estoque)</span></label>
+                        <label for="editPecaEstoque">Peça do Estoque Consumida <span class="label-optional">(dá baixa
+                                automática no estoque)</span></label>
                         <select id="editPecaEstoque" class="select-input">
                             <option value="">Nenhuma peça de estoque utilizada</option>
                         </select>
@@ -334,7 +525,8 @@
 
                     <!-- Serviço Terceirizado -->
                     <div class="form-group mt-4">
-                        <label for="editParceiroTerceiro">Serviço Terceirizado / Parceiro <span class="label-optional">(ex: Reparo BGA / Reballing)</span></label>
+                        <label for="editParceiroTerceiro">Serviço Terceirizado / Parceiro <span
+                                class="label-optional">(ex: Reparo BGA / Reballing)</span></label>
                         <select id="editParceiroTerceiro" class="select-input">
                             <option value="">Nenhum serviço terceirizado</option>
                         </select>
@@ -342,38 +534,43 @@
 
                     <div class="form-group mt-4">
                         <label for="editDiagnostico">O Que Precisa Fazer / Diagnóstico Técnico</label>
-                        <textarea id="editDiagnostico" rows="2" placeholder="Ex: Troca de SSD NVMe 512GB + Limpeza Térmica Preventiva..."></textarea>
+                        <textarea id="editDiagnostico" rows="2"
+                            placeholder="Ex: Formatação + Higienização Interna com Pasta de Prata + Upgrade SSD 512GB..."></textarea>
                     </div>
 
                     <div class="form-group mt-4">
                         <label for="editServicoRealizado">O Que Foi Feito (Laudo Concluído)</label>
-                        <textarea id="editServicoRealizado" rows="2" placeholder="Ex: SSD instalado, Windows ativado e testes de temperatura concluídos."></textarea>
+                        <textarea id="editServicoRealizado" rows="2"
+                            placeholder="Ex: Sistema formatado com Windows 11, pasta de prata trocada e SSD instalado."></textarea>
                     </div>
 
                     <div class="form-group mt-4">
                         <label for="editPix">Chave PIX Copia e Cola / Chave PIX</label>
-                        <input type="text" id="editPix" placeholder="Cole o código PIX Copia e Cola ou sua chave PIX aqui...">
+                        <input type="text" id="editPix"
+                            placeholder="Cole o código PIX Copia e Cola ou sua chave PIX aqui...">
                     </div>
 
                     <div class="form-actions mt-6">
-                        <button type="submit" class="btn btn-primary btn-block">💾 Salvar Alterações &amp; Atualizar DRE</button>
+                        <button type="submit" class="btn btn-primary btn-block">💾 Salvar Alterações &amp; Atualizar
+                            DRE</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Modal Novo Item de Estoque -->
+    <!-- Modal Novo / Editar Item de Estoque -->
     <div id="modalNovoItemEstoque" class="modal hidden">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>📦 Cadastrar Peça / Insumo no Estoque</h2>
+                <h2 id="lblModalEstoqueTitulo">📦 Cadastrar / Editar Peça no Estoque</h2>
                 <button id="btnCloseModalEstoque" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="formNovoItemEstoque">
+                    <input type="hidden" id="editStockId">
                     <div class="form-group">
-                        <label for="stockNome">Nome do Item *</label>
+                        <label for="stockNome">Nome do Item / Peça *</label>
                         <input type="text" id="stockNome" required placeholder="Ex: SSD NVMe 512GB Kingston">
                     </div>
                     <div class="form-group mt-3">
@@ -419,22 +616,24 @@
         </div>
     </div>
 
-    <!-- Modal Novo Terceiro / Parceiro -->
+    <!-- Modal Novo / Editar Terceiro / Parceiro -->
     <div id="modalNovoTerceiro" class="modal hidden">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>🤝 Cadastrar Terceiro / Parceiro</h2>
+                <h2 id="lblModalTerceiroTitulo">🤝 Cadastrar / Editar Terceiro / Parceiro</h2>
                 <button id="btnCloseModalTerceiro" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="formNovoTerceiro">
+                    <input type="hidden" id="editTerceiroId">
                     <div class="form-group">
                         <label for="tercNome">Nome do Parceiro / Laboratório *</label>
                         <input type="text" id="tercNome" required placeholder="Ex: Laboratório BGA ABC">
                     </div>
                     <div class="form-group mt-3">
                         <label for="tercEspecialidade">Especialidade / Serviço *</label>
-                        <input type="text" id="tercEspecialidade" required placeholder="Ex: Reparo BGA / Reballing Placa Mãe">
+                        <input type="text" id="tercEspecialidade" required
+                            placeholder="Ex: Reparo BGA / Reballing Placa Mãe">
                     </div>
                     <div class="form-group mt-3">
                         <label for="tercTelefone">Telefone / WhatsApp</label>
@@ -442,7 +641,8 @@
                     </div>
                     <div class="form-group mt-3">
                         <label for="tercObs">Observações / Custo Médio</label>
-                        <textarea id="tercObs" rows="2" placeholder="Ex: Custo médio BGA: R$ 300-350. Prazo: 3 dias."></textarea>
+                        <textarea id="tercObs" rows="2"
+                            placeholder="Ex: Custo médio BGA: R$ 300-350. Prazo: 3 dias."></textarea>
                     </div>
                     <div class="form-actions mt-6">
                         <button type="submit" class="btn btn-primary btn-block">💾 Cadastrar Parceiro</button>
@@ -489,4 +689,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

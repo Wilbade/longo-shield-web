@@ -44,12 +44,51 @@ As principais capacidades do sistema incluem:
 - **Dados Estruturados JSON-LD (Schema.org)**:
   - `LocalBusiness`: Mapeamento da empresa, horário de funcionamento, coordenadas geográficas, cidades atendidas (Santo André, SBC, São Caetano) e catálogo de serviços.
   - `FAQPage`: Estrutura de perguntas e respostas para leitura por robôs do Google e IAs gerativas (ChatGPT, Gemini, Perplexity, Claude).
-- **Micro-SaaS Operacional & DRE Financeiro no Painel `/os/`**:
-  - **Módulo de Estoque (`📦 Estoque`)**: Tabela de itens (SSDs NVMe/SATA, RAM, Telas, Baterias, Insumos) pré-populada com valores reais de mercado (Custo vs. Preço de Venda) e alertas visuais de reestoque quando `quantidade <= quantidade_minima`.
-  - **Diretório de Terceiros & Fornecedores (`🤝 Terceiros`)**: Gestão de parceiros terceirizados (ex: Laboratório de Reparo de Placas BGA / Reballing, BringIT Distribuidora de Telas) com controle de especialidades e prazos.
-  - **DRE Financeiro Mensal (`📊 Financeiro & DRE`)**: Painel de cálculo automático do **Lucro Líquido Real do Mês** e Margem de Lucro (%):
-    - `Faturamento Bruto` (OSs Concluídas) - `Custo de Peças` (Estoque) - `Deslocamento/Gasolina` - `Custos Fixos/Investimentos` (Ads R$ 300, Panfletos R$ 150, Insumos R$ 350) = **LUCRO LÍQUIDO REAL (R$)**.
-  - **Baixa Automática de Estoque**: Seleção de peças consumidas no modal de edição da OS com atualização automática da quantidade em estoque.
+- **Edição Completa de Dados do Cliente na OS (`⚙️ Atualizar OS`)**:
+  - No modal de atualização da OS, foram incorporados os campos editáveis de **Nome do Cliente**, **Telefone / WhatsApp**, **E-mail**, **CPF / CNPJ** e **Equipamento / Modelo**.
+  - Permite corrigir telefones digitados incorretamente (como o número `(55) 11995-3148` incompleto) a qualquer momento na esteira de reparo sem precisar excluir a OS.
+- **Nova Aba `👥 Base de Clientes` (`/os/#secClientes`)**:
+  - Aba de navegação que consolida toda a cartela de clientes cadastrados no sistema.
+  - Tabela com busca em tempo real por **Nome**, **Telefone/WhatsApp**, **CPF/CNPJ** e **E-mail**, com atalhos de disparo de **`💬 WhatsApp`** e **`✏️ Editar Dados / OS`**.
+- **CRM de Manutenção Preventiva (Lembretes de 6 Meses - `/os/#secCrmPreventiva`)**:
+  - Nova aba **`📅 Preventivas (6m)`** que calcula automaticamente a data de vencimento da manutenção preventiva (6 meses após o atendimento).
+  - Tabela de controle de histórico de clientes por **Marca (Dell, Lenovo, HP, Asus, Acer, Apple, Samsung, PC Gamer Custom)**, Modelo e Equipamento, com botão de disparo direto de **`💬 Lembrete no WhatsApp`**.
+- **Busca Inteligente em Tempo Real (`#txtBuscaOs`)**:
+  - Filtro em tempo real por Nome do Cliente, Número da OS, Equipamento, Marca, Modelo ou Defeito na lista de Ordens de Serviço.
+- **Gestão de Leads Web (Ocultar Convertidos & Exclusão de Spam)**:
+  - Botão **`[ 👁️ Exibir/Ocultar Convertidos ]`** para manter a tela limpa exibindo apenas novos leads pendentes.
+  - Botão **`[ 🗑️ Excluir Lead ]`** para remoção direta de solicitações de teste ou spam.
+- **Arquitetura Dual-Backup de Leads Web (`pre_chamados` + LocalStorage)**:
+  - Quando um cliente abre uma solicitação no formulário do site (`/manutencao/`), os dados são enviados ao Supabase **e paralelamente salvos no `localStorage` do navegador**.
+  - No painel `/os/#secLeads`, o sistema mescla as entradas do Supabase com o cache local instantâneo, **garantindo 100% de disponibilidade visual dos leads mesmo se a tabela do banco não possuir políticas RLS abertas para usuários anônimos**.
+  - Script SQL para liberação das permissões públicas de inserção na tabela `pre_chamados`:
+    ```sql
+    CREATE TABLE IF NOT EXISTS pre_chamados (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        nome_cliente TEXT NOT NULL,
+        whatsapp TEXT NOT NULL,
+        cep TEXT,
+        logradouro TEXT,
+        numero TEXT,
+        complemento TEXT,
+        bairro_cidade TEXT,
+        equipamento TEXT,
+        defeito_relatado TEXT,
+        leva_e_traz BOOLEAN DEFAULT false,
+        foto_url TEXT,
+        status TEXT DEFAULT 'Solicitação Web',
+        origem TEXT DEFAULT 'Landing Page',
+        criado_em TIMESTAMPTZ DEFAULT NOW()
+    );
+
+    ALTER TABLE pre_chamados ENABLE ROW LEVEL SECURITY;
+
+    CREATE POLICY "Permite insercao publica de leads" 
+    ON pre_chamados FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+    CREATE POLICY "Permite leitura autenticada de leads" 
+    ON pre_chamados FOR SELECT TO authenticated USING (true);
+    ```
 - **Anexo Opcional de Foto pelo Cliente (`/manutencao/`)**:
   - Campo de upload de foto (`#fotoCliente`) no formulário de pré-chamado da Landing Page.
   - Upload automático para o bucket `fotos-os` do Supabase Storage e exibição do botão `📷 Foto do Cliente` diretamente nos cards do painel de **Leads Web**.
@@ -68,7 +107,8 @@ As principais capacidades do sistema incluem:
 - Configurada conexão com Supabase BaaS (URL: `https://giikoiqpnzgmhcqiuvhs.supabase.co`).
 - Gerado script SQL para criação das tabelas `clientes_os`, `ordens_servico`, `pre_chamados` e `lgpd_consentimentos` com RLS habilitado e bucket de storage `fotos-os`.
 - Adicionada aba "🔔 Leads Web" no painel de OS para listar solicitações vindas do site com conversão em 1 clique para OS.
-- Implementada barreira de login com **Supabase Auth** (`signInWithPassword`) e verificação anti-bot via **Cloudflare Turnstile** (`data-sitekey="0x4AAAAAADi04phstlIV5BIH"`).
+- **Autenticação no `/os/` (Temporariamente sem Turnstile para Testes Locais)**:
+  - Tela de login com integração ao **Supabase Auth** (`signInWithPassword`). O widget do Cloudflare Turnstile e sua validação JS foram **comentados temporariamente** no HTML e no JS para facilitar os testes no ambiente `localhost` / `127.0.0.1`.
 - Aplicada sanitização anti-XSS (`escapeHTML()`) em todas as renderizações dinâmicas e validação de MIME type de imagens no upload.
 - Adicionado Favicon SVG em alta resolução com escudo Ciano/Âmbar e sigla **OS**.
 

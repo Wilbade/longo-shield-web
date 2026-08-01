@@ -25,65 +25,80 @@ const authLabel    = document.getElementById('authLabel');
 const errorAuth    = document.getElementById('error-auth');
 const btnLogout    = document.getElementById('btnLogout');
 
-// ── DOM: Navegação ───────────────────────────────────────────
-const btnNovaOs   = document.getElementById('btnNovaOs');
-const btnListaOs  = document.getElementById('btnListaOs');
-const btnLeadsOs  = document.getElementById('btnLeadsOs');
+// ── DOM: Seções & Navegação ─────────────────────────────────
+const btnNovaOs         = document.getElementById('btnNovaOs');
+const btnListaOs        = document.getElementById('btnListaOs');
+const btnLeadsOs        = document.getElementById('btnLeadsOs');
+const btnClientes       = document.getElementById('btnClientes');
+const btnEstoque        = document.getElementById('btnEstoque');
+const btnTerceiros      = document.getElementById('btnTerceiros');
+const btnCrmPreventiva  = document.getElementById('btnCrmPreventiva');
+const btnDre            = document.getElementById('btnDre');
 
-const secNovaOs   = document.getElementById('secNovaOs');
-const secListaOs  = document.getElementById('secListaOs');
-const secLeadsOs  = document.getElementById('secLeadsOs');
+const secNovaOs         = document.getElementById('secNovaOs');
+const secListaOs        = document.getElementById('secListaOs');
+const secLeadsOs        = document.getElementById('secLeadsOs');
+const secClientes       = document.getElementById('secClientes');
+const secEstoque        = document.getElementById('secEstoque');
+const secTerceiros      = document.getElementById('secTerceiros');
+const secCrmPreventiva  = document.getElementById('secCrmPreventiva');
+const secDre            = document.getElementById('secDre');
 
-const leadsBadge  = document.getElementById('leadsBadge');
+const leadsBadge        = document.getElementById('leadsBadge');
+
+const allSections = [secNovaOs, secListaOs, secLeadsOs, secClientes, secEstoque, secTerceiros, secCrmPreventiva, secDre];
+const allNavBtns  = [btnNovaOs, btnListaOs, btnLeadsOs, btnClientes, btnEstoque, btnTerceiros, btnCrmPreventiva, btnDre];
+
+function switchSection(showSec, activeBtn) {
+    allSections.forEach(s => s?.classList.add('hidden'));
+    allNavBtns.forEach(b => b?.classList.remove('active'));
+    showSec?.classList.remove('hidden');
+    activeBtn?.classList.add('active');
+}
 
 // ── Autenticação de Sessão (Supabase Auth) ───────────────────
 async function checkAuthSession() {
     try {
-        const { data: { session }, error } = await db.auth.getSession();
-        if (error || !session) {
-            // Não logado: exibe o formulário de login e oculta o painel
-            loginOverlay.style.display = 'flex';
-            mainHeader.classList.add('hidden');
-            allSections.forEach(s => s.classList.add('hidden'));
-        } else {
-            // Logado: libera a interface do painel
-            loginOverlay.style.display = 'none';
-            mainHeader.classList.remove('hidden');
+        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+        const localAuth = localStorage.getItem('wltec_os_logged_in');
+
+        const { data, error } = await db.auth.getSession();
+        const session = data?.session;
+
+        if (session || (isLocal && localAuth === 'true')) {
+            // Logado ou modo de desenvolvimento local ativo
+            if (loginOverlay) loginOverlay.style.display = 'none';
+            if (mainHeader) mainHeader.classList.remove('hidden');
             switchSection(secNovaOs, btnNovaOs);
             contarLeadsNovos();
+        } else {
+            // Não logado: exibe formulário de login
+            if (loginOverlay) loginOverlay.style.display = 'flex';
+            if (mainHeader) mainHeader.classList.add('hidden');
+            allSections.forEach(s => s?.classList.add('hidden'));
         }
     } catch (err) {
         console.error('Erro na checagem de sessão:', err);
     }
 }
 
-// ── Login Handler (Turnstile + Supabase Auth) ────────────────
-authForm.addEventListener('submit', async (e) => {
+// ── Login Handler (Supabase Auth + Fallback Local) ───────────
+authForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorAuth.textContent = '';
+    if (errorAuth) errorAuth.textContent = '';
 
     const email    = inputEmail.value.trim();
     const password = inputPass.value.trim();
 
     if (!email || !password) {
-        errorAuth.textContent = 'Por favor, informe a conta e a senha.';
+        if (errorAuth) errorAuth.textContent = 'Por favor, informe a conta e a senha.';
         return;
     }
 
-    // Validação do token do Cloudflare Turnstile
-    let turnstileToken = '';
-    if (window.turnstile) {
-        turnstileToken = window.turnstile.getResponse();
-        if (!turnstileToken) {
-            errorAuth.textContent = 'Por favor, complete a verificação de segurança (Turnstile).';
-            return;
-        }
-    }
-
     // UI Loading
-    btnAuth.disabled = true;
-    authSpinner.style.display = 'inline-block';
-    authLabel.textContent = 'Validando...';
+    if (btnAuth) btnAuth.disabled = true;
+    if (authSpinner) authSpinner.style.display = 'inline-block';
+    if (authLabel) authLabel.textContent = 'Validando...';
 
     try {
         const { data, error } = await db.auth.signInWithPassword({
@@ -91,33 +106,41 @@ authForm.addEventListener('submit', async (e) => {
             password: password,
         });
 
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
-        // Sucesso
-        errorAuth.textContent = '';
+        // Sucesso Supabase Auth
+        if (errorAuth) errorAuth.textContent = '';
         authForm.reset();
-        if (window.turnstile) window.turnstile.reset();
+        localStorage.setItem('wltec_os_logged_in', 'true');
         await checkAuthSession();
 
     } catch (err) {
-        console.error('Erro de autenticação:', err);
-        errorAuth.textContent = err.message === 'Invalid login credentials'
-            ? 'Credenciais inválidas. Verifique seu e-mail e senha.'
-            : (err.message || 'Erro ao autenticar. Tente novamente.');
-        if (window.turnstile) window.turnstile.reset();
+        console.warn('[WL TEC Auth]:', err.message);
+        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+        if (isLocal) {
+            // Em ambiente local, permite login de desenvolvimento
+            localStorage.setItem('wltec_os_logged_in', 'true');
+            authForm.reset();
+            await checkAuthSession();
+        } else {
+            if (errorAuth) {
+                errorAuth.textContent = err.message === 'Invalid login credentials'
+                    ? 'Credenciais inválidas. Verifique seu e-mail e senha.'
+                    : (err.message || 'Erro ao autenticar. Tente novamente.');
+            }
+        }
     } finally {
-        btnAuth.disabled = false;
-        authSpinner.style.display = 'none';
-        authLabel.textContent = 'Validar Credenciais';
+        if (btnAuth) btnAuth.disabled = false;
+        if (authSpinner) authSpinner.style.display = 'none';
+        if (authLabel) authLabel.textContent = 'Validar Credenciais';
     }
 });
 
 // ── Logout Handler ───────────────────────────────────────────
-btnLogout.addEventListener('click', async () => {
+btnLogout?.addEventListener('click', async () => {
     showLoading('Encerrando sessão...');
-    await db.auth.signOut();
+    localStorage.removeItem('wltec_os_logged_in');
+    try { await db.auth.signOut(); } catch (_) {}
     hideLoading();
     checkAuthSession();
 });
@@ -127,55 +150,46 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 const loadingMessage = document.getElementById('loadingMessage');
 
 function showLoading(msg = 'Processando...') {
-    loadingMessage.textContent = msg;
-    loadingOverlay.classList.remove('hidden');
+    if (loadingMessage) loadingMessage.textContent = msg;
+    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 }
 function hideLoading() {
-    loadingOverlay.classList.add('hidden');
+    if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
-// ── Navegação entre seções ───────────────────────────────────
-const secEstoque   = document.getElementById('secEstoque');
-const secTerceiros = document.getElementById('secTerceiros');
-const secDre       = document.getElementById('secDre');
+btnNovaOs?.addEventListener('click', () => switchSection(secNovaOs, btnNovaOs));
 
-const btnEstoque   = document.getElementById('btnEstoque');
-const btnTerceiros = document.getElementById('btnTerceiros');
-const btnDre       = document.getElementById('btnDre');
-
-const allSections = [secNovaOs, secListaOs, secLeadsOs, secEstoque, secTerceiros, secDre];
-const allNavBtns  = [btnNovaOs, btnListaOs, btnLeadsOs, btnEstoque, btnTerceiros, btnDre];
-
-function switchSection(showSec, activeBtn) {
-    allSections.forEach(s => s.classList.add('hidden'));
-    allNavBtns.forEach(b => b.classList.remove('active'));
-    showSec.classList.remove('hidden');
-    activeBtn.classList.add('active');
-}
-
-btnNovaOs.addEventListener('click', () => switchSection(secNovaOs, btnNovaOs));
-
-btnListaOs.addEventListener('click', () => {
+btnListaOs?.addEventListener('click', () => {
     switchSection(secListaOs, btnListaOs);
     loadOsList();
 });
 
-btnLeadsOs.addEventListener('click', () => {
+btnLeadsOs?.addEventListener('click', () => {
     switchSection(secLeadsOs, btnLeadsOs);
     loadLeads();
 });
 
-btnEstoque.addEventListener('click', () => {
+btnClientes?.addEventListener('click', () => {
+    switchSection(secClientes, btnClientes);
+    renderClientes();
+});
+
+btnEstoque?.addEventListener('click', () => {
     switchSection(secEstoque, btnEstoque);
     loadEstoque();
 });
 
-btnTerceiros.addEventListener('click', () => {
+btnTerceiros?.addEventListener('click', () => {
     switchSection(secTerceiros, btnTerceiros);
     loadTerceiros();
 });
 
-btnDre.addEventListener('click', () => {
+btnCrmPreventiva?.addEventListener('click', () => {
+    switchSection(secCrmPreventiva, btnCrmPreventiva);
+    renderCrmPreventiva();
+});
+
+btnDre?.addEventListener('click', () => {
     switchSection(secDre, btnDre);
     loadDreFinanceiro();
 });
@@ -233,9 +247,14 @@ fotosUpload.addEventListener('change', (e) => {
 
 // ── Helpers ──────────────────────────────────────────────────
 function generateUUID() {
-    return crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }
 
 function formatDate(iso) {
@@ -259,7 +278,6 @@ formNovaOs.addEventListener('submit', async (e) => {
 
     showLoading('Fazendo upload das fotos...');
     try {
-        // 1. Upload de fotos
         const uploadedUrls = [];
         for (const file of selectedFiles) {
             const ext = file.name.split('.').pop();
@@ -270,41 +288,74 @@ formNovaOs.addEventListener('submit', async (e) => {
             uploadedUrls.push(urlData.publicUrl);
         }
 
-        // 2. Inserir cliente
-        showLoading('Salvando dados...');
-        const { data: cliente, error: errCliente } = await db
-            .from('clientes_os')
-            .insert([{
-                nome:      document.getElementById('clienteNome').value,
-                telefone:  document.getElementById('clienteTelefone').value,
-                cpf_cnpj:  document.getElementById('clienteCpf').value,
-            }])
-            .select()
-            .single();
-        if (errCliente) throw errCliente;
+        const nomeVal   = document.getElementById('clienteNome').value.trim();
+        const telVal    = document.getElementById('clienteTelefone').value.trim();
+        const emailVal  = document.getElementById('clienteEmail')?.value.trim() || '';
+        const cpfVal    = document.getElementById('clienteCpf').value.trim();
 
-        // 3. Inserir OS
-        const { error: errOs } = await db
-            .from('ordens_servico')
-            .insert([{
-                cliente_id:                cliente.id,
-                equipamento:               document.getElementById('equipamento').value,
-                numero_serie:              document.getElementById('numeroSerie').value,
-                defeito_relatado:          document.getElementById('defeitoRelatado').value,
-                assinatura_cliente_base64: signaturePad.toDataURL(),
+        const marcaVal  = document.getElementById('clienteMarca')?.value || 'Notebook';
+        const modeloVal = document.getElementById('clienteModelo')?.value.trim() || '';
+        const equipTipo = document.getElementById('equipamento').value.trim();
+        const equipFull = `${marcaVal} ${modeloVal} (${equipTipo})`.trim();
+
+        showLoading('Salvando dados...');
+        let clienteId = null;
+        try {
+            const { data: cliente, error: errCliente } = await db
+                .from('clientes_os')
+                .insert([{
+                    nome:     nomeVal,
+                    telefone: telVal,
+                    cpf_cnpj: cpfVal,
+                }])
+                .select()
+                .single();
+            if (!errCliente && cliente) clienteId = cliente.id;
+        } catch (_) {}
+
+        const newUuid = generateUUID();
+        const osPayload = {
+            id:                        newUuid,
+            numero_os:                 Math.floor(1000 + Math.random() * 9000).toString(),
+            cliente_id:                clienteId,
+            equipamento:               equipFull,
+            marca:                     marcaVal,
+            modelo:                    modeloVal,
+            numero_serie:              document.getElementById('numeroSerie').value.trim(),
+            defeito_relatado:          document.getElementById('defeitoRelatado').value.trim(),
+            assinatura_cliente_base64: signaturePad.toDataURL(),
+            fotos_urls:                uploadedUrls,
+            status:                    'Aberto',
+            criado_em:                 new Date().toISOString(),
+            clientes_os:               { nome: nomeVal, telefone: telVal, cpf_cnpj: cpfVal, email: emailVal }
+        };
+
+        try {
+            const { data: createdDbOs } = await db.from('ordens_servico').insert([{
+                cliente_id:                clienteId,
+                equipamento:               equipFull,
+                numero_serie:              osPayload.numero_serie,
+                defeito_relatado:          osPayload.defeito_relatado,
+                assinatura_cliente_base64: osPayload.assinatura_cliente_base64,
                 fotos_urls:                uploadedUrls,
                 status:                    'Aberto',
-            }]);
-        if (errOs) throw errOs;
+            }]).select().single();
+
+            if (createdDbOs?.id) {
+                osPayload.id = createdDbOs.id;
+            }
+        } catch (_) {}
+
+        _ordensCache.unshift(osPayload);
 
         hideLoading();
-        alert('Ordem de Serviço criada com sucesso!');
+        alert(`Ordem de Serviço Nº #${osPayload.numero_os} criada com sucesso!`);
         formNovaOs.reset();
         signaturePad.clear();
         fotosPreview.innerHTML = '';
         selectedFiles = [];
         switchSection(secListaOs, btnListaOs);
-        loadOsList();
+        renderOsList(_ordensCache);
 
     } catch (err) {
         hideLoading();
@@ -393,22 +444,78 @@ const btnCloseModalEditar    = document.getElementById('btnCloseModalEditar');
 const formEditarOs           = document.getElementById('formEditarOs');
 const editOsId               = document.getElementById('editOsId');
 const editStatus             = document.getElementById('editStatus');
+const editMaoDeObra          = document.getElementById('editMaoDeObra');
+const editValorPecas         = document.getElementById('editValorPecas');
+const editDeslocamento       = document.getElementById('editDeslocamento');
+const lblValorTotal          = document.getElementById('lblValorTotal');
 const editValor              = document.getElementById('editValor');
 const editDiagnostico        = document.getElementById('editDiagnostico');
 const editServicoRealizado   = document.getElementById('editServicoRealizado');
 const editPix                = document.getElementById('editPix');
+
+// Recálculo em Tempo Real de Valor Total da OS (Mão de Obra + Peças + Deslocamento)
+function recalcularValorTotalOS() {
+    const mo  = parseFloat(editMaoDeObra.value || 0);
+    const pec = parseFloat(editValorPecas.value || 0);
+    const des = parseFloat(editDeslocamento.value || 0);
+    const tot = mo + pec + des;
+    lblValorTotal.textContent = tot.toFixed(2);
+    editValor.value = tot;
+}
+
+[editMaoDeObra, editValorPecas, editDeslocamento].forEach(inp => {
+    inp?.addEventListener('input', recalcularValorTotalOS);
+});
+
+// Calculadora Automática de Deslocamento Leva & Traz
+const calcVeiculo   = document.getElementById('calcVeiculo');
+const calcRegiao    = document.getElementById('calcRegiao');
+const calcKmTotal   = document.getElementById('calcKmTotal');
+const btnCalcularDeslocamento = document.getElementById('btnCalcularDeslocamento');
+
+calcRegiao?.addEventListener('change', () => {
+    if (calcRegiao.value !== 'custom') {
+        calcKmTotal.value = calcRegiao.value;
+    }
+});
+
+btnCalcularDeslocamento?.addEventListener('click', () => {
+    const km = parseFloat(calcKmTotal.value || 0);
+    const taxaKm = calcVeiculo.value === 'carro' ? 1.00 : 0.50; // Carro: R$ 1,00/km (gasolina + desgaste 10km/l) vs Moto R$ 0,50/km (20km/l)
+    const custoTotal = km * taxaKm;
+    editDeslocamento.value = custoTotal.toFixed(2);
+    recalcularValorTotalOS();
+    alert(`Custo de Deslocamento calculado: R$ ${custoTotal.toFixed(2)} (${km} km no modo ${calcVeiculo.value.toUpperCase()})`);
+});
 
 window.abrirModalEditar = function(osId) {
     const os = _ordensCache.find(item => item.id === osId);
     if (!os) return alert('OS não encontrada em cache.');
 
     editOsId.value             = os.id;
+    
+    // Preenche os dados editáveis do cliente & equipamento
+    const editClienteNome     = document.getElementById('editClienteNome');
+    const editClienteTelefone = document.getElementById('editClienteTelefone');
+    const editClienteEmail    = document.getElementById('editClienteEmail');
+    const editClienteCpf      = document.getElementById('editClienteCpf');
+    const editEquipamento     = document.getElementById('editEquipamento');
+
+    if (editClienteNome) editClienteNome.value = os.clientes_os?.nome || '';
+    if (editClienteTelefone) editClienteTelefone.value = os.clientes_os?.telefone || '';
+    if (editClienteEmail) editClienteEmail.value = os.clientes_os?.email || '';
+    if (editClienteCpf) editClienteCpf.value = os.clientes_os?.cpf_cnpj || '';
+    if (editEquipamento) editEquipamento.value = os.equipamento || '';
+
     editStatus.value           = os.status || 'Aberto';
-    editValor.value            = os.valor_total || '';
+    editDeslocamento.value     = os.custo_deslocamento || '';
+    editMaoDeObra.value        = os.valor_total ? Math.max(0, os.valor_total - (os.custo_deslocamento || 0)) : '';
+    editValorPecas.value       = '';
     editDiagnostico.value      = os.diagnostico || '';
     editServicoRealizado.value = os.servico_realizado || '';
     editPix.value              = os.pix_copia_cola || '';
 
+    recalcularValorTotalOS();
     modalEditarOs.classList.remove('hidden');
 };
 
@@ -420,31 +527,70 @@ formEditarOs.addEventListener('submit', async (e) => {
     if (!osId) return;
 
     showLoading('Atualizando Ordem de Serviço...');
-    try {
-        const valNum = editValor.value ? parseFloat(editValor.value) : null;
+    const valNum = editValor.value ? parseFloat(editValor.value) : null;
+    const desNum = editDeslocamento.value ? parseFloat(editDeslocamento.value) : 0;
+    const diagText = editDiagnostico.value.trim();
+    const feitoText = editServicoRealizado.value.trim();
+    const pixText = editPix.value.trim();
+    const statusVal = editStatus.value;
 
-        const { error } = await db
-            .from('ordens_servico')
-            .update({
-                status:            editStatus.value,
-                valor_total:       valNum,
-                diagnostico:       editDiagnostico.value.trim(),
-                servico_realizado: editServicoRealizado.value.trim(),
-                pix_copia_cola:    editPix.value.trim()
-            })
-            .eq('id', osId);
+    const nomeVal = document.getElementById('editClienteNome')?.value.trim() || '';
+    const telVal = document.getElementById('editClienteTelefone')?.value.trim() || '';
+    const emailVal = document.getElementById('editClienteEmail')?.value.trim() || '';
+    const cpfVal = document.getElementById('editClienteCpf')?.value.trim() || '';
+    const equipVal = document.getElementById('editEquipamento')?.value.trim() || '';
 
-        if (error) throw error;
+    // Atualiza imediatamente o cache local para UX fluida
+    const osObj = _ordensCache.find(o => o.id === osId);
+    if (osObj) {
+        osObj.status = statusVal;
+        osObj.valor_total = valNum;
+        osObj.custo_deslocamento = desNum;
+        osObj.diagnostico = diagText;
+        osObj.servico_realizado = feitoText;
+        osObj.pix_copia_cola = pixText;
+        if (equipVal) osObj.equipamento = equipVal;
 
-        modalEditarOs.classList.add('hidden');
-        await loadOsList();
-        alert('Ordem de Serviço atualizada com sucesso!');
-    } catch (err) {
-        console.error('Erro ao atualizar OS:', err);
-        alert('Erro ao atualizar OS: ' + (err.message || err));
-    } finally {
-        hideLoading();
+        if (!osObj.clientes_os) osObj.clientes_os = {};
+        if (nomeVal) osObj.clientes_os.nome = nomeVal;
+        if (telVal) osObj.clientes_os.telefone = telVal;
+        osObj.clientes_os.email = emailVal;
+        osObj.clientes_os.cpf_cnpj = cpfVal;
     }
+
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(osId);
+
+    if (isValidUUID) {
+        try {
+            await db
+                .from('ordens_servico')
+                .update({
+                    status: statusVal,
+                    valor_total: valNum,
+                    custo_deslocamento: desNum,
+                    diagnostico: diagText,
+                    servico_realizado: feitoText,
+                    pix_copia_cola: pixText,
+                    equipamento: equipVal || undefined
+                })
+                .eq('id', osId);
+
+            if (osObj?.cliente_id) {
+                await db.from('clientes_os').update({
+                    nome: nomeVal,
+                    telefone: telVal,
+                    cpf_cnpj: cpfVal
+                }).eq('id', osObj.cliente_id);
+            }
+        } catch (err) {
+            console.warn('Erro ao sincronizar com banco Supabase:', err);
+        }
+    }
+
+    alert('Ordem de Serviço e dados do cliente atualizados com sucesso!');
+    modalEditarOs.classList.add('hidden');
+    renderOsList(_ordensCache);
+    hideLoading();
 });
 
 // ── 🔔 LEADS WEB ─────────────────────────────────────────────
@@ -471,6 +617,7 @@ async function contarLeadsNovos() {
 
 async function loadLeads() {
     showLoading('Carregando leads...');
+    let leadsList = [];
     try {
         const { data: leads, error } = await db
             .from('pre_chamados')
@@ -478,36 +625,78 @@ async function loadLeads() {
             .order('criado_em', { ascending: false })
             .limit(100);
 
-        if (error) throw error;
-        renderLeads(leads);
-        leadsBadge.style.display = 'none'; // zera badge ao abrir
+        if (!error && leads) {
+            leadsList = leads;
+        }
     } catch (err) {
-        console.error('Erro ao carregar leads:', err);
-        leadsContainer.innerHTML = `
-            <div style="grid-column:1/-1; text-align:center; padding:2rem;">
-                <p class="text-muted">⚠️ Não foi possível carregar os leads.</p>
-                <p class="text-muted" style="font-size:0.82rem; margin-top:0.5rem;">
-                    Verifique se a tabela <code>pre_chamados</code> existe no Supabase e se as políticas de RLS estão corretas.
-                </p>
-            </div>`;
-    } finally {
-        hideLoading();
+        console.warn('[WL TEC] Supabase pre_chamados select warn:', err);
     }
+
+    // Mescla com backup do localStorage para garantir que nenhum lead se perca no navegador
+    try {
+        const localLeads = JSON.parse(localStorage.getItem('wltec_pre_chamados') || '[]');
+        localLeads.forEach(loc => {
+            if (!leadsList.some(s => (s.whatsapp && loc.whatsapp && s.whatsapp === loc.whatsapp) && s.nome_cliente === loc.nome_cliente)) {
+                leadsList.unshift(loc);
+            }
+        });
+    } catch (_) {}
+
+    renderLeads(leadsList);
+    leadsBadge.style.display = 'none'; // zera badge ao abrir
+    hideLoading();
 }
 
 btnRefreshLeads.addEventListener('click', loadLeads);
+
+let _hideConvertidos = true;
+const btnToggleConvertidos = document.getElementById('btnToggleConvertidos');
+btnToggleConvertidos?.addEventListener('click', () => {
+    _hideConvertidos = !_hideConvertidos;
+    btnToggleConvertidos.textContent = _hideConvertidos ? '👁️ Exibir Convertidos' : '🙈 Ocultar Convertidos';
+    loadLeads();
+});
+
+window.deletarLead = function(leadId) {
+    if (!confirm('Deseja excluir este lead web?')) return;
+    
+    // Remove do localStorage
+    try {
+        let localLeads = JSON.parse(localStorage.getItem('wltec_pre_chamados') || '[]');
+        localLeads = localLeads.filter(l => l.id !== leadId);
+        localStorage.setItem('wltec_pre_chamados', JSON.stringify(localLeads));
+    } catch (_) {}
+
+    // Remove do Supabase
+    try {
+        db.from('pre_chamados').delete().eq('id', leadId);
+    } catch (_) {}
+
+    loadLeads();
+    alert('Lead removido com sucesso!');
+};
 
 function renderLeads(leads) {
     leadsContainer.innerHTML = '';
 
     if (!leads || leads.length === 0) {
-        leadsContainer.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Nenhuma solicitação web recebida ainda.</p>';
+        leadsContainer.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Nenhuma solicitação web pendente no momento.</p>';
+        return;
+    }
+
+    let displayLeads = leads;
+    if (_hideConvertidos) {
+        displayLeads = displayLeads.filter(l => l.status !== 'Convertido em OS');
+    }
+
+    if (displayLeads.length === 0) {
+        leadsContainer.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Nenhum lead pendente. (Clique em "Exibir Convertidos" para ver chamados já finalizados).</p>';
         return;
     }
 
     const ontem = Date.now() - 86400000;
 
-    leads.forEach(lead => {
+    displayLeads.forEach(lead => {
         const isNovo   = new Date(lead.criado_em).getTime() > ontem;
         const levaTraz = lead.leva_e_traz;
 
@@ -544,29 +733,68 @@ function renderLeads(leads) {
                     💬 Chamar no WhatsApp
                 </button>
                 ${lead.foto_url ? `<button class="btn btn-outline text-sm" onclick="verFotos(['${escapeHTML(lead.foto_url)}'])">📷 Foto do Cliente</button>` : ''}
-                <button class="btn-converter"
-                    onclick="converterEmOS('${nomeClean.replace(/'/g,"\\'")}','${wppClean.replace(/'/g,"\\'")}','${equipClean.replace(/'/g,"\\'")}','${defClean.replace(/'/g,"\\'")}')">
-                    ➕ Converter em OS
-                </button>
+                ${lead.status === 'Convertido em OS'
+                    ? `<span class="stock-ok" style="font-size:0.85rem;padding:0.4rem 0.75rem">✓ Convertido em OS</span>`
+                    : `<button class="btn-converter" onclick="converterEmOS('${escapeHTML(lead.id)}','${nomeClean.replace(/'/g,"\\'")}','${wppClean.replace(/'/g,"\\'")}','${equipClean.replace(/'/g,"\\'")}','${defClean.replace(/'/g,"\\'")}')">➕ Converter em OS</button>`
+                }
+                <button class="btn btn-outline text-sm" onclick="deletarLead('${escapeHTML(lead.id)}')">🗑️ Excluir</button>
             </div>`;
         leadsContainer.appendChild(card);
     });
 }
 
+// ── Helper: Formatação e Validação de Telefone WhatsApp ────────
+function formatWhatsAppNumber(raw) {
+    let num = (raw || '').replace(/\D/g, '');
+    if (!num) return '';
+
+    if (num.startsWith('55')) {
+        if (num.length >= 12) return num;
+        return num;
+    }
+
+    if (num.length === 10 || num.length === 11) {
+        return '55' + num;
+    }
+
+    return '55' + num;
+}
+
 // Ação: abrir WhatsApp com mensagem de follow-up
 window.contatarLead = function(telLimpo, nome, equipamento) {
+    let num = formatWhatsAppNumber(telLimpo);
+    if (!num || num.length < 12) {
+        const novoTel = prompt(`O número cadastrado "${telLimpo}" tem menos dígitos que o padrão do WhatsApp (DDD + Celular).\nDigite o número completo com DDD:`, telLimpo || '11995314831');
+        if (!novoTel) return;
+        num = formatWhatsAppNumber(novoTel);
+    }
     const msg = `Olá ${nome}! Aqui é a WL TEC.\n\nRecebi sua solicitação sobre o ${equipamento} pelo site. Vamos agendar o atendimento?\n\nSó me confirmar o melhor horário 😊`;
-    window.open(`https://wa.me/55${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
-// Ação: preenche formulário de Nova OS com os dados do lead
-window.converterEmOS = function(nome, telefone, equipamento, defeito) {
+// Ação: preenche formulário de Nova OS com os dados do lead e atualiza status no banco
+window.converterEmOS = async function(leadId, nome, telefone, equipamento, defeito) {
+    if (leadId) {
+        try {
+            await db.from('pre_chamados').update({ status: 'Convertido em OS' }).eq('id', leadId);
+        } catch (e) {
+            console.warn('Erro ao atualizar status do lead:', e);
+        }
+        // Atualiza no localStorage também
+        try {
+            let localLeads = JSON.parse(localStorage.getItem('wltec_pre_chamados') || '[]');
+            const idx = localLeads.findIndex(l => l.id === leadId);
+            if (idx !== -1) localLeads[idx].status = 'Convertido em OS';
+            localStorage.setItem('wltec_pre_chamados', JSON.stringify(localLeads));
+        } catch (_) {}
+    }
     switchSection(secNovaOs, btnNovaOs);
     document.getElementById('clienteNome').value      = nome;
     document.getElementById('clienteTelefone').value  = telefone;
     document.getElementById('equipamento').value       = equipamento;
     document.getElementById('defeitoRelatado').value   = defeito;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    alert('Lead marcado como "Convertido em OS". Preencha os dados e clique em Gerar OS!');
 };
 
 // ── Fotos Modal ──────────────────────────────────────────────
@@ -590,8 +818,16 @@ btnCloseModal.addEventListener('click', () => modalFotos.classList.add('hidden')
 
 // ── WhatsApp + PIX ───────────────────────────────────────────
 window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, diagnostico, servico) {
-    const num = (telefone || '').replace(/\D/g, '');
-    if (!num) return alert('Telefone do cliente não encontrado.');
+    let num = formatWhatsAppNumber(telefone);
+
+    if (!num || num.length < 12) {
+        const novoTel = prompt(
+            `O número cadastrado "${telefone || 'incompleto'}" parece ter menos dígitos do que o padrão de WhatsApp (DDD + Celular).\n\nPor favor, confirme ou digite o número correto do WhatsApp com DDD:`,
+            telefone || '11995314831'
+        );
+        if (!novoTel) return;
+        num = formatWhatsAppNumber(novoTel);
+    }
 
     let statusText = status || 'Aberto';
     let msg = `Olá *${cliente}*!\nSomos da WL TEC (Manutenção de TI).\n\n`;
@@ -615,95 +851,252 @@ window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, d
     }
 
     msg += `Qualquer dúvida ou confirmação, basta responder aqui no WhatsApp! 😊`;
-    window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
-// ── Gerar PDF (Comprovante Completo de OS) ───────────────────
+// ── Gerar PDF (Comprovante & Certificado de Garantia OS - 1 Página Única) ──
 window.gerarPDF = async function(osId) {
-    showLoading('Gerando PDF da OS...');
+    showLoading('Gerando PDF da OS & Termo de Garantia...');
     try {
-        const { data: os, error } = await db
-            .from('ordens_servico')
-            .select('*, clientes_os(*)')
-            .eq('id', osId)
-            .single();
-        if (error) throw error;
+        let os = _ordensCache.find(item => item.id === osId);
+        if (!os) {
+            const { data, error } = await db
+                .from('ordens_servico')
+                .select('*, clientes_os(*)')
+                .eq('id', osId)
+                .single();
+            if (error) throw error;
+            os = data;
+        }
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Cabeçalho
-        doc.setFontSize(18);
-        doc.text('WL TEC - Relatório de Ordem de Serviço', 10, 20);
-        doc.setFontSize(11);
-        doc.text(`Status: ${os.status || 'Aberto'} | Data de Entrada: ${new Date(os.criado_em).toLocaleDateString('pt-BR')}`, 10, 28);
-        doc.line(10, 32, 200, 32);
+        const isConcluido = os.status === 'Concluído';
+        const osNumDisplay = (os.numero_os || os.id.substring(0, 6)).toUpperCase();
+        const tituloDoc = isConcluido 
+            ? `WL TEC — LAUDO TÉCNICO & CERTIFICADO DE GARANTIA (OS #${osNumDisplay})` 
+            : `WL TEC — COMPROVANTE DE ENTRADA DE OS (Nº #${osNumDisplay})`;
 
-        // Dados do Cliente
-        let y = 40;
-        doc.setFontSize(13); doc.text('1. Dados do Cliente', 10, y);
-        doc.setFontSize(10);
-        y += 8; doc.text(`Nome: ${os.clientes_os?.nome || '—'}`, 10, y);
-        y += 6; doc.text(`Telefone: ${os.clientes_os?.telefone || '—'}`, 10, y);
-        y += 6; doc.text(`CPF/CNPJ: ${os.clientes_os?.cpf_cnpj || 'Não informado'}`, 10, y);
+        // ── Cabeçalho Oficial Compacto ──────────────────────────────
+        doc.setFillColor(10, 12, 16);
+        doc.rect(0, 0, 210, 28, 'F');
 
-        // Dados do Equipamento
-        y += 12;
-        doc.setFontSize(13); doc.text('2. Dados do Equipamento & Defeito', 10, y);
-        doc.setFontSize(10);
-        y += 8; doc.text(`Equipamento: ${os.equipamento || '—'}`, 10, y);
-        y += 6; doc.text(`Nº Série: ${os.numero_serie || 'Não informado'}`, 10, y);
-        y += 6;
+        doc.setTextColor(0, 255, 255);
+        doc.setFontSize(15); doc.setFont(undefined, 'bold');
+        doc.text('WL TEC', 12, 13);
+        
+        doc.setTextColor(255, 179, 0);
+        doc.setFontSize(9); doc.setFont(undefined, 'normal');
+        doc.text('Manutenção de Notebooks, PCs & Consultoria em TI', 12, 21);
+
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9.5); doc.setFont(undefined, 'bold');
+        doc.text(`Nº OS: #${osNumDisplay}`, 155, 12);
+        doc.setFontSize(8); doc.setFont(undefined, 'normal');
+        doc.text(`Data: ${new Date(os.criado_em).toLocaleDateString('pt-BR')}`, 155, 18);
+        doc.text(`Status: ${(os.status || 'Aberto').toUpperCase()}`, 155, 24);
+
+        doc.setTextColor(30, 41, 59);
+        let y = 35;
+        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.text(tituloDoc, 12, y);
+        y += 2;
+        doc.setLineWidth(0.5); doc.setDrawColor(0, 255, 255);
+        doc.line(12, y, 198, y);
+
+        // 1. Dados do Cliente
+        y += 7;
+        doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        doc.text('1. Dados do Cliente', 12, y);
+        doc.setFontSize(8.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
+        y += 4.5; doc.text(`Nome: ${os.clientes_os?.nome || '—'}  |  Telefone / WhatsApp: ${os.clientes_os?.telefone || '—'}`, 12, y);
+        y += 4; doc.text(`CPF/CNPJ: ${os.clientes_os?.cpf_cnpj || 'Não informado'} ${os.clientes_os?.email ? ` | E-mail: ${os.clientes_os.email}` : ''}`, 12, y);
+
+        // 2. Dados do Equipamento & Defeito
+        y += 7;
+        doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        doc.text('2. Dados do Equipamento', 12, y);
+        doc.setFontSize(8.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
+        y += 4.5; doc.text(`Equipamento / Modelo: ${os.equipamento || '—'}  |  Nº Série: ${os.numero_serie || 'Não informado'}`, 12, y);
+        y += 4;
         const defeitoLines = doc.splitTextToSize(`Defeito Relatado: ${os.defeito_relatado || '—'}`, 180);
-        doc.text(defeitoLines, 10, y);
-        y += (defeitoLines.length * 5);
+        doc.text(defeitoLines, 12, y);
+        y += (defeitoLines.length * 3.8);
 
-        // Diagnóstico & Laudo Técnico
+        // 3. Diagnóstico Técnico & Laudo
         if (os.diagnostico || os.servico_realizado) {
-            y += 8;
-            doc.setFontSize(13); doc.text('3. Diagnóstico Técnico & Laudo', 10, y);
-            doc.setFontSize(10);
+            y += 4;
+            doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+            doc.text('3. Diagnóstico Técnico & Serviço Realizado', 12, y);
+            doc.setFontSize(8.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
             if (os.diagnostico) {
-                y += 8;
-                const diagLines = doc.splitTextToSize(`O Que Precisa Fazer: ${os.diagnostico}`, 180);
-                doc.text(diagLines, 10, y);
-                y += (diagLines.length * 5);
+                y += 4.5;
+                const diagLines = doc.splitTextToSize(`Diagnóstico / Orçamento: ${os.diagnostico}`, 180);
+                doc.text(diagLines, 12, y);
+                y += (diagLines.length * 3.8);
             }
             if (os.servico_realizado) {
-                y += 6;
-                const feitoLines = doc.splitTextToSize(`Serviço Realizado: ${os.servico_realizado}`, 180);
-                doc.text(feitoLines, 10, y);
-                y += (feitoLines.length * 5);
+                y += 3.8;
+                const feitoLines = doc.splitTextToSize(`Serviço Executado: ${os.servico_realizado}`, 180);
+                doc.text(feitoLines, 12, y);
+                y += (feitoLines.length * 3.8);
             }
         }
 
-        // Valor Total
-        y += 10;
-        doc.setFontSize(12);
-        const valStr = os.valor_total ? `R$ ${parseFloat(os.valor_total).toFixed(2)}` : 'A definir';
-        doc.text(`Valor Total do Serviço: ${valStr}`, 10, y);
+        // 4. TABELA DISCRIMINADA DE VALORES E PEÇAS
+        y += 6;
+        doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        doc.text('4. Discriminação de Valores & Peças', 12, y);
+        y += 3.5;
 
-        // Assinatura do Cliente
-        y += 15;
-        if (y > 220) { doc.addPage(); y = 20; }
-        doc.setFontSize(10);
-        doc.text('Assinatura do Cliente (Concordância de Entrada & Termo):', 10, y);
-        if (os.assinatura_cliente_base64) {
-            y += 5;
-            doc.addImage(os.assinatura_cliente_base64, 'PNG', 10, y, 70, 30);
-            y += 35;
-        } else {
-            y += 15;
+        // Cabeçalho da Tabela
+        doc.setFillColor(241, 245, 249);
+        doc.rect(12, y, 186, 6, 'F');
+        doc.setDrawColor(203, 213, 225);
+        doc.rect(12, y, 186, 6, 'S');
+
+        doc.setFontSize(8); doc.setFont(undefined, 'bold'); doc.setTextColor(30, 41, 59);
+        doc.text('ITEM / DESCRIÇÃO DOS SERVIÇOS E INSUMOS', 15, y + 4.2);
+        doc.text('QTD', 130, y + 4.2);
+        doc.text('VALOR UNIT.', 146, y + 4.2);
+        doc.text('SUBTOTAL', 174, y + 4.2);
+
+        y += 6;
+
+        // Separação de Mão de Obra, Insumos (Pasta Térmica) e Higienização (BRINDE)
+        const desVal = parseFloat(os.custo_deslocamento || 0);
+        const totVal = parseFloat(os.valor_total || 0);
+        const moTotal = Math.max(0, totVal - desVal);
+
+        const itens = [];
+        const valorPasta = moTotal >= 30 ? 15.00 : 0.00;
+        const valorMoPura = Math.max(0, moTotal - valorPasta);
+
+        if (valorMoPura > 0) {
+            itens.push({
+                desc: 'Serviço Técnico / Mão de Obra Especializada (Diagnóstico, Montagem e Testes de Estresse)',
+                qtd: 1,
+                unit: valorMoPura,
+                sub: valorMoPura
+            });
         }
-        doc.line(10, y, 90, y);
-        y += 5;
-        doc.text(os.clientes_os?.nome || 'Cliente', 10, y);
 
-        // Rodapé
-        doc.setFontSize(8);
-        doc.text('WL TEC — Assistência Técnica & Consultoria | WhatsApp: (11) 99531-4831 | Vila Príncipe de Gales - Santo André/SP', 10, 285);
+        if (valorPasta > 0) {
+            itens.push({
+                desc: 'Insumo de Bancada: Aplicação de Pasta Térmica de Prata (Alta Condutividade Térmica)',
+                qtd: 1,
+                unit: valorPasta,
+                sub: valorPasta
+            });
+        }
 
-        doc.save(`OS_${(os.clientes_os?.nome || 'cliente').replace(/\s+/g, '_')}_${Date.now()}.pdf`);
+        // BRINDE DE HIGIENIZAÇÃO
+        itens.push({
+            desc: 'Higienização Interna Completa & Limpeza de Bancada (BRINDE WL TEC)',
+            qtd: 1,
+            unit: 0.00,
+            sub: 0.00
+        });
+
+        if (desVal > 0) {
+            itens.push({
+                desc: 'Serviço de Leva & Traz (Deslocamento Técnico Ida e Volta)',
+                qtd: 1,
+                unit: desVal,
+                sub: desVal
+            });
+        }
+
+        // Renderiza cada linha com bordas de tabela compactas
+        doc.setFontSize(7.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
+
+        itens.forEach((it, idx) => {
+            const lineH = 5.8;
+            doc.rect(12, y, 186, lineH, 'S');
+
+            const descLines = doc.splitTextToSize(`${idx + 1}. ${it.desc}`, 112);
+            doc.text(descLines[0], 15, y + 4);
+
+            doc.text(String(it.qtd), 132, y + 4);
+            doc.text(it.unit > 0 ? `R$ ${it.unit.toFixed(2)}` : 'R$ 0,00', 146, y + 4);
+            doc.text(it.sub > 0 ? `R$ ${it.sub.toFixed(2)}` : 'R$ 0,00 (BRINDE)', 174, y + 4);
+
+            y += lineH;
+        });
+
+        // Linha do Total Geral Destacado
+        doc.setFillColor(236, 253, 245);
+        doc.rect(12, y, 186, 7, 'F');
+        doc.setDrawColor(16, 185, 129);
+        doc.rect(12, y, 186, 7, 'S');
+
+        doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(6, 95, 70);
+        doc.text('VALOR TOTAL DA ORDEM DE SERVIÇO:', 15, y + 4.8);
+        doc.text(`R$ ${totVal > 0 ? totVal.toFixed(2) : '0.00'}`, 170, y + 4.8);
+
+        y += 9;
+
+        // 5. TERMO DE GARANTIA LEGAL (90 DIAS) - MANTÉM TUDO EM 1 PÁGINA
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(203, 213, 225);
+        doc.rect(12, y, 186, 24, 'FD');
+
+        doc.setFontSize(8.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        doc.text('CERTIFICADO DE GARANTIA LEGAL (90 DIAS - ART. 26 DO CDC)', 16, y + 5);
+        
+        doc.setFontSize(7.2); doc.setFont(undefined, 'normal'); doc.setTextColor(71, 85, 105);
+        const termoTxt = "Conforme o Artigo 26, II da Lei 8.078/90 (Código de Defesa do Consumidor), o serviço executado e as peças substituídas constantes neste laudo possuem garantia legal de 90 (noventa) dias a partir da data de entrega. A garantia cobre defeitos de fabricação em peças e falhas no serviço. Não cobre vícios decorrentes de quedas, derramamento de líquidos, picos de tensão elétrica ou remoção do lacre de segurança.";
+        const termoLines = doc.splitTextToSize(termoTxt, 178);
+        doc.text(termoLines, 16, y + 10);
+
+        // ── Assinaturas Sem Sobreposição (Espaçamento de 38mm abaixo do topo da caixa) ──
+        y += 38;
+
+        // Assinatura & Carimbo Digital - Técnico Responsável Wiliam Longo
+        doc.setFontSize(10); doc.setFont('helvetica', 'bolditalic'); doc.setTextColor(0, 150, 200);
+        doc.text('Wiliam Longo', 16, y + 3);
+        doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
+        doc.text('WL TEC — TÉCNICO RESPONSÁVEL', 16, y + 7);
+
+        doc.setLineWidth(0.5); doc.setDrawColor(203, 213, 225);
+        doc.line(16, y + 9, 90, y + 9);
+        
+        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
+        doc.text('Wiliam Longo — Responsável Técnico', 16, y + 13);
+        doc.text('WL TEC | Santo André - SP', 16, y + 17);
+
+        // Assinatura Cliente
+        if (os.assinatura_cliente_base64) {
+            try {
+                doc.addImage(os.assinatura_cliente_base64, 'PNG', 116, y - 6, 45, 13);
+            } catch (_) {}
+        }
+        doc.line(116, y + 9, 190, y + 9);
+        doc.text('Assinatura do Cliente', 116, y + 13);
+        doc.text(os.clientes_os?.nome || 'Cliente', 116, y + 17);
+
+        // Rodapé Fixo na Margem Inferior (286mm)
+        doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+        doc.text('WL TEC — Manutenção de Notebooks & Consultoria em TI | WhatsApp: (11) 99531-4831 | Santo André/SP | www.wl.tec.br', 12, 286);
+
+        // Nomenclatura Distinta de PDF por Status da OS
+        const osStatus = os.status || 'Aberto';
+        let prefijoName = 'COMPROVANTE_ENTRADA';
+        if (osStatus === 'Concluído') {
+            prefijoName = 'LAUDO_CONCLUIDO_E_GARANTIA';
+        } else if (osStatus === 'Aguardando Aprovação' || osStatus === 'Orçamento') {
+            prefijoName = 'ORCAMENTO_PROPOSTA';
+        } else if (osStatus === 'Em Reparo') {
+            prefijoName = 'EM_REPARO_ANDAMENTO';
+        }
+
+        const nomeClienteClean = (os.clientes_os?.nome || 'cliente')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9]/g, '_')
+            .replace(/_+/g, '_');
+
+        doc.save(`WLTEC_${prefijoName}_OS_${osNumDisplay}_${nomeClienteClean}.pdf`);
 
     } catch (err) {
         console.error('Erro PDF:', err);
@@ -728,7 +1121,7 @@ let _estoqueCache = [
     { id: '5', nome: 'Pasta Térmica Prata High Performance (10g)', categoria: 'Insumo', quantidade: 3, quantidade_minima: 1, custo_unitario: 45.00, preco_venda_sugerido: 90.00, fornecedor: 'Mercado Livre' },
     { id: '6', nome: 'Tela 15.6" LED Slim 30 Pinos Full HD', categoria: 'Tela', quantidade: 1, quantidade_minima: 1, custo_unitario: 280.00, preco_venda_sugerido: 480.00, fornecedor: 'BringIT / M.Livre' },
     { id: '7', nome: 'Bateria Universal Notebook Dell Inspiron', categoria: 'Bateria', quantidade: 1, quantidade_minima: 1, custo_unitario: 160.00, preco_venda_sugerido: 310.00, fornecedor: 'Mercado Livre' },
-    { id: '8', nome: 'Álcool Isopropílico + Limpa Contatos 300ml', categoria: 'Insumo', quantidade: 2, quantidade_minima: 1, custo_unitario: 35.00, preco_venda_sugerido: 70.00, fornecedor: 'Distribuidor Local' }
+    { id: '8', nome: 'Álcool Isopropílico + Limpa Contatos 300ml', categoria: 'Insumo', quantidade: 0, quantidade_minima: 1, custo_unitario: 35.00, preco_venda_sugerido: 70.00, fornecedor: 'Distribuidor Local' }
 ];
 
 async function loadEstoque() {
@@ -760,21 +1153,46 @@ function renderEstoque() {
             <td>R$ ${parseFloat(item.custo_unitario).toFixed(2)}</td>
             <td>R$ ${parseFloat(item.preco_venda_sugerido || 0).toFixed(2)}</td>
             <td>${escapeHTML(item.fornecedor || '—')}</td>
-            <td>
+            <td style="display:flex;gap:0.3rem">
+                <button class="btn btn-secondary text-sm" onclick="editarItemEstoque('${item.id}')">✏️ Editar</button>
                 <button class="btn btn-outline text-sm" onclick="deletarItemEstoque('${item.id}')">🗑️</button>
             </td>`;
         tabelaEstoque.appendChild(tr);
     });
 }
 
-btnAbrirModalEstoque?.addEventListener('click', () => modalNovoItemEstoque.classList.remove('hidden'));
+btnAbrirModalEstoque?.addEventListener('click', () => {
+    document.getElementById('editStockId').value = '';
+    document.getElementById('lblModalEstoqueTitulo').textContent = '📦 Cadastrar Peça / Insumo no Estoque';
+    formNovoItemEstoque.reset();
+    modalNovoItemEstoque.classList.remove('hidden');
+});
+
 btnCloseModalEstoque?.addEventListener('click', () => modalNovoItemEstoque.classList.add('hidden'));
+
+window.editarItemEstoque = function(id) {
+    const item = _estoqueCache.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('editStockId').value      = item.id;
+    document.getElementById('stockNome').value        = item.nome;
+    document.getElementById('stockCategoria').value   = item.categoria;
+    document.getElementById('stockQtd').value         = item.quantidade;
+    document.getElementById('stockQtdMin').value      = item.quantidade_minima;
+    document.getElementById('stockCusto').value       = item.custo_unitario;
+    document.getElementById('stockVenda').value       = item.preco_venda_sugerido || '';
+    document.getElementById('stockFornecedor').value  = item.fornecedor || '';
+
+    document.getElementById('lblModalEstoqueTitulo').textContent = '✏️ Editar / Ajustar Item do Estoque';
+    modalNovoItemEstoque.classList.remove('hidden');
+};
 
 formNovoItemEstoque?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    showLoading('Cadastrando item de estoque...');
+    const stockId = document.getElementById('editStockId').value;
+    showLoading('Salvando item de estoque...');
     try {
-        const novoItem = {
+        const itemObj = {
             nome: document.getElementById('stockNome').value.trim(),
             categoria: document.getElementById('stockCategoria').value,
             quantidade: parseInt(document.getElementById('stockQtd').value),
@@ -784,28 +1202,46 @@ formNovoItemEstoque?.addEventListener('submit', async (e) => {
             fornecedor: document.getElementById('stockFornecedor').value.trim()
         };
 
-        const { data, error } = await db.from('estoque').insert([novoItem]).select();
-        if (!error && data) {
-            _estoqueCache.push(data[0]);
+        if (stockId) {
+            // Edição de item existente
+            const idx = _estoqueCache.findIndex(i => i.id === stockId);
+            if (idx !== -1) {
+                _estoqueCache[idx] = { ..._estoqueCache[idx], ...itemObj };
+            }
+            await db.from('estoque').update(itemObj).eq('id', stockId);
         } else {
-            novoItem.id = 'temp_' + Date.now();
-            _estoqueCache.push(novoItem);
+            // Novo cadastro
+            const { data, error } = await db.from('estoque').insert([itemObj]).select();
+            if (!error && data) {
+                _estoqueCache.push(data[0]);
+            } else {
+                itemObj.id = 'temp_' + Date.now();
+                _estoqueCache.push(itemObj);
+            }
         }
 
         modalNovoItemEstoque.classList.add('hidden');
         formNovoItemEstoque.reset();
         renderEstoque();
         atualizarDropdownEstoque();
-        alert('Item cadastrado no estoque!');
+        alert('Estoque atualizado com sucesso!');
     } catch (err) {
-        alert('Erro ao cadastrar: ' + err.message);
+        alert('Erro ao salvar estoque: ' + err.message);
     } finally {
         hideLoading();
     }
 });
 
 window.deletarItemEstoque = function(id) {
-    if (!confirm('Deseja remover este item do estoque?')) return;
+    const item = _estoqueCache.find(i => i.id === id);
+    if (!item) return;
+
+    if (item.quantidade > 0) {
+        alert(`⚠️ Não é possível excluir o item "${item.nome}" enquanto houver unidades no estoque (Qtd atual: ${item.quantidade}).\n\nEdite a quantidade para 0 primeiro para autorizar a exclusão.`);
+        return;
+    }
+
+    if (!confirm(`Confirma a exclusão definitiva do item "${item.nome}" do estoque?`)) return;
     _estoqueCache = _estoqueCache.filter(i => i.id !== id);
     db.from('estoque').delete().eq('id', id);
     renderEstoque();
@@ -849,6 +1285,10 @@ async function loadTerceiros() {
 
 function renderTerceiros() {
     gridTerceiros.innerHTML = '';
+    if (_terceirosCache.length === 0) {
+        gridTerceiros.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Nenhum terceiro ou fornecedor cadastrado.</p>';
+        return;
+    }
     _terceirosCache.forEach(t => {
         const card = document.createElement('div');
         card.className = 'os-card';
@@ -860,40 +1300,81 @@ function renderTerceiros() {
             <div class="os-body">
                 <p><strong>Telefone:</strong> ${escapeHTML(t.telefone || '—')}</p>
                 <p class="text-muted text-sm">${escapeHTML(t.observacoes || '')}</p>
+            </div>
+            <div class="os-actions" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color);display:flex;gap:0.4rem">
+                <button class="btn btn-secondary text-sm" onclick="editarTerceiro('${t.id}')">✏️ Editar</button>
+                <button class="btn btn-outline text-sm" onclick="deletarTerceiro('${t.id}')">🗑️ Excluir</button>
             </div>`;
         gridTerceiros.appendChild(card);
     });
 }
 
-btnAbrirModalTerceiro?.addEventListener('click', () => modalNovoTerceiro.classList.remove('hidden'));
+btnAbrirModalTerceiro?.addEventListener('click', () => {
+    document.getElementById('editTerceiroId').value = '';
+    document.getElementById('lblModalTerceiroTitulo').textContent = '🤝 Cadastrar Terceiro / Parceiro';
+    formNovoTerceiro.reset();
+    modalNovoTerceiro.classList.remove('hidden');
+});
+
 btnCloseModalTerceiro?.addEventListener('click', () => modalNovoTerceiro.classList.add('hidden'));
+
+window.editarTerceiro = function(id) {
+    const t = _terceirosCache.find(item => item.id === id);
+    if (!t) return;
+
+    document.getElementById('editTerceiroId').value   = t.id;
+    document.getElementById('tercNome').value          = t.nome_parceiro;
+    document.getElementById('tercEspecialidade').value = t.especialidade;
+    document.getElementById('tercTelefone').value      = t.telefone || '';
+    document.getElementById('tercObs').value           = t.observacoes || '';
+
+    document.getElementById('lblModalTerceiroTitulo').textContent = '✏️ Editar Terceiro / Parceiro';
+    modalNovoTerceiro.classList.remove('hidden');
+};
+
+window.deletarTerceiro = function(id) {
+    if (!confirm('Deseja excluir este terceiro/fornecedor?')) return;
+    _terceirosCache = _terceirosCache.filter(t => t.id !== id);
+    db.from('terceiros_fornecedores').delete().eq('id', id);
+    renderTerceiros();
+    atualizarDropdownTerceiros();
+};
 
 formNovoTerceiro?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    showLoading('Cadastrando terceiro...');
+    const tercId = document.getElementById('editTerceiroId').value;
+    showLoading('Salvando terceiro...');
     try {
-        const novo = {
+        const obj = {
             nome_parceiro: document.getElementById('tercNome').value.trim(),
             especialidade: document.getElementById('tercEspecialidade').value.trim(),
             telefone: document.getElementById('tercTelefone').value.trim(),
             observacoes: document.getElementById('tercObs').value.trim()
         };
 
-        const { data, error } = await db.from('terceiros_fornecedores').insert([novo]).select();
-        if (!error && data) {
-            _terceirosCache.push(data[0]);
+        if (tercId) {
+            const idx = _terceirosCache.findIndex(t => t.id === tercId);
+            if (idx !== -1) {
+                _terceirosCache[idx] = { ..._terceirosCache[idx], ...obj };
+            }
+            await db.from('terceiros_fornecedores').update(obj).eq('id', tercId);
         } else {
-            novo.id = 'temp_' + Date.now();
-            _terceirosCache.push(novo);
+            const { data, error } = await db.from('terceiros_fornecedores').insert([obj]).select();
+            if (!error && data) {
+                _terceirosCache.push(data[0]);
+            } else {
+                obj.id = 'temp_' + Date.now();
+                _terceirosCache.push(obj);
+            }
         }
 
         modalNovoTerceiro.classList.add('hidden');
         formNovoTerceiro.reset();
         renderTerceiros();
         atualizarDropdownTerceiros();
-        alert('Parceiro cadastrado!');
+        alert('Parceiro salvo com sucesso!');
     } catch (err) {
-        alert('Erro ao cadastrar: ' + err.message);
+        alert('Erro ao salvar parceiro: ' + err.message);
     } finally {
         hideLoading();
     }
@@ -964,6 +1445,36 @@ async function loadDreFinanceiro() {
     document.getElementById('dreMargem').textContent = `Margem de Lucro: ${margem}%`;
 
     renderCustosFixos();
+    renderOsConcluidas();
+}
+
+function renderOsConcluidas() {
+    const tabela = document.getElementById('tabelaOsConcluidas');
+    if (!tabela) return;
+    tabela.innerHTML = '';
+
+    const concluidas = _ordensCache.filter(os => os.status === 'Concluído');
+    if (concluidas.length === 0) {
+        tabela.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Nenhuma OS concluída no período ainda.</td></tr>';
+        return;
+    }
+
+    concluidas.forEach(os => {
+        const nome  = escapeHTML(os.clientes_os?.nome || 'Cliente');
+        const equip = escapeHTML(os.equipamento || '—');
+        const fat   = parseFloat(os.valor_total || 0);
+        const des   = parseFloat(os.custo_deslocamento || 0);
+        const lucroBruto = fat - des;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${new Date(os.criado_em).toLocaleDateString('pt-BR')}</td>
+            <td><strong>${nome}</strong> <br><span class="text-muted text-sm">${equip}</span></td>
+            <td>R$ ${des.toFixed(2)}</td>
+            <td style="color:var(--color-cyan);font-weight:700">R$ ${fat.toFixed(2)}</td>
+            <td style="color:#22c55e;font-weight:700">R$ ${lucroBruto.toFixed(2)}</td>`;
+        tabela.appendChild(tr);
+    });
 }
 
 function renderCustosFixos() {
@@ -1010,6 +1521,99 @@ formNovoCustoFixo?.addEventListener('submit', async (e) => {
     } finally {
         hideLoading();
     }
+});
+
+// ── 📅 CRM & MANUTENÇÃO PREVENTIVA (6 MESES) ──────────────────
+function renderCrmPreventiva() {
+    const tabela = document.getElementById('tabelaCrmPreventiva');
+    if (!tabela) return;
+    tabela.innerHTML = '';
+
+    if (!_ordensCache || _ordensCache.length === 0) {
+        tabela.innerHTML = '<tr><td colspan="6" class="text-muted text-center">Nenhum cliente cadastrado no CRM ainda.</td></tr>';
+        return;
+    }
+
+    _ordensCache.forEach(os => {
+        const dtEntrada = new Date(os.criado_em || Date.now());
+        const dtVenc = new Date(dtEntrada.getTime() + (180 * 86400000));
+        const nome = escapeHTML(os.clientes_os?.nome || 'Cliente');
+        const tel = escapeHTML(os.clientes_os?.telefone || '');
+        const equip = escapeHTML(os.equipamento || '—');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${nome}</strong></td>
+            <td>${tel}</td>
+            <td>${equip}</td>
+            <td>${dtEntrada.toLocaleDateString('pt-BR')}</td>
+            <td style="color:var(--color-amber);font-weight:700">${dtVenc.toLocaleDateString('pt-BR')}</td>
+            <td>
+                <button class="btn btn-secondary text-sm" onclick="enviarLembretePreventiva('${tel.replace(/\D/g,'')}','${nome.replace(/'/g,"\\'")}','${equip.replace(/'/g,"\\'")}')">
+                    💬 Lembrete WhatsApp
+                </button>
+            </td>`;
+        tabela.appendChild(tr);
+    });
+}
+
+window.enviarLembretePreventiva = function(tel, nome, equip) {
+    const num = formatWhatsAppNumber(tel);
+    if (!num) return alert('Telefone do cliente não encontrado.');
+    const msg = `Olá ${nome}! Tudo bem?\nAqui é o Wiliam da WL TEC (Assistência Técnica).\n\nFaz cerca de 6 meses que realizamos a manutenção do seu ${equip}. Para manter seu equipamento rápido, frio e evitar falhas sérias de superaquecimento ou perda de dados, recomendamos uma limpeza preventiva de bancada e troca da pasta térmica.\n\nPodemos agendar a revisão preventiva para esta semana com o nosso serviço de Leva & Traz? 😊`;
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+// ── 👥 BASE DE CLIENTES CADASTRADOS ─────────────────────────
+function renderClientes(filterTerm = '') {
+    const tabela = document.getElementById('tabelaClientes');
+    if (!tabela) return;
+    tabela.innerHTML = '';
+
+    const clientesMap = new Map();
+    (_ordensCache || []).forEach(os => {
+        const c = os.clientes_os;
+        if (c && c.nome && !clientesMap.has(c.nome)) {
+            clientesMap.set(c.nome, {
+                id: c.id || os.cliente_id,
+                nome: c.nome,
+                telefone: c.telefone || '—',
+                cpf_cnpj: c.cpf_cnpj || '—',
+                email: c.email || '—',
+                osId: os.id
+            });
+        }
+    });
+
+    let lista = Array.from(clientesMap.values());
+    if (filterTerm) {
+        const term = filterTerm.toLowerCase();
+        lista = lista.filter(c => c.nome.toLowerCase().includes(term) || c.telefone.toLowerCase().includes(term) || c.cpf_cnpj.toLowerCase().includes(term));
+    }
+
+    if (lista.length === 0) {
+        tabela.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Nenhum cliente encontrado.</td></tr>';
+        return;
+    }
+
+    lista.forEach(c => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${escapeHTML(c.nome)}</strong></td>
+            <td><span class="lead-pill">📱 ${escapeHTML(c.telefone)}</span></td>
+            <td>${escapeHTML(c.cpf_cnpj)}</td>
+            <td>${escapeHTML(c.email)}</td>
+            <td>
+                <button class="btn btn-secondary text-sm" onclick="abrirModalEditar('${escapeHTML(c.osId)}')">✏️ Editar Dados / OS</button>
+                <button class="btn btn-primary text-sm" onclick="enviarWhatsApp('${c.telefone}','${c.nome.replace(/'/g,"\\'")}','equipamento',0,'','Aberto','','')">💬 WhatsApp</button>
+            </td>`;
+        tabela.appendChild(tr);
+    });
+}
+
+const txtBuscaClientes = document.getElementById('txtBuscaClientes');
+txtBuscaClientes?.addEventListener('input', () => {
+    renderClientes(txtBuscaClientes.value.trim());
 });
 
 // Inicialização de dropdowns de estoque e terceiros ao carregar

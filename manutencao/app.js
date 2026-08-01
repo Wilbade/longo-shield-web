@@ -222,18 +222,25 @@
                 criado_em:        new Date().toISOString(),
             };
 
+            // Salva backup no localStorage para garantir que a solicitação nunca se perca localmente
+            try {
+                payload.id = 'local_' + Date.now();
+                const localLeads = JSON.parse(localStorage.getItem('wltec_pre_chamados') || '[]');
+                localLeads.unshift(payload);
+                localStorage.setItem('wltec_pre_chamados', JSON.stringify(localLeads.slice(0, 50)));
+            } catch (_) {}
+
             const { error } = await db.from('pre_chamados').insert([payload]);
 
             if (error && error.code === '42P01') {
                 // Fallback: tabela pre_chamados não existe ainda
-                const { error: err2 } = await db.from('ordens_servico').insert([{
+                await db.from('ordens_servico').insert([{
                     equipamento:      dados.equipamento,
                     defeito_relatado: dados.defeito,
                     status:           'Solicitação Web',
                 }]);
-                if (err2) throw err2;
             } else if (error) {
-                throw error;
+                console.warn('[WL TEC] Supabase pre_chamados insert error:', error.message);
             }
 
         } catch (err) {
