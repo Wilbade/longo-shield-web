@@ -156,10 +156,18 @@ As principais capacidades do sistema incluem:
     - *Construção / Engenharia*: Paleta cinza escuro industrial (#F1F5F9, #EA580C laranja industrial, #1E293B), seções "Engenharia e Projetos de Alta Performance".
     - *Estética / Fitness*: Paleta vibrante e limpa (#FFFFFF, #BE185D rosa choque), seções "Transformação e Bem-Estar".
     - *Serviços Gerais*: Paleta Indigo/Ciano profissional moderna (#F8FAFC, #4F46E5).
-  - **Gestão de Exclusão e Atualização de Timestamp na Aba Inbound (Receptivo)**:
-    - Adicionado botão **`🗑️`** em cada linha da tabela de Leads Receptivos (`leads`) para remover varreduras indesejadas individualmente.
-    - Adicionado botão **`🗑️ Limpar Base Inbound`** com trava de segurança: exige que o usuário digite a palavra **`DELETE`** em maiúsculo na caixa de diálogo de confirmação antes de executar a limpeza completa da base.
-    - **Atualização de Timestamp em Re-escaneamento (`main.js`)**: Corrigido o fluxo de salvamento de escaneamentos em `capturarLead()` e `finalizarSolicitacao()`. Quando um domínio que já existia na base é re-analisado no site principal (`wl.tec.br`), o sistema atualiza o campo `created_at` para a data/hora atual, garantindo que o lead suba instantaneamente para a primeira linha do topo do CRM.
+  - **Página Standalone `seo-geo.html` (Radar de Auditoria SEO & GEO para IAs)**:
+    - Página independente dedicada a monitorar a entrega e saúde nos buscadores (Google/Bing) e nas Inteligências Artificiais (ChatGPT, Perplexity, Gemini, Claude).
+    - **Monitores Nativo-Configurados**:
+      - `wl.tec.br` (Abrangência: Nacional | Cibersegurança & LGPD)
+      - `wl.tec.br/manutencao/` (Abrangência: ABC Paulista | Manutenção Leva & Traz)
+      - `wtkd.com.br` (Abrangência: ABC Paulista | Artes Marciais & Treino)
+    - **Google PageSpeed Insights API**: Pontuação real do Google para SEO e Performance sem necessidade de autenticação.
+    - **Diagnóstico de Bloqueio Encontrado em Produção**:
+      - Descobrimos que a opção **"Block AI Scrapers and Crawlers"** no painel da **Cloudflare** está injetando `Disallow: /` para os crawlers `GPTBot` (OpenAI/ChatGPT), `Google-Extended` (Gemini) e `ClaudeBot` (Anthropic) no arquivo `robots.txt` servido ao vivo.
+      - **Solução Registrada**: Acessar o painel Cloudflare > *Security > Bots* (ou *Scrapers*) e desativar o bloqueio gerenciado de IAs para que as IAs consigam ler o `robots.txt` personalizado e indexar o site.
+    - **Radar Diário de Google Trends Brasil**: Integração com RSS do Google Trends Brasil para recomendar palavras-chave estratégicas em tempo real.
+    - **Hiperlink no CRM**: Botão `📊 Radar SEO & GEO` no cabeçalho do `wl.leads.html`.
   - **Link Público Válido por 7 Dias com Telemetria por IP (`preview.html`)**:
     - Arquivo standalone `preview.html?id=<prospect_id>` que carrega a Landing Page estática salva no Supabase.
     - **Rastreamento por IP e Localização em Tempo Real**: Ao ser aberta pelo cliente, a página consulta serviços de IP/Geolocalização, grava o IP, cidade e estado no Supabase e altera o status para `👁️ LP Visualizada`.
