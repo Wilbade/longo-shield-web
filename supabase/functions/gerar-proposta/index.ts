@@ -61,23 +61,49 @@ Dados para basear toda a análise:
 - Reputação/Vírus: ${lead.reputacao}
 - Plataforma/DNS (CRÍTICO): ${lead.plataforma}`;
 
-    // Request direto ao Google Gemini usando a chave do servidor, sem expor no frontend
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${geminiKey}`;
-    const geminiRes = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: promptText }] }],
-        generationConfig: { temperature: 0.3 }
-      })
-    });
+    // Request ao Google Gemini com suporte a retry em 429 e fallback de modelo
+    const modelos = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
+    let respostaTexto = '';
 
-    const geminiData = await geminiRes.json();
-    if (!geminiData.candidates || geminiData.candidates.length === 0) {
-       throw new Error('A API do Gemini não retornou conteúdo.');
+    for (const modelo of modelos) {
+      let delay = 2000;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1/models/${modelo}:generateContent?key=${geminiKey}`;
+          const geminiRes = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: promptText }] }],
+              generationConfig: { temperature: 0.3 }
+            })
+          });
+
+          if (geminiRes.status === 429) {
+            console.warn(`[Edge Gemini 429] Model ${modelo}, attempt ${attempt + 1}. Waiting ${delay}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+            delay *= 2;
+            continue;
+          }
+
+          if (!geminiRes.ok) break;
+
+          const geminiData = await geminiRes.json();
+          if (geminiData.candidates && geminiData.candidates[0]?.content?.parts[0]?.text) {
+            respostaTexto = geminiData.candidates[0].content.parts[0].text;
+            break;
+          }
+        } catch (e) {
+          console.warn(`[Edge Gemini Error] ${modelo}:`, e);
+          break;
+        }
+      }
+      if (respostaTexto) break;
     }
 
-    const respostaTexto = geminiData.candidates[0].content.parts[0].text;
+    if (!respostaTexto) {
+       throw new Error('A API do Gemini não retornou conteúdo devido a limite de taxa ou indisponibilidade.');
+    }
 
     return new Response(
       JSON.stringify({ texto: respostaTexto }),

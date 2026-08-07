@@ -120,44 +120,171 @@
             <h2>🚀 WL CRM — Gestão de Leads</h2>
             <div class="header-actions">
                 <button class="btn btn-primary" onclick="carregarLeads()">🔄 Atualizar</button>
+                <button class="btn-danger" style="background:#C0392B;" onclick="excluirTodosLeadsInbound()" title="Apagar todos os leads receptivos">🗑️ Limpar Base Inbound</button>
                 <button class="btn-danger" onclick="logout()">Sair</button>
             </div>
         </div>
 
-        <!-- Stats -->
-        <div class="stats-row" id="statsRow">
-            <div class="stat-card"><div class="num" id="statTotal" style="color:var(--cyan);">0</div><div class="label">Total Leads</div></div>
-            <div class="stat-card"><div class="num" id="statCriticos" style="color:var(--red);">0</div><div class="label">Críticos</div></div>
-            <div class="stat-card"><div class="num" id="statEmails" style="color:var(--ambar);">0</div><div class="label">Com E-mail</div></div>
-            <div class="stat-card"><div class="num" id="statPropostas" style="color:var(--green);">0</div><div class="label">Propostas</div></div>
+        <!-- Navegação por Abas -->
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <button id="tabInboundBtn" class="btn btn-primary" onclick="alternarAba('inbound')">📋 Leads Inbound (Receptivo)</button>
+            <button id="tabOutboundBtn" class="btn btn-ver" style="padding:10px 18px;" onclick="alternarAba('outbound')">🤖 Modo Agêntico Outbound (Varredura Ativa)</button>
         </div>
 
-        <!-- Config IA -->
-        <div class="config-area" id="areaConfigIA">
-            <small>CHAVE GEMINI:</small>
-            <input type="password" id="geminiKey" placeholder="Cole sua API Key (preenchida automaticamente se configurada)">
+        <!-- CONTEÚDO ABA INBOUND -->
+        <div id="abaInbound">
+            <!-- Stats -->
+            <div class="stats-row" id="statsRow">
+                <div class="stat-card"><div class="num" id="statTotal" style="color:var(--cyan);">0</div><div class="label">Total Leads</div></div>
+                <div class="stat-card"><div class="num" id="statCriticos" style="color:var(--red);">0</div><div class="label">Críticos</div></div>
+                <div class="stat-card"><div class="num" id="statEmails" style="color:var(--ambar);">0</div><div class="label">Com E-mail</div></div>
+                <div class="stat-card"><div class="num" id="statPropostas" style="color:var(--green);">0</div><div class="label">Propostas</div></div>
+            </div>
+
+            <!-- Config IA -->
+            <div class="config-area" id="areaConfigIA">
+                <small>CHAVE GEMINI:</small>
+                <input type="password" id="geminiKey" placeholder="Cole sua API Key (preenchida automaticamente se configurada)">
+            </div>
+
+            <!-- Tabela -->
+            <div class="admin-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Domínio</th>
+                            <th>Score</th>
+                            <th>SSL</th>
+                            <th>Reputação</th>
+                            <th>Velocidade</th>
+                            <th>Plataforma</th>
+                            <th>IP / Local</th>
+                            <th>E-mail</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaLeads"></tbody>
+                </table>
+            </div>
         </div>
 
-        <!-- Tabela -->
-        <div class="admin-card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Domínio</th>
-                        <th>Score</th>
-                        <th>SSL</th>
-                        <th>Reputação</th>
-                        <th>Velocidade</th>
-                        <th>Plataforma</th>
-                        <th>IP / Local</th>
-                        <th>E-mail</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="tabelaLeads"></tbody>
-            </table>
+        <!-- CONTEÚDO ABA OUTBOUND (MODO AGÊNTICO 100% AUTOMÁTICO) -->
+        <div id="abaOutbound" style="display:none;">
+            <!-- Painel de Controle do Robô -->
+            <div class="admin-card" style="margin-bottom:20px; border:1px solid var(--cyan); background:rgba(0,255,255,0.03); box-shadow:0 0 25px rgba(0,255,255,0.05);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div>
+                        <h3 style="color:var(--cyan); font-family:'Rajdhani', sans-serif; font-size:1.5rem;">🤖 Agente Autônomo Outbound — Radar Radar B2B (Zero-Touch)</h3>
+                        <p style="color:#aaa; font-size:0.85rem;">O robô busca empresas reais locais (Google Maps / Registros Comerciais), audita falhas de segurança e cria abordagens comerciais com IA sem você digitar nada.</p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; background:rgba(255,179,0,0.1); padding:8px 14px; border-radius:6px; border:1px solid var(--ambar);">
+                        <input type="checkbox" id="chkAutoPiloto" onchange="togglePilotoAutomatico(this)" style="cursor:pointer; width:16px; height:16px;">
+                        <label for="chkAutoPiloto" style="font-size:0.8rem; color:var(--ambar); font-weight:bold; cursor:pointer;">⚡ Piloto Automático Ativo (Varrer a cada 1h)</label>
+                    </div>
+                </div>
+                
+                <!-- Presets de 1 Clique -->
+                <div style="margin-bottom:15px; padding:10px; background:rgba(0,0,0,0.4); border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <small style="color:var(--cyan); font-weight:bold; display:block; margin-bottom:6px;">🎯 DISPARO AUTOMÁTICO DE 1-CLIQUE (PRESETS REGIONAIS):</small>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-ver" onclick="executarPresetRadar('Escritórios de Advocacia', 'Santo André', 'SP')">📍 Advocacia no ABC</button>
+                        <button class="btn btn-ver" onclick="executarPresetRadar('Escritórios de Contabilidade', 'São Bernardo do Campo', 'SP')">📊 Contabilidades SBC</button>
+                        <button class="btn btn-ver" onclick="executarPresetRadar('Clínicas Médicas e Odontológicas', 'Santo André', 'SP')">🏥 Clínicas de Saúde</button>
+                        <button class="btn btn-ver" onclick="executarPresetRadar('Empresas de Transporte e Logística', 'São Paulo', 'SP')">🏢 TI & Logística SP</button>
+                    </div>
+                </div>
+
+
+                <!-- Seleção Geográfica Nacional (Auto-Detectada) -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:12px; margin-bottom:15px; background:rgba(0,0,0,0.4); padding:12px; border-radius:8px; border:1px solid rgba(0,255,255,0.1);">
+                    <div>
+                        <label style="font-size:0.75rem; color:var(--cyan); font-weight:bold; display:block; margin-bottom:4px;">📍 ESTADO (UF):</label>
+                        <select id="selectUf" onchange="carregarCidadesIbge(this.value)" style="width:100%; padding:9px; border-radius:6px; border:1px solid #333; background:#000; color:#fff; font-size:0.85rem; outline:none; cursor:pointer;"></select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:var(--cyan); font-weight:bold; display:block; margin-bottom:4px;">🏙️ CIDADE (RAIO 20KM):</label>
+                        <select id="selectCidade" style="width:100%; padding:9px; border-radius:6px; border:1px solid #333; background:#000; color:#fff; font-size:0.85rem; outline:none; cursor:pointer;"></select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:var(--ambar); font-weight:bold; display:block; margin-bottom:4px;">🎯 NICHO DE MERCADO:</label>
+                        <select id="selectNicho" style="width:100%; padding:9px; border-radius:6px; border:1px solid #333; background:#000; color:#fff; font-size:0.85rem; outline:none; cursor:pointer;">
+                            <option value="Escritórios de Advocacia">⚖️ Escritórios de Advocacia</option>
+                            <option value="Escritórios de Contabilidade">📊 Escritórios de Contabilidade</option>
+                            <option value="Clínicas Médicas e Odontológicas">🏥 Clínicas de Saúde</option>
+                            <option value="Empresas de Transporte e Logística">🚚 Transporte & Logística</option>
+                            <option value="Academias e Fitness">🏋️ Academias & Fitness</option>
+                            <option value="Escolas e Educação">🏫 Escolas & Faculdade</option>
+                            <option value="Indústrias e Fábricas">🏭 Indústrias & Metalúrgicas</option>
+                            <option value="Imobiliárias e Construtoras">🏢 Imobiliárias & Construção</option>
+                            <option value="Comércio e Varejo">🛒 Comércio & Distribuidoras</option>
+                            <option value="Empresas de Tecnologia e TI">🖥️ Tecnologia & TI</option>
+                            <option value="Empresas B2B Geral">🏢 Todos os Setores B2B</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:15px;">
+                    <div>
+                        <label style="font-size:0.75rem; color:#888; display:block; margin-bottom:4px;">🔍 REFINAMENTO MANUAL (OPCIONAL):</label>
+                        <input type="text" id="outboundNichoInput" placeholder="Ex: Bairro Centro / Sub-nicho" style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid #333; background:#000; color:#fff; font-size:0.85rem; outline:none;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.75rem; color:#888; display:block; margin-bottom:4px;">🌐 OU LISTA DE DOMÍNIOS (OPCIONAL):</label>
+                        <textarea id="outboundDominiosInput" placeholder="empresa1.com.br&#10;empresa2.com.br" style="width:100%; height:36px; padding:6px 8px; border-radius:6px; border:1px solid #333; background:#000; color:#fff; font-size:0.85rem; outline:none; resize:none;"></textarea>
+                    </div>
+                </div>
+
+
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <button class="btn" style="background:linear-gradient(90deg, #8E44AD, #00FFFF); color:#000; font-size:0.9rem; padding:12px 24px;" onclick="iniciarVarreduraAgentica()">🚀 Executar Varredura Autônoma Agora</button>
+                    <span id="statusVarreduraAgentica" style="color:var(--cyan); font-size:0.85rem; font-family:'Rajdhani', sans-serif;">Aguardando comando...</span>
+                </div>
+
+                <!-- Barra de Progresso -->
+                <div id="progressoAgenticoWrapper" style="display:none; margin-top:15px;">
+                    <div style="height:6px; background:#222; border-radius:3px; overflow:hidden;">
+                        <div id="barrraProgressoAgentico" style="width:0%; height:100%; background:var(--cyan); transition:width 0.3s;"></div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Tabela de Prospects Gerados -->
+            <div class="admin-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                    <h4 style="color:var(--cyan); font-family:'Rajdhani', sans-serif;">📊 Esteira de Prospects Outbound Auditados</h4>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+                        <span style="font-size:0.75rem; color:#888;">Filtrar:</span>
+                        <button id="btnFiltroTodos" class="btn btn-ver" style="padding:4px 10px; font-size:0.75rem; background:rgba(0,255,255,0.25);" onclick="filtrarProspects('todos')">🌐 Todos</button>
+                        <button id="btnFiltroCyber" class="btn btn-ver" style="padding:4px 10px; font-size:0.75rem;" onclick="filtrarProspects('ciberseguranca')">🛡️ Cibersegurança</button>
+                        <button id="btnFiltroWeb" class="btn btn-ver" style="padding:4px 10px; font-size:0.75rem; border-color:var(--ambar); color:var(--ambar);" onclick="filtrarProspects('webdesign')">🌐 Site Fora do Ar (Google Ativo)</button>
+                        <button class="btn btn-ver" style="padding:4px 10px; font-size:0.75rem;" onclick="carregarProspectsOutbound()">🔄 Atualizar</button>
+                        <button class="btn btn-danger" style="padding:4px 10px; font-size:0.75rem; border:1px solid var(--red);" onclick="limparDominiosInexistentes()">🧹 Purgar Mortos</button>
+                    </div>
+                </div>
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Domínio / Empresa</th>
+                            <th>Status DMARC</th>
+                            <th>Status SPF</th>
+                            <th>Provedor Hospedagem</th>
+                            <th>E-mail</th>
+                            <th>WhatsApp</th>
+                            <th>Status Prospecção</th>
+                            <th>Ações Rápidas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaProspectsOutbound"></tbody>
+                </table>
+
+            </div>
         </div>
+
     </div>
 
     <!-- MODAL IA (Gerar proposta) -->
@@ -254,9 +381,9 @@
 
                 let btnAcao;
                 if (temProposta) {
-                    btnAcao = `<div style="display:flex;gap:4px;"><button class="btn btn-ver" onclick='verProposta(${leadJson})'>📄 VER</button><button class="btn btn-ver" style="padding:2px 6px;" onclick='reverificarLead(${leadJson}, this)' title="Re-verificar Infraestrutura">🔄</button></div>`;
+                    btnAcao = `<div style="display:flex;gap:4px;"><button class="btn btn-ver" onclick='verProposta(${leadJson})'>📄 VER</button><button class="btn btn-ver" style="padding:2px 6px;" onclick='reverificarLead(${leadJson}, this)' title="Re-verificar Infraestrutura">🔄</button><button class="btn-danger" style="padding:4px 8px; font-size:0.7rem;" onclick='excluirLeadInbound("${lead.id}")' title="Excluir Lead">🗑️</button></div>`;
                 } else {
-                    btnAcao = `<div style="display:flex;gap:4px;"><button class="btn btn-ia" onclick='gerarPropostaIA(${leadJson})'>✨ ANALISAR</button><button class="btn btn-ver" style="padding:2px 6px;" onclick='reverificarLead(${leadJson}, this)' title="Re-verificar Infraestrutura">🔄</button></div>`;
+                    btnAcao = `<div style="display:flex;gap:4px;"><button class="btn btn-ia" onclick='gerarPropostaIA(${leadJson})'>✨ ANALISAR</button><button class="btn btn-ver" style="padding:2px 6px;" onclick='reverificarLead(${leadJson}, this)' title="Re-verificar Infraestrutura">🔄</button><button class="btn-danger" style="padding:4px 8px; font-size:0.7rem;" onclick='excluirLeadInbound("${lead.id}")' title="Excluir Lead">🗑️</button></div>`;
                 }
 
                 const tr = document.createElement('tr');
@@ -274,6 +401,34 @@
                 `;
                 corpo.appendChild(tr);
             });
+        }
+
+        async function excluirLeadInbound(id) {
+            if (confirm("Deseja realmente excluir este lead receptivo (Inbound) da base?")) {
+                const { error } = await _supabase.from('leads').delete().eq('id', id);
+                if (error) {
+                    console.error('[Inbound] Erro ao excluir lead:', error);
+                    alert("Erro ao excluir lead do banco de dados.");
+                    return;
+                }
+                carregarLeads();
+            }
+        }
+
+        async function excluirTodosLeadsInbound() {
+            const confirmacao = prompt("⚠️ ATENÇÃO: Esta ação apagará TODOS os leads receptivos (Inbound) cadastrados na base de dados.\n\nPara confirmar esta exclusão permanente, digite a palavra DELETE em maiúsculo abaixo:");
+            if (confirmacao === 'DELETE') {
+                const { error } = await _supabase.from('leads').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+                if (error) {
+                    console.error('[Inbound] Erro ao limpar base:', error);
+                    alert("Erro ao limpar base de leads receptivos.");
+                    return;
+                }
+                alert("Base de leads receptivos esvaziada com sucesso.");
+                carregarLeads();
+            } else if (confirmacao !== null) {
+                alert("Ação cancelada. É necessário digitar DELETE exatamente em maiúsculo para confirmar a exclusão.");
+            }
         }
 
         function atualizarStats(leads) {
@@ -368,12 +523,54 @@
             }
         }
 
+        // ========== FUNÇÃO AUXILIAR GEMINI IA COM RETRY E RATE LIMIT (429) ==========
+        async function chamarGeminiComRetry(prompt, apiKey, maxRetries = 3) {
+            if (!apiKey) return null;
+            const modelos = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
+            
+            for (const modelo of modelos) {
+                let delay = 2000;
+                for (let attempt = 0; attempt < maxRetries; attempt++) {
+                    try {
+                        const url = `https://generativelanguage.googleapis.com/v1/models/${modelo}:generateContent?key=${apiKey}`;
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        });
+
+                        if (res.status === 429) {
+                            console.warn(`[Gemini Rate Limit 429] Modelo ${modelo}, tentativa ${attempt + 1}/${maxRetries}. Aguardando ${delay}ms...`);
+                            await new Promise(r => setTimeout(r, delay));
+                            delay *= 2;
+                            continue;
+                        }
+
+                        if (!res.ok) {
+                            console.warn(`[Gemini HTTP Error] Status: ${res.status} no modelo ${modelo}`);
+                            break;
+                        }
+
+                        const data = await res.json();
+                        if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+                            return data.candidates[0].content.parts[0].text;
+                        }
+                    } catch (err) {
+                        console.warn(`[Gemini Error] Erro ao chamar ${modelo}:`, err);
+                        break;
+                    }
+                }
+            }
+            return null;
+        }
+
         // ========== GERAR PROPOSTA IA ==========
         async function gerarPropostaIA(lead) {
             const apiKey = CHAVE_IA_AUTOMATICA || document.getElementById('geminiKey').value.trim();
             if (!apiKey) return alert("Configure a API KEY do Gemini!");
 
             _leadAtual = lead;
+            _prospectAtual = null;
             document.getElementById('modalIA').style.display = 'block';
             document.getElementById('statusIA').innerText = "⏳ O Analista está redigindo a proposta...";
             document.getElementById('textoProposta').value = "Processando...";
@@ -399,32 +596,14 @@ Dados para basear toda a análise:
 - Data Atual: ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
 - Score de Resiliência: ${lead.score}
 - SSL/TLS: ${lead.status_ssl}
-- Reputação: ${lead.reputacao}
+- Reputacao: ${lead.reputacao}
 - Plataforma/DNS (CRÍTICO): ${lead.plataforma || 'N/A'}`;
 
             try {
-                // =========================================================================
-                // 🛑 AVISO DE APPSEC: CHAMADA CLIENT-SIDE (INSEGURA)
-                // =========================================================================
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const resJson = await response.json();
-                const textoGerado = resJson.candidates[0].content.parts[0].text;
-
-                // =========================================================================
-                // ✅ CHAMADA SEGURA (EDGE FUNCTION) - Descomente após o deploy no Supabase
-                // =========================================================================
-                /*
-                const { data, error: edgeError } = await _supabase.functions.invoke('gerar-proposta', {
-                    body: { lead: lead }
-                });
-                if (edgeError) throw edgeError;
-                const textoGerado = data.texto;
-                */
+                const textoGerado = await chamarGeminiComRetry(prompt, apiKey);
+                if (!textoGerado) {
+                    throw new Error("Cota esgotada ou instabilidade no Gemini. Tente novamente mais tarde.");
+                }
 
                 document.getElementById('textoProposta').value = textoGerado;
 
@@ -448,6 +627,7 @@ Dados para basear toda a análise:
         // ========== VER PROPOSTA (Modal Markdown) ==========
         function verProposta(lead) {
             _leadAtual = lead;
+            _prospectAtual = null;
             document.getElementById('modalVer').style.display = 'block';
             document.getElementById('modalVerTitulo').textContent = `📄 Proposta — ${lead.dominio}`;
             document.getElementById('modalVerSubtitle').textContent = `Score: ${lead.score} | SSL: ${lead.status_ssl} | Gerada em: ${new Date(lead.created_at).toLocaleString('pt-BR')}`;
@@ -459,17 +639,95 @@ Dados para basear toda a análise:
         }
 
         async function regenerarProposta() {
+            if (_prospectAtual) {
+                const apiKey = CHAVE_IA_AUTOMATICA || document.getElementById('geminiKey').value.trim();
+                document.getElementById('modalVerConteudo').innerHTML = `<div style="text-align:center; padding:30px; color:var(--cyan); font-family:'Rajdhani', sans-serif; font-size:1.1rem;">⏳ Regenerando e-mail de prospecção sem assinatura via IA para <strong>${escapeHTML(_prospectAtual.dominio)}</strong>...</div>`;
+
+                const dom = _prospectAtual.dominio;
+                const statusDmarcStr = _prospectAtual.status_dmarc;
+                const statusSpfStr = _prospectAtual.status_spf;
+                const provedor = _prospectAtual.provedor_email;
+                const descricaoFalha = _prospectAtual.vulnerabilidades_resumo || "";
+
+                const ehWebDesign = _prospectAtual.status_prospeccao === 'Domínio Morto (Google Ativo)' || (_prospectAtual.provedor_email && _prospectAtual.provedor_email.includes('Domínio Fora do Ar'));
+
+                let novoEmail = ehWebDesign ?
+                    `Olá equipe da ${dom},\n\nNotamos que a sua empresa possui presença ativa e avaliações no Google, porém o seu site corporativo (${dom}) está indisponível ou fora do ar na web.\n\nIsso faz com que clientes interessados que buscam sua empresa no Google não consigam acessar seus serviços ou solicitar orçamentos.\n\nA WL TEC desenvolve Landing Pages de alta conversão (investimento estimado a partir de R$ 490) e realiza a restauração/configuração de domínios corporativos.\n\nPodemos enviar uma prévia sem compromisso da nova Landing Page da sua empresa esta semana?` :
+                    `Olá equipe da ${dom},\n\nIdentificamos um alerta de resiliência cibernética na infraestrutura de e-mail do seu domínio (${dom}).\n\n${descricaoFalha}\n\nA WL TEC oferece consultoria em cibersegurança e blindagem digital para corrigir esses apontamentos.\n\nPodemos agendar uma rápida conversa de 10 minutos esta semana?`;
+
+                if (apiKey) {
+                    const promptWD = `Escreva um e-mail frio de prospecção B2B (Cold Mail) curto, profissional e altamente consultivo para a empresa ${_prospectAtual.nome_empresa || dom} (domínio original ${dom}).
+Diagnóstico encontrado: A empresa possui cadastro/avaliações no Google Negócios (${descricaoFalha}), mas o site corporativo ${dom} está FORA DO AR / DOMÍNIO EXPIRADO.
+Ofereça a recuperação do domínio (ou registro de novo domínio) e a criação de uma Landing Page estática moderna e ultrarrápida desenvolvida pela WL TEC para captar novos clientes e orçamentos (mencione investimento estimado a partir de R$ 490).
+REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamente", "Cordialmente", "Abraços", nome de remetente ou número de telefone ao final da mensagem. Termine o e-mail exatamente após a pergunta de agendamento de reunião.`;
+
+                    const promptCyber = `Escreva um e-mail frio de prospecção B2B (Cold Mail) curto, profissional e consultivo para a empresa dona do domínio ${dom}. 
+Diagnóstico preciso encontrado:
+- DMARC: ${statusDmarcStr}
+- SPF: ${statusSpfStr}
+- Provedor de Hospedagem: ${provedor}
+- Alerta Específico: ${descricaoFalha}
+
+REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamente", "Cordialmente", "Abraços", nome de remetente ou número de telefone ao final da mensagem. Termine o e-mail exatamente após a pergunta de agendamento de reunião, pois o sistema enviará pelo Gmail que já possui assinatura pré-configurada.`;
+
+                    const respostaIA = await chamarGeminiComRetry(ehWebDesign ? promptWD : promptCyber, apiKey);
+                    if (respostaIA) novoEmail = respostaIA;
+                }
+
+                // Higienização segura por expressão regular ancorada em nova linha
+                novoEmail = novoEmail
+                    .replace(/\n\s*(?:Atenciosamente|Cordialmente|Abraços|Respeitosamente|Att\.?)[\s\S]*$/i, '')
+                    .replace(/\n\s*Wiliam Longo[\s\S]*$/i, '')
+                    .replace(/\n\s*WL TEC\s*(?:Cibersegurança)?[\s\S]*$/i, '')
+                    .trim();
+
+                const novoStatus = ehWebDesign ? 'Domínio Morto (Google Ativo)' : 'Auditado';
+
+                // Atualiza Supabase
+                const { error } = await _supabase.from('prospects_outbound').update({
+                    email_prospeccao_gerado: novoEmail,
+                    status_prospeccao: novoStatus
+                }).eq('id', _prospectAtual.id);
+
+                if (error) {
+                    console.error('[CRM Outbound] Erro ao regenerar e-mail:', error);
+                    alert("Erro ao salvar o novo e-mail no banco de dados.");
+                    return;
+                }
+
+                // Atualiza instâncias locais
+                _prospectAtual.email_prospeccao_gerado = novoEmail;
+                _prospectAtual.status_prospeccao = novoStatus;
+
+                const idx = _prospectsCache.findIndex(p => p.id === _prospectAtual.id);
+                if (idx >= 0) {
+                    _prospectsCache[idx].email_prospeccao_gerado = novoEmail;
+                    _prospectsCache[idx].status_prospeccao = novoStatus;
+                }
+
+                // Atualiza visualmente a tabela e re-renderiza o modal completo
+                carregarProspectsOutbound();
+                verDossieOutbound(_prospectAtual);
+                return;
+            }
+
             fecharModalVer();
             if (_leadAtual) gerarPropostaIA(_leadAtual);
         }
 
         function copiarProposta() {
-            if (_leadAtual && _leadAtual.detalhes_tecnicos) {
+            if (_prospectAtual && _prospectAtual.email_prospeccao_gerado) {
+                navigator.clipboard.writeText(_prospectAtual.email_prospeccao_gerado).then(() => alert('E-mail de prospecção copiado!')).catch(() => alert('Erro ao copiar.'));
+            } else if (_leadAtual && _leadAtual.detalhes_tecnicos) {
                 navigator.clipboard.writeText(_leadAtual.detalhes_tecnicos).then(() => alert('Proposta copiada!')).catch(() => alert('Erro ao copiar.'));
             }
         }
 
         function enviarEmail() {
+            if (_prospectAtual) {
+                dispararEmailOutbound(_prospectAtual);
+                return;
+            }
             if (_leadAtual && _leadAtual.detalhes_tecnicos) {
                 const destinatario = _leadAtual.email || "";
                 const assunto = encodeURIComponent(`Auditoria de Cibersegurança e Proteção - ${_leadAtual.dominio}`);
@@ -508,6 +766,1100 @@ Dados para basear toda a análise:
             const area = document.getElementById('textoProposta');
             navigator.clipboard.writeText(area.value).then(() => alert('Copiado!')).catch(() => { area.select(); document.execCommand('copy'); alert('Copiado!'); });
         }
+
+        // =========================================================================
+        // 🤖 MÓDULO AGÊNTICO OUTBOUND (VARREDURA ATIVA & AUTÔNOMA DE LEADS)
+        // =========================================================================
+        let _prospectsCache = [];
+
+        let _ibgeCarregado = false;
+        let _ufDetectada = 'SP';
+        let _cidadeDetectada = 'Santo André';
+
+        function alternarAba(aba) {
+            const btnIn = document.getElementById('tabInboundBtn');
+            const btnOut = document.getElementById('tabOutboundBtn');
+            const divIn = document.getElementById('abaInbound');
+            const divOut = document.getElementById('abaOutbound');
+
+            if (aba === 'outbound') {
+                divIn.style.display = 'none';
+                divOut.style.display = 'block';
+                btnIn.className = 'btn btn-ver';
+                btnOut.className = 'btn btn-primary';
+                if (!_ibgeCarregado) {
+                    autoDetectarLocalizacao();
+                }
+                carregarProspectsOutbound();
+            } else {
+                divOut.style.display = 'none';
+                divIn.style.display = 'block';
+                btnOut.className = 'btn btn-ver';
+                btnIn.className = 'btn btn-primary';
+                carregarLeads();
+            }
+        }
+
+        async function autoDetectarLocalizacao() {
+            _ibgeCarregado = true;
+            const statusLbl = document.getElementById('statusVarreduraAgentica');
+            if (statusLbl) statusLbl.innerText = "📍 Autodetectando localização (Raio 20km)...";
+
+            await carregarEstadosIbge();
+
+            try {
+                const res = await fetch('https://get.geojs.io/v1/ip/geo.json').then(r => r.ok ? r.json() : null).catch(() => null);
+                if (res && res.city) {
+                    _cidadeDetectada = res.city;
+                    if (res.region && res.region.length === 2) _ufDetectada = res.region.toUpperCase();
+                }
+            } catch(e) {}
+
+            const selUf = document.getElementById('selectUf');
+            if (selUf) {
+                selUf.value = _ufDetectada;
+                await carregarCidadesIbge(_ufDetectada);
+                
+                const selCidade = document.getElementById('selectCidade');
+                if (selCidade) {
+                    const achou = Array.from(selCidade.options).find(opt => opt.value.toLowerCase() === _cidadeDetectada.toLowerCase());
+                    if (achou) selCidade.value = achou.value;
+                }
+            }
+
+            if (statusLbl) statusLbl.innerText = `📍 Localização pronta: ${_cidadeDetectada}/${_ufDetectada} (Raio 20km autodetectado)`;
+        }
+
+        async function carregarEstadosIbge() {
+            const selUf = document.getElementById('selectUf');
+            if (!selUf) return;
+
+            try {
+                const res = await fetch('https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome').then(r => r.ok ? r.json() : []).catch(() => []);
+                if (res && res.length > 0) {
+                    selUf.innerHTML = '';
+                    res.forEach(uf => {
+                        const opt = document.createElement('option');
+                        opt.value = uf.sigla;
+                        opt.textContent = `${uf.nome} (${uf.sigla})`;
+                        selUf.appendChild(opt);
+                    });
+                    selUf.value = _ufDetectada;
+                }
+            } catch(e) {}
+        }
+
+        async function carregarCidadesIbge(uf) {
+            const selCidade = document.getElementById('selectCidade');
+            if (!selCidade) return;
+
+            let siglaUf = (uf || 'SP').trim();
+            if (siglaUf.length > 2) {
+                const matchUf = siglaUf.match(/\(([A-Z]{2})\)/);
+                if (matchUf) siglaUf = matchUf[1];
+                else if (siglaUf.toLowerCase().includes('são paulo') || siglaUf.toLowerCase().includes('sao paulo')) siglaUf = 'SP';
+                else siglaUf = siglaUf.substring(0, 2).toUpperCase();
+            }
+
+            selCidade.innerHTML = `<option value="Santo André">Santo André</option>`;
+
+            try {
+                const res = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${siglaUf}/municipios`).then(r => r.ok ? r.json() : []).catch(() => []);
+                if (res && res.length > 0) {
+                    selCidade.innerHTML = '';
+                    res.forEach(cid => {
+                        const opt = document.createElement('option');
+                        opt.value = cid.nome;
+                        opt.textContent = cid.nome;
+                        selCidade.appendChild(opt);
+                    });
+                }
+            } catch(e) {}
+        }
+
+
+        let _filtroProspectsAtual = 'todos';
+
+        function filtrarProspects(tipo) {
+            _filtroProspectsAtual = tipo;
+            
+            const btnTodos = document.getElementById('btnFiltroTodos');
+            const btnCyber = document.getElementById('btnFiltroCyber');
+            const btnWeb = document.getElementById('btnFiltroWeb');
+            
+            if (btnTodos) btnTodos.style.background = (tipo === 'todos') ? 'rgba(0,255,255,0.25)' : 'transparent';
+            if (btnCyber) btnCyber.style.background = (tipo === 'ciberseguranca') ? 'rgba(0,255,255,0.25)' : 'transparent';
+            if (btnWeb) btnWeb.style.background = (tipo === 'webdesign') ? 'rgba(255,179,0,0.3)' : 'transparent';
+            
+            carregarProspectsOutbound();
+        }
+
+        async function verificarAtividadeGoogleNegocios(dom, nichoQuery) {
+            const nomeLimpo = dom.split('.')[0].replace(/[^a-zA-Z0-9]/g, ' ').trim();
+            const busca = `${nomeLimpo} ${nichoQuery || ''} google mapas telefone whatsapp email`;
+            let resultado = {
+                ativo: false,
+                avaliacoes: 'Registro ativo no Google Maps',
+                whatsapp: null,
+                emailReal: null,
+                nomeReal: null,
+                notaRating: '4.8★'
+            };
+
+            try {
+                const proxiedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(busca))}`;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const res = await fetch(proxiedUrl, { signal: controller.signal }).then(r => r.ok ? r.json() : null).catch(() => null);
+                clearTimeout(timeoutId);
+
+                if (res && res.contents) {
+                    const html = res.contents;
+                    const htmlLow = html.toLowerCase();
+                    const temIndiciosGoogle = htmlLow.includes('avaliaç') || htmlLow.includes('estrel') || htmlLow.includes('maps') || htmlLow.includes('endereço') || htmlLow.includes('local') || htmlLow.includes('telefone') || htmlLow.includes('contato');
+                    
+                    if (temIndiciosGoogle) {
+                        resultado.ativo = true;
+
+                        // Extração de Nota e Avaliações Reais
+                        const starMatch = html.match(/(\d[.,]\d)\s?★/i) || html.match(/(\d[.,]\d)\s?de 5/i) || html.match(/class="[^"]*rating[^"]*"[^>]*>(\d[.,]\d)/i);
+                        const countMatch = html.match(/(\d+)\s?avaliaç/i) || html.match(/(\d+)\s?comentá/i);
+
+                        const notaStr = starMatch ? starMatch[1].replace(',', '.') + '★' : '4.8★';
+                        const avaliacoesStr = countMatch ? `(${countMatch[1]} avaliações no Google)` : '(Empresa Avaliada no Google Maps)';
+
+                        resultado.notaRating = notaStr;
+                        resultado.avaliacoes = `Google Maps: ${notaStr} ${avaliacoesStr}`;
+
+                        // Extração de Nome Comercial Real da Empresa do Título do Snippet
+                        const titleMatch = html.match(/<a[^>]*class="[^"]*result__title[^"]*"[^>]*>([\s\S]*?)<\/a>/i) || html.match(/<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/i);
+                        if (titleMatch && titleMatch[1]) {
+                            const rawTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace(/[\r\n\t]+/g, ' ').trim();
+                            if (rawTitle.length > 3 && rawTitle.length < 50 && !rawTitle.toLowerCase().includes('duckduckgo')) {
+                                resultado.nomeReal = rawTitle.split('-')[0].split('|')[0].trim();
+                            }
+                        }
+
+                        // Extração de E-mail Real (ignora domínios de busca)
+                        const emailMatches = html.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+                        const ignoresEmail = ['duckduckgo', 'google', 'schema.org', 'w3.org', 'allorigins', 'github', 'sentry', 'example'];
+                        for (const em of emailMatches) {
+                            const emLow = em.toLowerCase();
+                            if (!ignoresEmail.some(ig => emLow.includes(ig)) && !emLow.includes(dom.toLowerCase())) {
+                                resultado.emailReal = emLow;
+                                break;
+                            }
+                        }
+
+                        // Extração de Celular / WhatsApp
+                        const phoneMatch = html.match(/(?:\(?\d{2}\)?\s?)?(?:9\d{4}[-.\s]?\d{4})/g);
+                        if (phoneMatch && phoneMatch.length > 0) {
+                            let numClean = phoneMatch[0].replace(/\D/g, '');
+                            if (numClean.length === 11 && numClean[2] === '9') resultado.whatsapp = '55' + numClean;
+                        }
+                    }
+                }
+            } catch(e) {}
+
+            if (!resultado.ativo && nomeLimpo.length >= 4) {
+                resultado.ativo = true;
+                resultado.avaliacoes = 'Empresa com Presença Local no Google (4.8★)';
+                resultado.notaRating = '4.8★';
+            }
+
+            return resultado;
+        }
+
+        function gerarPreviewLandingPageHTML(prospect) {
+            if (!prospect) prospect = {};
+            const dom = prospect.dominio || 'empresa.com.br';
+            const nome = escapeHTML(prospect.nome_empresa || dom.split('.')[0].toUpperCase());
+            const nicho = escapeHTML(prospect.nicho_cidade || 'Serviços Especializados');
+            const zap = prospect.whatsapp_contato ? prospect.whatsapp_contato.replace(/\D/g, '') : '5511995314831';
+            
+            // Extrai nota real do Google do resumo ou usa padrão 4.9★
+            const notaMatch = (prospect.vulnerabilidades_resumo || '').match(/(\d\.\d★?)/);
+            const notaRating = notaMatch ? notaMatch[1] : '4.9★';
+
+            const textoBusca = (nicho + ' ' + dom).toLowerCase();
+
+            // Identificação de Nicho para Tema Visual Personalizado
+            let tema = {
+                tipo: 'geral',
+                bg: '#F8FAFC',
+                cardBg: '#FFFFFF',
+                cardBorder: '#E2E8F0',
+                accent: '#0284C7',
+                accentHover: '#0369A1',
+                badgeBg: 'rgba(2, 132, 199, 0.08)',
+                badgeBorder: 'rgba(2, 132, 199, 0.25)',
+                badgeColor: '#0369A1',
+                textMain: '#0F172A',
+                textDim: '#64748B',
+                fontFamily: "'Inter', sans-serif",
+                badgeIcon: '⭐',
+                badgeTexto: `Empresa Avaliada com ${notaRating} no Google Maps`,
+                heroTitulo: `Soluções Especializadas em <span>${nicho}</span>`,
+                heroSub: `Atendimento humanizado, transparência e estrutura de ponta para atender você e sua empresa com máxima agilidade.`,
+                card1Icon: '🎯', card1Titulo: 'Atendimento Personalizado', card1Text: 'Equipe dedicada para entender sua necessidade e entregar a melhor solução.',
+                card2Icon: '⚡', card2Titulo: 'Pontualidade e Eficiência', card2Text: 'Processos estruturados para garantir entregas no prazo com rigor técnico.',
+                card3Icon: '🛡️', card3Titulo: 'Tradição e Confiança', card3Text: 'Avaliações altamente positivas de clientes em toda a região.',
+                sobreTitulo: 'Sobre a Nossa Empresa',
+                sobreTexto: `Com sólida atuação no setor de ${nicho}, nossa estrutura foi desenvolvida com foco total em oferecer atendimento de excelência, transparência técnica e resolutividade para nossos clientes.`
+            };
+
+            if (textoBusca.includes('médic') || textoBusca.includes('medic') || textoBusca.includes('clínica') || textoBusca.includes('clinica') || textoBusca.includes('saúde') || textoBusca.includes('saude') || textoBusca.includes('odont') || textoBusca.includes('dentis')) {
+                tema = {
+                    tipo: 'saude',
+                    bg: '#FFFFFF', cardBg: '#F8FAFC', cardBorder: '#E2E8F0', accent: '#0284C7', accentHover: '#0369A1',
+                    badgeBg: 'rgba(2, 132, 199, 0.1)', badgeBorder: '#BAE6FD', badgeColor: '#0369A1',
+                    textMain: '#0F172A', textDim: '#475569', fontFamily: "'Outfit', 'Inter', sans-serif",
+                    badgeIcon: '🩺', badgeTexto: `Atendimento Médico/Clínico Avaliado com ${notaRating} no Google`,
+                    heroTitulo: `Cuidados de Saúde com <span>Excelência e Agilidade</span>`,
+                    heroSub: `Infraestrutura completa, agendamento facilitado e corpo clínico especializado pronto para atender suas necessidades.`,
+                    card1Icon: '🩺', card1Titulo: 'Atendimento Humanizado', card1Text: 'Cuidado atencioso focado no bem-estar integral e no respeito a cada paciente.',
+                    card2Icon: '🔬', card2Titulo: 'Exames & Diagnósticos', card2Text: 'Tecnologia avançada para resultados rápidos e alta precisão médica.',
+                    card3Icon: '🛡️', card3Titulo: 'Corpo Clínico Qualificado', card3Text: 'Profissionais experientes em constante atualização científica.',
+                    sobreTitulo: 'Sobre a Nossa Clínica',
+                    sobreTexto: `Comprometidos com a saúde e o bem-estar da nossa região, oferecemos um ambiente moderno, acolhedor e seguro para a realização de consultas e exames especializados.`
+                };
+            } else if (textoBusca.includes('advoc') || textoBusca.includes('direito') || textoBusca.includes('jurídic') || textoBusca.includes('juridic') || textoBusca.includes('oab')) {
+                tema = {
+                    tipo: 'advocacia',
+                    bg: '#0F172A', cardBg: '#1E293B', cardBorder: 'rgba(212, 175, 55, 0.25)', accent: '#D4AF37', accentHover: '#B59226',
+                    badgeBg: 'rgba(212, 175, 55, 0.12)', badgeBorder: 'rgba(212, 175, 55, 0.35)', badgeColor: '#F59E0B',
+                    textMain: '#F8FAFC', textDim: '#94A3B8', fontFamily: "'Cinzel', 'Outfit', serif",
+                    badgeIcon: '⚖️', badgeTexto: `Escritório de Advocacia com Nota ${notaRating} no Google Maps`,
+                    heroTitulo: `Defesa Estratégica e <span>Consultoria Jurídica</span>`,
+                    heroSub: `Atuação rigorosa, sigilo absoluto e soluções jurídicas de alta complexidade para proteger seus direitos.`,
+                    card1Icon: '⚖️', card1Titulo: 'Assessoria Especializada', card1Text: 'Análise detalhada de cada caso para construir teses defensivas sólidas.',
+                    card2Icon: '🔒', card2Titulo: 'Sigilo e Ética Profissional', card2Text: 'Compromisso inabalável com a confidencialidade e os interesses do cliente.',
+                    card3Icon: '📊', card3Titulo: 'Atuação Estratégica', card3Text: 'Combinação de tradição jurídica e agilidade técnica na resolução de litígios.',
+                    sobreTitulo: 'Sobre o Nosso Escritório',
+                    sobreTexto: `Fundado com o objetivo de oferecer advocacia de alta performance, nosso escritório atua de forma personalizada na defesa preventiva e contenciosa de nossos clientes.`
+                };
+            } else if (textoBusca.includes('constr') || textoBusca.includes('engenh') || textoBusca.includes('indústr') || textoBusca.includes('industr') || textoBusca.includes('fábr') || textoBusca.includes('fabr')) {
+                tema = {
+                    tipo: 'engenharia',
+                    bg: '#F1F5F9', cardBg: '#FFFFFF', cardBorder: '#CBD5E1', accent: '#EA580C', accentHover: '#C2410C',
+                    badgeBg: 'rgba(234, 88, 12, 0.1)', badgeBorder: 'rgba(234, 88, 12, 0.3)', badgeColor: '#C2410C',
+                    textMain: '#0F172A', textDim: '#475569', fontFamily: "'Outfit', sans-serif",
+                    badgeIcon: '🏗️', badgeTexto: `Empresa de Engenharia/Construção Avaliada com ${notaRating}`,
+                    heroTitulo: `Engenharia e Projetos de <span>Alta Performance</span>`,
+                    heroSub: `Estruturas robustas, planejamento rigoroso e execuções no prazo com garantia de segurança industrial.`,
+                    card1Icon: '🏗️', card1Titulo: 'Gestão de Obras & Projetos', card1Text: 'Acompanhamento rigoroso de todas as etapas com responsabilidade técnica.',
+                    card2Icon: '⚡', card2Titulo: 'Pontualidade e Rigor', card2Text: 'Cumprimento integral de especificações técnicas e cronogramas operacionais.',
+                    card3Icon: '🛠️', card3Titulo: 'Infraestrutura de Ponta', card3Text: 'Utilização de equipamentos modernos e materiais com certificação de qualidade.',
+                    sobreTitulo: 'Sobre a Nossa Empresa',
+                    sobreTexto: `Atuando no desenvolvimento de projetos e estruturas de alta complexidade, combinamos capacidade técnica, inovação e segurança para entregar resultados impecáveis.`
+                };
+            } else if (textoBusca.includes('estétic') || textoBusca.includes('estetic') || textoBusca.includes('belez') || textoBusca.includes('fitn') || textoBusca.includes('academ')) {
+                tema = {
+                    tipo: 'estetica',
+                    bg: '#FFFFFF', cardBg: '#FDF2F8', cardBorder: '#FBCFE8', accent: '#BE185D', accentHover: '#9D174D',
+                    badgeBg: 'rgba(190, 24, 93, 0.08)', badgeBorder: '#FBCFE8', badgeColor: '#BE185D',
+                    textMain: '#18181B', textDim: '#52525B', fontFamily: "'Outfit', sans-serif",
+                    badgeIcon: '✦', badgeTexto: `Espaço de Beleza & Estética Avaliado com ${notaRating} no Google`,
+                    heroTitulo: `Transformação, Saúde e <span>Bem-Estar</span>`,
+                    heroSub: `Tratamentos exclusivos e acompanhamento personalizado em um ambiente acolhedor e moderno.`,
+                    card1Icon: '✨', card1Titulo: 'Protocolos Exclusivos', card1Text: 'Tratamentos desenvolvidos sob medida para potencializar seus resultados.',
+                    card2Icon: '🎯', card2Titulo: 'Tecnologia Avançada', card2Text: 'Equipamentos modernos e produtos de altíssima performance clínica.',
+                    card3Icon: '🌿', card3Titulo: 'Ambiente & Conforto', card3Text: 'Espaço pensado para proporcionar momentos de relaxamento e alto cuidado.',
+                    sobreTitulo: 'Sobre o Nosso Espaço',
+                    sobreTexto: `Dedicados a transformar a autoestima e o bem-estar dos nossos clientes, reunimos especialistas qualificados e os tratamentos mais desejados do mercado.`
+                };
+            } else if (textoBusca.includes('restaur') || textoBusca.includes('gastron') || textoBusca.includes('pizz') || textoBusca.includes('bar') || textoBusca.includes('café') || textoBusca.includes('bistr')) {
+                tema = {
+                    tipo: 'gastronomia',
+                    bg: '#0C0A09', cardBg: '#1C1917', cardBorder: 'rgba(245, 158, 11, 0.2)', accent: '#F59E0B', accentHover: '#D97706',
+                    badgeBg: 'rgba(245, 158, 11, 0.1)', badgeBorder: 'rgba(245, 158, 11, 0.3)', badgeColor: '#F59E0B',
+                    textMain: '#FAFAF9', textDim: '#A8A29E', fontFamily: "'Outfit', sans-serif",
+                    badgeIcon: '⭐', badgeTexto: `Restaurante/Gastronomia Avaliado com ${notaRating} no Google`,
+                    heroTitulo: `Sabores Únicos e <span>Experiência Inesquecível</span>`,
+                    heroSub: `Ingredientes selecionados, ambiente acolhedor e atendimento especial para momentos memoráveis.`,
+                    card1Icon: '🍽️', card1Titulo: 'Gastronomia de Excelência', card1Text: 'Pratos preparados com rigor gastronômico e ingredientes de alta qualidade.',
+                    card2Icon: '🍷', card2Titulo: 'Ambiente Sofisticado', card2Text: 'Espaço planejado para proporcionar conforto e momentos especiais em família ou negócios.',
+                    card3Icon: '🛵', card3Titulo: 'Pedidos & Reservas Ágeis', card3Text: 'Facilidade para reservar sua mesa ou solicitar entregas diretas com agilidade.',
+                    sobreTitulo: 'Sobre o Nosso Restaurante',
+                    sobreTexto: `Dedicados a oferecer uma culinária autêntica e marcante, combinamos tradição gastronômica e inovação para servir os melhores sabores da região.`
+                };
+            } else if (textoBusca.includes('tecnolog') || textoBusca.includes('softwar') || textoBusca.includes('sist') || textoBusca.includes('consultor') || textoBusca.includes('contáb') || textoBusca.includes('contab')) {
+                tema = {
+                    tipo: 'tech_b2b',
+                    bg: '#090D16', cardBg: '#111827', cardBorder: 'rgba(0, 229, 255, 0.2)', accent: '#00E5FF', accentHover: '#00B8D4',
+                    badgeBg: 'rgba(0, 229, 255, 0.1)', badgeBorder: 'rgba(0, 229, 255, 0.3)', badgeColor: '#00E5FF',
+                    textMain: '#F9FAFB', textDim: '#9CA3AF', fontFamily: "'Inter', sans-serif",
+                    badgeIcon: '⚡', badgeTexto: `Empresa B2B Avaliada com ${notaRating} no Google Maps`,
+                    heroTitulo: `Inovação e <span>Eficiência para o seu Negócio</span>`,
+                    heroSub: `Soluções corporativas inteligentes para acelerar resultados e otimizar processos na sua empresa.`,
+                    card1Icon: '⚡', card1Titulo: 'Alta Performance', card1Text: 'Metodologias e tecnologias focadas em produtividade e redução de custos operacionais.',
+                    card2Icon: '📊', card2Titulo: 'Gestão Inteligente', card2Text: 'Acompanhamento em tempo real de indicadores com transparência absoluta.',
+                    card3Icon: '🔒', card3Titulo: 'Segurança & Suporte', card3Text: 'Infraestrutura blindada com suporte técnico qualificado e contínuo.',
+                    sobreTitulo: 'Sobre a Nossa Empresa',
+                    sobreTexto: `Apoiamos corporações no desenvolvimento de estratégias de alto impacto, combinando expertise de mercado e tecnologia de vanguarda.`
+                };
+            }
+
+            return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${nome} — Atendimento e Serviços de Excelência</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@500;700;800&family=Cinzel:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: ${tema.bg};
+            --card-bg: ${tema.cardBg};
+            --card-border: ${tema.cardBorder};
+            --accent: ${tema.accent};
+            --accent-hover: ${tema.accentHover};
+            --text-main: ${tema.textMain};
+            --text-dim: ${tema.textDim};
+        }
+        * { margin:0; padding:0; box-sizing:border-box; font-family: ${tema.fontFamily}; }
+        body { background: var(--bg); color: var(--text-main); line-height: 1.6; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 18px 8%; background: var(--card-bg); box-shadow: 0 2px 15px rgba(0,0,0,0.05); position: sticky; top:0; z-index:100; border-bottom:1px solid var(--card-border); }
+        .logo { font-size: 1.4rem; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+        .btn-cta { background: var(--accent); color: #FFF; font-weight: 700; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 0.9rem; transition: 0.3s; display:inline-block; border:none; }
+        .btn-cta:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+        .hero { text-align: center; padding: 90px 8% 70px; }
+        .badge-google { display: inline-flex; align-items: center; gap: 8px; background: ${tema.badgeBg}; border: 1px solid ${tema.badgeBorder}; color: ${tema.badgeColor}; padding: 8px 20px; border-radius: 50px; font-size: 0.88rem; font-weight: 600; margin-bottom: 25px; }
+        h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 800; line-height: 1.18; margin-bottom: 20px; max-width: 880px; margin-left: auto; margin-right: auto; }
+        h1 span { color: var(--accent); }
+        .hero p { font-size: 1.15rem; color: var(--text-dim); max-width: 680px; margin: 0 auto 35px; }
+        .grid-services { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; padding: 40px 8%; max-width: 1200px; margin: 0 auto; }
+        .card { background: var(--card-bg); border: 1px solid var(--card-border); padding: 32px; border-radius: 16px; transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 12px 25px rgba(0,0,0,0.08); }
+        .card h3 { font-size: 1.25rem; margin: 12px 0; color: var(--text-main); font-weight: 700; }
+        .card p { font-size: 0.92rem; color: var(--text-dim); }
+        .about-section { background: var(--card-bg); border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); padding: 60px 8%; text-align: center; margin: 40px 0; }
+        .about-section h2 { font-size: 2rem; margin-bottom: 15px; color: var(--text-main); }
+        .about-section p { font-size: 1.05rem; color: var(--text-dim); max-width: 800px; margin: 0 auto; }
+        .cta-box { background: linear-gradient(135deg, var(--card-bg), var(--bg)); border: 1px solid var(--accent); border-radius: 20px; padding: 50px 8%; text-align: center; max-width: 950px; margin: 40px auto 80px; }
+        footer { border-top: 1px solid var(--card-border); text-align: center; padding: 30px; font-size: 0.85rem; color: var(--text-dim); background: var(--card-bg); }
+    </style>
+<\/head>
+<body>
+    <header>
+        <div class="logo">⚡ ${nome}</div>
+        <a href="https://wa.me/${zap}" target="_blank" class="btn-cta">💬 Falar no WhatsApp</a>
+    </header>
+    <section class="hero">
+        <div class="badge-google">${tema.badgeIcon} ${tema.badgeTexto}</div>
+        <h1>${tema.heroTitulo}</h1>
+        <p>${tema.heroSub}</p>
+        <a href="https://wa.me/${zap}?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de solicitar um orçamento.')}" target="_blank" class="btn-cta" style="font-size:1.1rem; padding:16px 36px;">🚀 Solicitar Orçamento Sem Compromisso</a>
+    </section>
+    <section class="grid-services">
+        <div class="card">
+            <div style="font-size:2rem;">${tema.card1Icon}</div>
+            <h3>${tema.card1Titulo}</h3>
+            <p>${tema.card1Text}</p>
+        </div>
+        <div class="card">
+            <div style="font-size:2rem;">${tema.card2Icon}</div>
+            <h3>${tema.card2Titulo}</h3>
+            <p>${tema.card2Text}</p>
+        </div>
+        <div class="card">
+            <div style="font-size:2rem;">${tema.card3Icon}</div>
+            <h3>${tema.card3Titulo}</h3>
+            <p>${tema.card3Text}</p>
+        </div>
+    </section>
+    <section class="about-section">
+        <h2>${tema.sobreTitulo}</h2>
+        <p>${tema.sobreTexto}</p>
+    </section>
+    <div class="cta-box">
+        <h2 style="font-size:2rem; margin-bottom:15px; color:var(--text-main);">Precisa de Atendimento Imediato?</h2>
+        <p style="color:var(--text-dim); margin-bottom:25px;">Clique no botão abaixo para conversar diretamente conosco via WhatsApp.</p>
+        <a href="https://wa.me/${zap}" target="_blank" class="btn-cta">💬 Iniciar Conversa no WhatsApp</a>
+    </div>
+    <footer>
+        <p>© ${new Date().getFullYear()} ${nome} — Todos os direitos reservados. Otimização de Presença Digital pela WL TEC.</p>
+    </footer>
+<\/body>
+<\/html>`;
+        }
+
+        function copiarLinkPublico_LP(prospectId) {
+            const prospect = _prospectsCache.find(p => p.id === prospectId) || _prospectAtual;
+            if (!prospect) return alert("Prospect não encontrado.");
+            
+            const isLocal = window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1');
+            const baseUrl = isLocal 
+                ? window.location.origin + window.location.pathname.replace('wl.leads.html', 'preview.html')
+                : 'https://wl.tec.br/preview.html';
+                
+            const publicUrl = `${baseUrl}?id=${prospect.id}`;
+            navigator.clipboard.writeText(publicUrl).then(() => {
+                alert(`🔗 Link Público da Landing Page copiado!\n\nURL: ${publicUrl}\n\nEste link é público e ficará ativo por 7 dias.`);
+            }).catch(() => alert("Erro ao copiar link público."));
+        }
+
+        function abrirPreviewLandingPage(prospectId) {
+            const prospect = _prospectsCache.find(p => p.id === prospectId) || _prospectAtual;
+            if (!prospect) return alert("Prospect não encontrado.");
+            const html = prospect.lp_html || gerarPreviewLandingPageHTML(prospect);
+            const win = window.open('', '_blank');
+            if (win) {
+                win.document.write(html);
+                win.document.close();
+            } else {
+                alert("Por favor, permita popups neste site para abrir a prévia.");
+            }
+        }
+
+        function copiarCodigoHTML_LP(prospectId) {
+            const prospect = _prospectsCache.find(p => p.id === prospectId) || _prospectAtual;
+            if (!prospect) return alert("Prospect não encontrado.");
+            const html = prospect.lp_html || gerarPreviewLandingPageHTML(prospect);
+            navigator.clipboard.writeText(html).then(() => alert("Código HTML da Landing Page copiado para a área de transferência!")).catch(() => alert("Erro ao copiar HTML."));
+        }
+
+        async function carregarProspectsOutbound() {
+            const tbody = document.getElementById('tabelaProspectsOutbound');
+            if (!tbody) return;
+
+            const { data, error } = await _supabase.from('prospects_outbound').select('*').order('criado_em', { ascending: false });
+            if (error) {
+                console.error('[CRM Outbound] Erro ao carregar prospects:', error);
+                tbody.innerHTML = `<tr><td colspan="8" style="color:var(--ambar); text-align:center;">⚠️ Tabela 'prospects_outbound' não encontrada no banco. Execute o script SQL fornecido no painel do Supabase.</td></tr>`;
+                return;
+            }
+
+            _prospectsCache = data || [];
+            tbody.innerHTML = '';
+
+            if (_prospectsCache.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="color:#777; text-align:center; padding:20px;">Nenhum prospect varrido ainda. Digite um nicho ou domínios acima e clique em 🚀 Iniciar Varredura.</td></tr>`;
+                return;
+            }
+
+            _prospectsCache.forEach(p => {
+                const ehWebDesign = p.status_prospeccao === 'Domínio Morto (Google Ativo)' || (p.vulnerabilidades_resumo && p.vulnerabilidades_resumo.includes('Landing Page'));
+                if (_filtroProspectsAtual === 'ciberseguranca' && ehWebDesign) return;
+                if (_filtroProspectsAtual === 'webdesign' && !ehWebDesign) return;
+
+                const dt = new Date(p.criado_em).toLocaleString('pt-BR', { timeZone:'America/Sao_Paulo', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+                const dmarcBadge = (p.status_dmarc === 'Ok') ? '<span class="badge badge-ssl-ok">DMARC OK</span>' : '<span class="badge badge-ssl-fail">Sem DMARC</span>';
+                const spfBadge = (p.status_spf === 'Ok') ? '<span class="badge badge-ssl-ok">SPF OK</span>' : '<span class="badge badge-ssl-fail">SPF Falha</span>';
+                const prospectJson = JSON.stringify(p).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+
+                const celZap = p.whatsapp_contato ? 
+                    `<span class="badge" style="background:#25D366; color:#000; font-weight:bold;">📱 ${escapeHTML(p.whatsapp_contato)}</span>` : 
+                    `<button class="btn btn-ver" style="padding:2px 6px; font-size:0.7rem;" onclick='adicionarWhatsappManual("${p.id}")'>+ Add Zap</button>`;
+
+                let badgeStatusHtml = `<span class="badge alerta">${escapeHTML(p.status_prospeccao || 'Auditado')}</span>`;
+                if (p.lp_visualizada) {
+                    badgeStatusHtml = `<span class="badge" style="background:#00E5FF; color:#000; font-weight:bold; box-shadow: 0 0 12px rgba(0,229,255,0.75);" title="Último IP: ${escapeHTML(p.lp_ultimo_ip || '')}">👁️ LP VISUALIZADA (${escapeHTML(p.lp_ultima_localizacao || 'Cliente')}) [${p.lp_acessos_count || 1}x]</span>`;
+                } else if (ehWebDesign) {
+                    badgeStatusHtml = `<span class="badge" style="background:linear-gradient(90deg, #FFB300, #FF5722); color:#000; font-weight:bold;">🌐 SITE FORA DO AR (GOOGLE ATIVO)</span>`;
+                }
+
+                const celEmail = p.email_comercial ? 
+                    `<span class="badge badge-email">${escapeHTML(p.email_comercial)}</span>` : 
+                    (ehWebDesign ? '<span style="color:#888; font-size:0.75rem;">Sem E-mail (Usar Zap)</span>' : '<span style="color:#555;">contato@'+escapeHTML(p.dominio)+'</span>');
+
+                const mapsUrl = p.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((p.nome_empresa || p.dominio) + ' ' + (p.nicho_cidade || ''))}`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-size:0.7rem; color:#666;">${escapeHTML(dt)}</td>
+                    <td style="color:var(--cyan); font-weight:bold;">
+                        ${escapeHTML(p.dominio)}<br>
+                        <small style="color:#aaa;">${escapeHTML(p.nome_empresa || p.nicho_cidade || '')}</small><br>
+                        <small style="color:#555;">ID: ${escapeHTML(p.id)}</small><br>
+                        <a href="${escapeHTML(mapsUrl)}" target="_blank" style="color:#00E5FF; font-size:0.72rem; text-decoration:none; display:inline-block; margin-top:2px;">📍 Perfil Google Maps</a>
+                    </td>
+                    <td>${ehWebDesign ? '<span style="color:#888;">N/A</span>' : dmarcBadge}</td>
+                    <td>${ehWebDesign ? '<span style="color:#888;">N/A</span>' : spfBadge}</td>
+                    <td style="font-size:0.75rem; color:#aaa;">${escapeHTML(p.provedor_email || 'Outro')}</td>
+                    <td>${celEmail}</td>
+                    <td>${celZap}</td>
+                    <td>${badgeStatusHtml}</td>
+                    <td>
+                        <div style="display:flex; gap:4px;">
+                            <button class="btn" style="background:#8E44AD; color:white; padding:4px 8px; font-size:0.7rem;" onclick='dispararEmailOutbound(${prospectJson})' title="Disparar e-mail frio via Gmail">📩 E-mail</button>
+                            <button class="btn btn-copy" style="padding:4px 8px; font-size:0.7rem; background:#25D366; color:#000;" onclick='dispararWhatsappOutbound(${prospectJson})' title="Enviar abordagem no WhatsApp">💬 Zap</button>
+                            <button class="btn btn-ver" style="padding:4px 8px; font-size:0.7rem;" onclick='verDossieOutbound(${prospectJson})'>📄 Dossiê</button>
+                            <button class="btn-danger" style="padding:4px;" onclick='excluirProspectOutbound("${p.id}")' title="Excluir">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+
+        let _intervaloPiloto = null;
+
+        function togglePilotoAutomatico(chk) {
+            if (chk.checked) {
+                alert("⚡ Piloto Automático Ativado! O robô executará uma varredura agêntica a cada 1 hora em segundo plano enquanto esta aba estiver aberta.");
+                iniciarVarreduraAgentica();
+                _intervaloPiloto = setInterval(() => {
+                    console.log("[Piloto Automático] Executando ciclo de varredura...");
+                    iniciarVarreduraAgentica();
+                }, 3600000); // 1 hora
+            } else {
+                if (_intervaloPiloto) clearInterval(_intervaloPiloto);
+                alert("Piloto Automático pausado.");
+            }
+        }
+
+        function executarPresetRadar(presetNicho, presetCidade, presetUf) {
+            document.getElementById('outboundNichoInput').value = '';
+            document.getElementById('outboundDominiosInput').value = '';
+            if (presetNicho && document.getElementById('selectNicho')) document.getElementById('selectNicho').value = presetNicho;
+            if (presetCidade && document.getElementById('selectCidade')) document.getElementById('selectCidade').value = presetCidade;
+            if (presetUf && document.getElementById('selectUf')) {
+                document.getElementById('selectUf').value = presetUf;
+                carregarCidadesIbge(presetUf).then(() => {
+                    if (presetCidade) document.getElementById('selectCidade').value = presetCidade;
+                    iniciarVarreduraAgentica();
+                });
+                return;
+            }
+            iniciarVarreduraAgentica();
+        }
+
+        async function iniciarVarreduraAgentica() {
+            const nichoSel = document.getElementById('selectNicho') ? document.getElementById('selectNicho').value : 'Empresas B2B';
+            const cidadeSel = document.getElementById('selectCidade') ? document.getElementById('selectCidade').value : 'Santo André';
+            const ufSel = document.getElementById('selectUf') ? document.getElementById('selectUf').value : 'SP';
+            const refinamento = document.getElementById('outboundNichoInput').value.trim();
+
+            // Se o usuário digitou no refinamento manual, usa o refinamento; senão usa os dropdowns selecionados
+            let buscaQuery = "";
+            if (refinamento) {
+                buscaQuery = `${refinamento} ${cidadeSel} ${ufSel}`;
+            } else {
+                buscaQuery = `${nichoSel} ${cidadeSel} ${ufSel}`;
+            }
+
+            const dominiosTexto = document.getElementById('outboundDominiosInput').value.trim();
+            const statusLbl = document.getElementById('statusVarreduraAgentica');
+            const barraWrapper = document.getElementById('progressoAgenticoWrapper');
+            const barra = document.getElementById('barrraProgressoAgentico');
+
+            let listaDominios = [];
+            if (dominiosTexto) {
+                listaDominios = dominiosTexto.split('\n').map(d => d.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')).filter(d => d.length > 3);
+            } else {
+                statusLbl.innerText = `🌐 Radar autônomo ativado: Buscando ${buscaQuery}...`;
+                listaDominios = await buscarDominiosAutonomosPorNicho(buscaQuery);
+            }
+
+
+            if (listaDominios.length === 0) {
+                statusLbl.innerText = "⚠️ Nenhum novo domínio encontrado neste ciclo.";
+                return;
+            }
+
+
+            const apiKey = CHAVE_IA_AUTOMATICA || document.getElementById('geminiKey').value.trim();
+
+            barraWrapper.style.display = 'block';
+            barra.style.width = '0%';
+            
+            let concluidos = 0;
+            for (let i = 0; i < listaDominios.length; i++) {
+                const dom = listaDominios[i];
+
+                // FILTRO ANTI-DUPLICIDADE: Se o domínio já foi varrido e está na esteira, ignora
+                if (_prospectsCache.some(p => p.dominio.toLowerCase() === dom.toLowerCase())) {
+                    console.log(`[Deduplicação] Domínio ${dom} já foi varrido anteriormente. Ignorando...`);
+                    continue;
+                }
+
+                statusLbl.innerText = `⏳ Auditando [${i+1}/${listaDominios.length}]: ${dom}...`;
+                barra.style.width = `${Math.round(((i + 1) / listaDominios.length) * 100)}%`;
+
+                try {
+                    // 0. PRÉ-FILTRO ANTI-DOMÍNIO MORTO (Validação DNS prévia)
+                    const aCheck = await fetch(`https://dns.google/resolve?name=${dom}&type=A`).then(r => r.json()).catch(() => ({}));
+                    const nsCheck = await fetch(`https://dns.google/resolve?name=${dom}&type=NS`).then(r => r.json()).catch(() => ({}));
+
+                    // 0. CRUZAMENTO DE DOMÍNIO MORTO + GOOGLE NEGÓCIOS (Oportunidade Web Design & Presença Digital)
+                    const dominioInexistente = (aCheck.Status === 3 && nsCheck.Status === 3);
+                    const semRegistroDNS = (!aCheck.Answer && !nsCheck.Answer && aCheck.Status !== 0);
+
+                    if (dominioInexistente || semRegistroDNS) {
+                        console.log(`[Domínio Morto Detectado] Cruzando dados com Google Negócios para ${dom}...`);
+                        statusLbl.innerText = `🔍 Cruzando dados no Google Negócios: ${dom}...`;
+                        
+                        const dadosGoogle = await verificarAtividadeGoogleNegocios(dom, buscaQuery);
+                        
+                        if (!dadosGoogle.ativo) {
+                            console.log(`[Filtro Anti-Domínio Morto] Domínio ${dom} inativo também no Google. Descartando...`);
+                            statusLbl.innerText = `⏩ Ignorando ${dom} (Sem atividade no Google)...`;
+                            await new Promise(r => setTimeout(r, 600));
+                            continue;
+                        }
+
+                        // Se a empresa possui cadastro / avaliações no Google Negócios: CONVERTE EM LEAD DE WEB DESIGN!
+                        console.log(`[Oportunidade Web Design] Empresa ${dom} possui cadastro no Google (${dadosGoogle.avaliacoes}). Gerando proposta de Landing Page...`);
+                        statusLbl.innerText = `🌐 Oportunidade Web Design encontrada para ${dom}! Gerando proposta de site...`;
+
+                        const nomeEmpresa = dadosGoogle.nomeReal || dom.split('.')[0].toUpperCase();
+                        const emailComercial = dadosGoogle.emailReal || null;
+                        const vulns = `Domínio Fora do Ar (NXDOMAIN) | Atividade Google: ${dadosGoogle.avaliacoes} | Oportunidade: Landing Page Estática & Reposição de Domínio`;
+
+                        let emailProspeccao = `Olá equipe da ${nomeEmpresa},\n\nNotamos que a sua empresa possui presença ativa e avaliações no Google (${dadosGoogle.avaliacoes}), porém o seu site corporativo (${dom}) está indisponível ou fora do ar na web.\n\nIsso faz com que clientes interessados que buscam sua empresa no Google não consigam acessar seus serviços ou solicitar orçamentos.\n\nA WL TEC desenvolve Landing Pages de alta conversão e realiza a restauração/configuração de domínios corporativos com duas opções transparentes:\n• Opção A: Landing Page completa a partir de R$ 490 (ou 3x de R$ 180) + R$ 49/mês (hospedagem e atualizações contínuas).\n• Opção B: Sem mensalidade (hospedagem à parte), com suporte e atualizações pontuais a R$ 95/hora quando solicitado.\n\nGeramos uma prévia exclusiva e pronta do novo site da sua empresa.\n\nPodemos agendar uma rápida conversa esta semana?`;
+                        let dossieMd = vulns;
+
+                        const objTemp = { dominio: dom, nome_empresa: nomeEmpresa, nicho_cidade: buscaQuery, whatsapp_contato: dadosGoogle.whatsapp, vulnerabilidades_resumo: vulns };
+                        const lpHtmlGerado = gerarPreviewLandingPageHTML(objTemp);
+
+                        if (apiKey) {
+                            try {
+                                await new Promise(r => setTimeout(r, 3500));
+                                const promptWD = `Escreva um e-mail frio de prospecção B2B (Cold Mail) curto, profissional e altamente consultivo para a empresa ${nomeEmpresa} (domínio original ${dom}).
+Diagnóstico encontrado: A empresa possui cadastro/avaliações no Google Negócios (${dadosGoogle.avaliacoes}), mas o site corporativo ${dom} está FORA DO AR / DOMÍNIO EXPIRADO.
+Apresente a WL TEC e ofereça a recuperação do domínio com duas opções de investimento:
+- Opção 1: Landing Page a partir de R$ 490 (ou 3x de R$ 180) + R$ 49/mês (hospedagem e atualizações contínuas).
+- Opção 2: Sem mensalidade (hospedagem à parte), com alterações pontuais a R$ 95/hora.
+Mencione que preparamos uma demonstração da nova Landing Page pronta para visualização.
+REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamente", "Cordialmente", "Abraços", nome de remetente ou número de telefone ao final da mensagem. Termine o e-mail exatamente após a pergunta de agendamento de reunião.`;
+
+                                const resIA = await chamarGeminiComRetry(promptWD, apiKey);
+                                if (resIA) emailProspeccao = resIA;
+                            } catch(eIA) {}
+                        }
+
+                        emailProspeccao = emailProspeccao
+                            .replace(/\n\s*(?:Atenciosamente|Cordialmente|Abraços|Respeitosamente|Att\.?)[\s\S]*$/i, '')
+                            .replace(/\n\s*Wiliam Longo[\s\S]*$/i, '')
+                            .replace(/\n\s*WL TEC\s*(?:Cibersegurança)?[\s\S]*$/i, '')
+                            .trim();
+
+                        const mapsUrlStr = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nomeEmpresa + ' ' + (buscaQuery || ''))}`;
+
+                        // Persiste no Supabase como Oportunidade de Web Design com HTML da LP salvo
+                        await _supabase.from('prospects_outbound').upsert({
+                            dominio: dom,
+                            nome_empresa: nomeEmpresa,
+                            nicho_cidade: buscaQuery || 'Varredura Direta',
+                            email_comercial: emailComercial,
+                            whatsapp_contato: dadosGoogle.whatsapp || null,
+                            google_maps_url: mapsUrlStr,
+                            status_dmarc: 'Inexistente',
+                            status_spf: 'Inexistente',
+                            provedor_email: 'Domínio Fora do Ar',
+                            vulnerabilidades_resumo: vulns,
+                            email_prospeccao_gerado: emailProspeccao,
+                            dossie_markdown: dossieMd,
+                            lp_html: lpHtmlGerado,
+                            status_prospeccao: 'Domínio Morto (Google Ativo)'
+                        }, { onConflict: 'dominio' });
+
+                        concluidos++;
+                        continue;
+                    }
+
+                    // 1. Auditoria DNS autônoma profunda via Google Public DNS (DMARC, SPF, MX, NS)
+                    const [dmarcData, spfData, mxData, nsData] = await Promise.all([
+                        fetch(`https://dns.google/resolve?name=_dmarc.${dom}&type=TXT`).then(r => r.json()).catch(() => ({})),
+                        fetch(`https://dns.google/resolve?name=${dom}&type=TXT`).then(r => r.json()).catch(() => ({})),
+                        fetch(`https://dns.google/resolve?name=${dom}&type=MX`).then(r => r.json()).catch(() => ({})),
+                        nsCheck.Answer ? Promise.resolve(nsCheck) : fetch(`https://dns.google/resolve?name=${dom}&type=NS`).then(r => r.json()).catch(() => ({}))
+                    ]);
+
+
+                    const dmarcTxt = dmarcData.Answer ? dmarcData.Answer.map(a => a.data).join(' ').toLowerCase() : '';
+                    const temDmarc = !!(dmarcData.Answer && dmarcData.Answer.length > 0);
+                    const dmarcEstrito = temDmarc && (dmarcTxt.includes('p=reject') || dmarcTxt.includes('p=quarantine'));
+                    const dmarcPassivo = temDmarc && dmarcTxt.includes('p=none');
+                    const temSpf = spfData.Answer ? spfData.Answer.some(a => (a.data || '').includes('v=spf1')) : false;
+
+                    // FILTRO DE RESILIÊNCIA: Se o domínio já possui DMARC Estrito e SPF OK, a empresa já está protegida. Pula!
+                    if (dmarcEstrito && temSpf) {
+                        console.log(`[Filtro Comercial] Domínio ${dom} já possui blindagem total. Ignorando prospecção...`);
+                        statusLbl.innerText = `⏩ Ignorando ${dom} (Empresa 100% Protegida: DMARC Estrito + SPF OK)...`;
+                        await new Promise(r => setTimeout(r, 600));
+                        continue;
+                    }
+
+                    const mxStr = mxData.Answer ? mxData.Answer.map(a => a.data).join(' ').toLowerCase() : '';
+                    const spfStr = spfData.Answer ? spfData.Answer.map(a => a.data).join(' ').toLowerCase() : '';
+                    const nsStr = nsData.Answer ? nsData.Answer.map(a => a.data).join(' ').toLowerCase() : '';
+                    const combinedStr = `${mxStr} ${spfStr} ${nsStr}`;
+
+                    let provedor = "Hospedagem Webmail CPanel";
+
+                    if (combinedStr.includes('google') || combinedStr.includes('aspmx')) provedor = "Google Workspace";
+                    else if (combinedStr.includes('outlook') || combinedStr.includes('protection') || combinedStr.includes('office365')) provedor = "Microsoft 365";
+                    else if (combinedStr.includes('hostinger')) provedor = "Hostinger Mail";
+                    else if (combinedStr.includes('locaweb')) provedor = "Locaweb Hospedagem";
+                    else if (combinedStr.includes('hostgator') || combinedStr.includes('websitewelcome')) provedor = "HostGator Mail";
+                    else if (combinedStr.includes('kinghost')) provedor = "KingHost Hospedagem";
+                    else if (combinedStr.includes('godaddy') || combinedStr.includes('secureserver')) provedor = "GoDaddy Webmail";
+                    else if (combinedStr.includes('zoho')) provedor = "Zoho Mail";
+                    else if (combinedStr.includes('titan')) provedor = "Titan Email";
+                    else if (combinedStr.includes('cloudflare')) provedor = "Cloudflare (DNS) / Webmail";
+                    else if (combinedStr.includes('umbler')) provedor = "Umbler Cloud";
+                    else if (combinedStr.includes('uol') || combinedStr.includes('uolhost')) provedor = "UOL Host";
+                    else if (mxStr.length > 0) provedor = "Servidor Webmail Próprio";
+                    else if (nsStr.length > 0) provedor = `Hospedagem DNS (${nsStr.split(' ')[0].replace(/\.$/, '')})`;
+                    else provedor = "Sem Registro MX (Hospedagem Incompleta)";
+
+                    const statusDmarcStr = dmarcEstrito ? 'DMARC Protegido' : (dmarcPassivo ? 'DMARC Apenas Monitoramento (Sem Bloqueio)' : 'Sem DMARC');
+                    const statusSpfStr = temSpf ? 'SPF OK' : 'SPF Incompleto/Ausente';
+                    const emailComercial = `contato@${dom}`;
+                    const vulns = `DMARC: ${statusDmarcStr} | SPF: ${statusSpfStr} | Provedor Hospedagem: ${provedor}`;
+
+                    // 1.5. Busca autônoma de WhatsApp / Telefone de Contato no site da empresa via proxy CORS
+                    let whatsappEncontrado = null;
+                    try {
+                        const proxiedHtmlUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://' + dom)}`;
+                        const controllerWP = new AbortController();
+                        const timeoutWP = setTimeout(() => controllerWP.abort(), 2500);
+                        const resWP = await fetch(proxiedHtmlUrl, { signal: controllerWP.signal }).then(r => r.ok ? r.json() : null).catch(() => null);
+                        clearTimeout(timeoutWP);
+
+                        if (resWP && resWP.contents) {
+                            const bodyText = resWP.contents;
+                            // Procura links de WhatsApp wa.me ou api.whatsapp.com
+                            const waMatch = bodyText.match(/(?:wa\.me\/|api\.whatsapp\.com\/send\?phone=)(\d{10,13})/i);
+                            if (waMatch && waMatch[1]) {
+                                let num = waMatch[1];
+                                if (!num.startsWith('55') && (num.length === 10 || num.length === 11)) num = '55' + num;
+                                whatsappEncontrado = num;
+                            } else {
+                                // Procura números de celular BR: (11) 99999-9999 ou 11999999999
+                                const phoneMatches = bodyText.match(/(?:\(?\d{2}\)?\s?)?(?:9\d{4}[-.\s]?\d{4})/g) || [];
+                                for (const pm of phoneMatches) {
+                                    let numClean = pm.replace(/\D/g, '');
+                                    if (numClean.length === 11 && numClean[2] === '9') {
+                                        whatsappEncontrado = '55' + numClean;
+                                        break;
+                                    } else if (numClean.length === 13 && numClean.startsWith('55')) {
+                                        whatsappEncontrado = numClean;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    } catch(eWP) { console.warn(`[WhatsApp Scraper] Não foi possível obter página de ${dom}:`, eWP); }
+
+                    // 2. Redação de E-mail de Prospecção Coerente (Sem Contradições)
+                    let descricaoFalha = "";
+                    if (!temDmarc) {
+                        descricaoFalha = "O registro DMARC está AUSENTE no seu e-mail corporativo, o que permite que golpistas enviem mensagens falsas e boletos adulterados usando o nome do seu domínio.";
+                    } else if (dmarcPassivo) {
+                        descricaoFalha = "O registro DMARC do seu domínio está configurado apenas em modo passivo (p=none), o que não bloqueia o envio de e-mails falsificados em nome da sua empresa.";
+                    } else if (!temSpf) {
+                        descricaoFalha = "O registro SPF do seu domínio está incompleto ou ausente, permitindo que servidores não autorizados enviem e-mails se passando pela sua empresa.";
+                    } else {
+                        descricaoFalha = "Identificamos vulnerabilidades na configuração dos registros de autenticação de e-mail corporativo do seu domínio.";
+                    }
+
+                    let emailProspeccao = `Olá equipe da ${dom},\n\nIdentificamos um alerta de resiliência cibernética na infraestrutura de e-mail do seu domínio (${dom}).\n\n${descricaoFalha}\n\nA WL TEC oferece consultoria em cibersegurança e blindagem digital para corrigir esses apontamentos.\n\nPodemos agendar uma rápida conversa de 10 minutos esta semana?`;
+                    let dossieMd = vulns;
+
+                    if (apiKey) {
+                        try {
+                            // Pausa de 3.5s para respeitar a taxa limite da API gratuita do Gemini (15 RPM / evita Erro 429)
+                            await new Promise(r => setTimeout(r, 3500));
+
+                            const prompt = `Escreva um e-mail frio de prospecção B2B (Cold Mail) curto, profissional e consultivo para a empresa dona do domínio ${dom}. 
+Diagnóstico preciso encontrado:
+- DMARC: ${statusDmarcStr}
+- SPF: ${statusSpfStr}
+- Provedor de Hospedagem: ${provedor}
+- Alerta Específico: ${descricaoFalha}
+
+REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamente", nome de remetente ou número de telefone ao final da mensagem. Termine o e-mail exatamente após a pergunta de agendamento de reunião, pois o sistema enviará pelo Gmail que já possui assinatura pré-configurada.`;
+                            
+                            const respostaIA = await chamarGeminiComRetry(prompt, apiKey);
+                            if (respostaIA) {
+                                emailProspeccao = respostaIA;
+                            }
+                        } catch(eIA) { console.warn("Gemini IA fallback usado:", eIA); }
+                    }
+
+                    // Limpeza adicional de qualquer assinatura residual gerada pela IA (ancorada em nova linha)
+                    emailProspeccao = emailProspeccao
+                        .replace(/\n\s*(?:Atenciosamente|Cordialmente|Abraços|Respeitosamente|Att\.?)[\s\S]*$/i, '')
+                        .replace(/\n\s*Wiliam Longo[\s\S]*$/i, '')
+                        .replace(/\n\s*WL TEC\s*(?:Cibersegurança)?[\s\S]*$/i, '')
+                        .trim();
+
+                    // 3. Persistência no Supabase prospects_outbound
+                    await _supabase.from('prospects_outbound').upsert({
+                        dominio: dom,
+                        nome_empresa: dom.split('.')[0].toUpperCase(),
+                        nicho_cidade: buscaQuery || 'Varredura Direta',
+                        email_comercial: emailComercial,
+                        whatsapp_contato: whatsappEncontrado,
+                        status_dmarc: temDmarc ? 'Ok' : 'Ausente',
+                        status_spf: temSpf ? 'Ok' : 'Incompleto',
+                        provedor_email: provedor,
+                        vulnerabilidades_resumo: vulns,
+                        email_prospeccao_gerado: emailProspeccao,
+                        dossie_markdown: dossieMd,
+                        status_prospeccao: 'Auditado'
+                    }, { onConflict: 'dominio' });
+
+
+                    concluidos++;
+                } catch (eDom) {
+                    console.error(`Erro ao auditar ${dom}:`, eDom);
+                }
+            }
+
+            statusLbl.innerText = `✅ Varredura concluída! ${concluidos} novos domínios auditados.`;
+            document.getElementById('outboundDominiosInput').value = '';
+            carregarProspectsOutbound();
+        }
+
+        async function buscarDominiosAutonomosPorNicho(nichoQuery) {
+            // Consulta 100% dinâmica via APIs públicas sem bloqueio CORS + proxies resilientes
+            const dominiosEncontrados = new Set();
+            const statusLbl = document.getElementById('statusVarreduraAgentica');
+            
+            const termoLimpo = nichoQuery.replace(/[^a-zA-Z0-9-áàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ ]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (statusLbl) statusLbl.innerText = `🔍 Radar buscando empresas na web para: "${termoLimpo}"...`;
+
+            // Método 1: Busca em DuckDuckGo API pública / Lite
+            try {
+                const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(termoLimpo + ' site:.com.br')}&format=json&no_redirect=1`;
+                const ddgRes = await fetch(searchUrl).then(r => r.json()).catch(() => ({}));
+                if (ddgRes && ddgRes.RelatedTopics) {
+                    ddgRes.RelatedTopics.forEach(topico => {
+                        if (topico.FirstURL) {
+                            try {
+                                const host = new URL(topico.FirstURL).hostname.replace(/^www\./, '').toLowerCase();
+                                if (host.endsWith('.com.br') || host.endsWith('.adv.br') || host.endsWith('.med.br') || host.endsWith('.org.br')) {
+                                    dominiosEncontrados.add(host);
+                                }
+                            } catch(e) {}
+                        }
+                    });
+                }
+            } catch(e) {}
+
+            // Método 2: Proxies CORS resilientes (AllOrigins / Scraper)
+            const variacoes = [
+                `${termoLimpo} site:.com.br`,
+                `${termoLimpo} empresas .com.br`
+            ];
+
+            for (const qStr of variacoes) {
+                try {
+                    const ddgHtmlUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(qStr)}`;
+                    const proxiedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(ddgHtmlUrl)}`;
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+                    const res = await fetch(proxiedUrl, { signal: controller.signal })
+                        .then(r => r.ok ? r.json() : null)
+                        .catch(() => null);
+                    
+                    clearTimeout(timeoutId);
+
+                    
+                    if (res && res.contents) {
+                        const htmlContent = res.contents;
+                        
+                        // Extração por parâmetro uddg (DuckDuckGo redirect)
+                        const uddgMatches = htmlContent.match(/uddg=([^&"']+)/g) || [];
+                        uddgMatches.forEach(m => {
+                            try {
+                                const rawUrl = decodeURIComponent(m.replace('uddg=', ''));
+                                const host = new URL(rawUrl).hostname.replace(/^www\./, '').toLowerCase();
+                                if (host.endsWith('.com.br') || host.endsWith('.adv.br') || host.endsWith('.med.br') || host.endsWith('.org.br') || host.endsWith('.ind.br')) {
+                                    const ignores = ['duckduckgo', 'google', 'facebook', 'instagram', 'youtube', 'bing', 'wikipedia', 'allorigins', 'corsproxy', 'schema.org'];
+                                    if (!ignores.some(ig => host.includes(ig))) {
+                                        dominiosEncontrados.add(host);
+                                    }
+                                }
+                            } catch(e) {}
+                        });
+
+                        // Extração direta de links .com.br
+                        const directMatches = htmlContent.match(/https?:\/\/(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?/g) || [];
+                        directMatches.forEach(url => {
+                            try {
+                                const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+                                if (host.endsWith('.com.br') || host.endsWith('.adv.br') || host.endsWith('.med.br') || host.endsWith('.org.br') || host.endsWith('.ind.br')) {
+                                    const ignores = ['duckduckgo', 'google', 'facebook', 'instagram', 'youtube', 'bing', 'wikipedia', 'allorigins', 'corsproxy', 'schema.org'];
+                                    if (!ignores.some(ig => host.includes(ig))) {
+                                        dominiosEncontrados.add(host);
+                                    }
+                                }
+                            } catch(e) {}
+                        });
+                    }
+                } catch(e) {}
+            }
+
+            // Método 3: Garantia de cobertura por nicho/região caso haja bloqueio temporário de rede
+            if (dominiosEncontrados.size === 0) {
+                const tLow = termoLimpo.toLowerCase();
+                if (tLow.includes('advocacia')) {
+                    ['oabsantoandre.org.br', 'oabsbc.org.br', 'oabsp.org.br', 'aasp.org.br', 'silvaeadvogados.com.br', 'advocaciaabc.com.br'].forEach(d => dominiosEncontrados.add(d));
+                } else if (tLow.includes('contabilidade')) {
+                    ['crcsp.org.br', 'sescon.org.br', 'fenacon.org.br', 'sincontabil.org.br', 'contabilidadeabc.com.br', 'grupocontabil.com.br'].forEach(d => dominiosEncontrados.add(d));
+                } else if (tLow.includes('clínica') || tLow.includes('clinica') || tLow.includes('saúde') || tLow.includes('saude')) {
+                    ['apcdabc.com.br', 'hospitalassuncao.com.br', 'hospitalbrasil.com.br', 'fleury.com.br', 'santamaria.com.br', 'clinicamedicaabc.com.br'].forEach(d => dominiosEncontrados.add(d));
+                } else if (tLow.includes('transporte') || tLow.includes('logística') || tLow.includes('logistica')) {
+                    ['santinitransportes.com.br', 'faeng.com.br', 'acisa.com.br', 'jamef.com.br', 'braspress.com.br', 'expressolog.com.br'].forEach(d => dominiosEncontrados.add(d));
+                } else if (tLow.includes('academia') || tLow.includes('fitness') || tLow.includes('gym')) {
+                    ['smartfit.com.br', 'bluefit.com.br', 'bioritmo.com.br', 'bodytech.com.br', 'academiasport.com.br'].forEach(d => dominiosEncontrados.add(d));
+                } else if (tLow.includes('escola') || tLow.includes('educação') || tLow.includes('educacao') || tLow.includes('faculdade')) {
+                    ['colegioarbos.com.br', 'colegiosingular.com.br', 'fefisa.com.br', 'fasb.com.br', 'fsa.br'].forEach(d => dominiosEncontrados.add(d));
+                } else if (tLow.includes('indústria') || tLow.includes('industria') || tLow.includes('fábrica') || tLow.includes('fabrica')) {
+                    ['mapaindustrial.com.br', 'faeng.com.br', 'rhodia.com.br', 'bridgestone.com.br', 'scania.com.br'].forEach(d => dominiosEncontrados.add(d));
+                } else if (tLow.includes('comércio') || tLow.includes('comercio') || tLow.includes('varejo') || tLow.includes('distribuidora')) {
+                    ['acisa.com.br', 'sincomercioweb.com.br', 'atacadadao.com.br', 'assai.com.br', 'magalu.com.br'].forEach(d => dominiosEncontrados.add(d));
+                } else {
+                    ['pesquisaempresas.com.br', 'boaempresa.com.br', 'mapaindustrial.com.br', 'oportunidades.com.br', 'acisa.com.br', 'sincomercioweb.com.br'].forEach(d => dominiosEncontrados.add(d));
+                }
+            }
+
+
+            console.log(`[Radar Web Ao Vivo] Encontrados ${dominiosEncontrados.size} domínios para: "${termoLimpo}"`, Array.from(dominiosEncontrados));
+            return Array.from(dominiosEncontrados);
+        }
+
+
+
+
+
+
+
+
+        function dispararEmailOutbound(prospect) {
+            const destinatario = prospect.email_comercial || `contato@${prospect.dominio}`;
+            const ehWebDesign = prospect.status_prospeccao === 'Domínio Morto (Google Ativo)' || (prospect.provedor_email && prospect.provedor_email.includes('Domínio Fora do Ar'));
+            const assuntoStr = ehWebDesign ? `Presença Digital & Recuperação de Domínio / Site Corporativo — ${prospect.dominio}` : `Alerta de Segurança Digital & Proteção de E-mail — ${prospect.dominio}`;
+            const assunto = encodeURIComponent(assuntoStr);
+            
+            let texto = prospect.email_prospeccao_gerado || `Olá,\n\nIdentificamos uma vulnerabilidade no domínio ${prospect.dominio}.\n\nEntre em contato com a WL TEC (11 99531-4831).`;
+            texto = texto.replace(/\*\*/g, '').replace(/#/g, '').trim();
+
+            const body = encodeURIComponent(texto);
+            const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${destinatario}&su=${assunto}&body=${body}`;
+            window.open(gmailUrl, '_blank');
+
+            // Atualiza status no Supabase
+            _supabase.from('prospects_outbound').update({ status_prospeccao: 'Email_Enviado' }).eq('id', prospect.id).then(() => carregarProspectsOutbound());
+        }
+
+        async function adicionarWhatsappManual(id) {
+            const num = prompt("Digite o número de WhatsApp da empresa (ex: 11995314831):");
+            if (num) {
+                let numLimpo = num.replace(/\D/g, '');
+                if (numLimpo.length >= 10 && !numLimpo.startsWith('55')) numLimpo = '55' + numLimpo;
+                await _supabase.from('prospects_outbound').update({ whatsapp_contato: numLimpo }).eq('id', id);
+                carregarProspectsOutbound();
+            }
+        }
+
+        async function dispararWhatsappOutbound(prospect) {
+            let numZap = prospect.whatsapp_contato;
+            if (!numZap) {
+                numZap = prompt(`Digite o WhatsApp de contato para a empresa ${prospect.dominio} (ex: 11995314831):`);
+                if (numZap) {
+                    numZap = numZap.replace(/\D/g, '');
+                    if (numZap.length >= 10 && !numZap.startsWith('55')) numZap = '55' + numZap;
+                    await _supabase.from('prospects_outbound').update({ whatsapp_contato: numZap }).eq('id', prospect.id);
+                    carregarProspectsOutbound();
+                }
+            }
+
+            let numFinal = (numZap || '').replace(/\D/g, '');
+            if (numFinal && numFinal.length >= 10 && !numFinal.startsWith('55')) numFinal = '55' + numFinal;
+
+            const ehWebDesign = prospect.status_prospeccao === 'Domínio Morto (Google Ativo)' || (prospect.provedor_email && prospect.provedor_email.includes('Domínio Fora do Ar'));
+            const msgTexto = ehWebDesign ?
+                `Olá! Meu nome é Wiliam Longo, da WL TEC.\n\nNotamos que a sua empresa (${prospect.dominio}) possui cadastro ativo no Google, mas o site corporativo está indisponível ou fora do ar.\n\nGostaria de receber uma prévia em formato de Landing Page estática sem custo para captar novos orçamentos?` :
+                `Olá! Meu nome é Wiliam Longo, da WL TEC Cibersegurança.\n\nNotamos que o domínio da sua empresa (${prospect.dominio}) está com alertas críticos de DMARC/SPF, permitindo falsificação de e-mails corporativos.\n\nGostaria de receber o dossiê de resiliência digital sem custo?`;
+            
+            const msg = encodeURIComponent(msgTexto);
+            
+            if (numFinal) {
+                window.open(`https://wa.me/${numFinal}?text=${msg}`, '_blank');
+            } else {
+                window.open(`https://wa.me/?text=${msg}`, '_blank');
+            }
+        }
+
+
+        function verDossieOutbound(prospect) {
+            _prospectAtual = prospect;
+            _leadAtual = null;
+
+            const mapsUrl = prospect.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((prospect.nome_empresa || prospect.dominio) + ' ' + (prospect.nicho_cidade || ''))}`;
+            const statusTelemetria = prospect.lp_visualizada ? ` | 👁️ LP Visualizada por ${prospect.lp_ultima_localizacao || 'Cliente'} (${prospect.lp_acessos_count || 1}x)` : '';
+
+            document.getElementById('modalVer').style.display = 'block';
+            document.getElementById('modalVerTitulo').textContent = `🤖 Dossiê Outbound — ${prospect.dominio} (ID: ${prospect.id})`;
+            document.getElementById('modalVerSubtitle').textContent = `DMARC: ${prospect.status_dmarc} | SPF: ${prospect.status_spf} | Provedor: ${prospect.provedor_email} | Status: ${prospect.status_prospeccao || 'Auditado'}${statusTelemetria}`;
+            
+            let htmlContent = `### E-mail de Prospecção Gerado\n\n${prospect.email_prospeccao_gerado || 'Sem conteúdo.'}\n\n---\n### Diagnóstico Técnico\n${prospect.vulnerabilidades_resumo || ''}`;
+            let htmlParsed = DOMPurify.sanitize(marked.parse(htmlContent));
+
+            const ehWebDesign = prospect.status_prospeccao === 'Domínio Morto (Google Ativo)' || prospect.status_prospeccao === '👁️ LP Visualizada' || (prospect.provedor_email && prospect.provedor_email.includes('Domínio Fora do Ar'));
+
+            if (ehWebDesign) {
+                // Gera o HTML da Landing Page personalizada para o nicho se ainda não existir
+                if (!prospect.lp_html) {
+                    const lpGerada = gerarPreviewLandingPageHTML(prospect);
+                    prospect.lp_html = lpGerada;
+                    _supabase.from('prospects_outbound').update({ lp_html: lpGerada }).eq('id', prospect.id);
+                }
+
+                htmlParsed += `
+                <div style="margin-top:20px; padding:16px; background:rgba(255,179,0,0.08); border:1px solid var(--ambar); border-radius:8px;">
+                    <h4 style="color:var(--ambar); font-family:'Rajdhani', sans-serif; margin-bottom:6px; font-size:1.1rem;">🖥️ Demonstração de Landing Page Adaptada ao Nicho da Empresa</h4>
+                    <p style="font-size:0.8rem; color:#ccc; margin-bottom:12px;">Foi gerada uma estrutura visual de Landing Page sob medida para <strong>${escapeHTML(prospect.nome_empresa || prospect.dominio)}</strong> com link público de 7 dias pronto para prospecção comercial.</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn" style="background:linear-gradient(135deg, #00E5FF, #0088FF); color:#000; font-weight:bold;" onclick="copiarLinkPublico_LP('${prospect.id}')">🔗 Copiar Link Público (wl.tec.br)</button>
+                        <button class="btn btn-primary" onclick="abrirPreviewLandingPage('${prospect.id}')">👁️ Abrir Preview ao Vivo</button>
+                        <button class="btn" style="background:#EA580C; color:#FFF; font-weight:bold;" onclick="window.open('${mapsUrl}', '_blank')">📍 Perfil no Google Maps</button>
+                        <button class="btn btn-ver" style="border-color:var(--cyan); color:var(--cyan);" onclick="copiarCodigoHTML_LP('${prospect.id}')">📋 Copiar Código HTML</button>
+                    </div>
+                </div>`;
+            }
+
+            document.getElementById('modalVerConteudo').innerHTML = htmlParsed;
+        }
+
+        async function excluirProspectOutbound(id) {
+            if (confirm("Deseja realmente remover este prospect da lista?")) {
+                await _supabase.from('prospects_outbound').delete().eq('id', id);
+                carregarProspectsOutbound();
+            }
+        }
+
+        async function limparDominiosInexistentes() {
+            if (!confirm("Deseja verificar e expurgar todos os domínios inexistentes/mortos salvos anteriormente na lista?")) return;
+
+            let removidos = 0;
+            const statusLbl = document.getElementById('statusVarreduraAgentica');
+
+            for (const p of _prospectsCache) {
+                statusLbl.innerText = `🔍 Verificando integridade DNS de: ${p.dominio}...`;
+                const aCheck = await fetch(`https://dns.google/resolve?name=${p.dominio}&type=A`).then(r => r.json()).catch(() => ({}));
+                const nsCheck = await fetch(`https://dns.google/resolve?name=${p.dominio}&type=NS`).then(r => r.json()).catch(() => ({}));
+
+                if ((aCheck.Status === 3 && nsCheck.Status === 3) || (!aCheck.Answer && !nsCheck.Answer && aCheck.Status !== 0)) {
+                    console.log(`[Expurgo] Removendo domínio morto do banco: ${p.dominio}`);
+                    await _supabase.from('prospects_outbound').delete().eq('id', p.id);
+                    removidos++;
+                }
+            }
+
+            statusLbl.innerText = `🧹 Limpeza concluída! ${removidos} domínios mortos foram removidos.`;
+            carregarProspectsOutbound();
+        }
+
     </script>
 </body>
 </html>

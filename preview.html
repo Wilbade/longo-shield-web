@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WL TEC — Demonstração de Presença Digital</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #090b10; color: #f0f4f8; font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; text-align: center; }
+        .box { background: #121620; border: 1px solid rgba(255,255,255,0.1); padding: 40px; border-radius: 16px; max-width: 450px; }
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #00E5FF; border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h2 { font-size: 1.3rem; margin-bottom: 10px; color: #fff; }
+        p { color: #8b9bb4; font-size: 0.9rem; margin-bottom: 20px; }
+        a { color: #00E5FF; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="loading" class="box">
+        <div class="spinner"></div>
+        <h2>Carregando Demonstração...</h2>
+        <p>Aguarde enquanto preparamos a visualização da Landing Page.</p>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://vvubtbfypsqjrmtzspem.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2dWJ0YmZ5cHNxanJtdHpzcGVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAxNzMyNzAsImV4cCI6MjA1NTc0OTI3MH0.G6HlWj6iC1rY9aXGk75S9Rk2K3L2M_N4O5P6Q7R8S9T';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function registrarAcessoETelemetria(prospect) {
+            let ipData = { ip: 'Desconhecido', city: 'Brasil', region_code: 'BR' };
+            try {
+                const res = await fetch('https://ipapi.co/json/').then(r => r.json()).catch(() => null);
+                if (res && res.ip) {
+                    ipData = res;
+                } else {
+                    const fallback = await fetch('https://ip-api.com/json/').then(r => r.json()).catch(() => null);
+                    if (fallback && fallback.query) {
+                        ipData = { ip: fallback.query, city: fallback.city, region_code: fallback.region };
+                    }
+                }
+            } catch(e) {}
+
+            const acessosAtuais = (prospect.lp_acessos_count || 0) + 1;
+            const localizacao = `${ipData.city || 'São Paulo'}, ${ipData.region_code || ipData.region || 'SP'}`;
+
+            await _supabase.from('prospects_outbound').update({
+                lp_visualizada: true,
+                lp_visualizada_em: new Date().toISOString(),
+                lp_acessos_count: acessosAtuais,
+                lp_ultimo_ip: ipData.ip,
+                lp_ultima_localizacao: localizacao,
+                status_prospeccao: '👁️ LP Visualizada'
+            }).eq('id', prospect.id);
+        }
+
+        async function carregarPreviewPublica() {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id') || params.get('lp');
+
+            if (!id) {
+                document.getElementById('loading').innerHTML = `
+                    <h2>⚠️ Demonstração Indisponível</h2>
+                    <p>Nenhum identificador de demonstração foi fornecido.</p>
+                    <a href="https://wl.tec.br">Voltar para WL TEC</a>
+                `;
+                return;
+            }
+
+            try {
+                const { data: prospect, error } = await _supabase.from('prospects_outbound').select('*').eq('id', id).single();
+
+                if (error || !prospect) {
+                    document.getElementById('loading').innerHTML = `
+                        <h2>⚠️ Demonstração Não Encontrada</h2>
+                        <p>Esta proposta comercial não existe ou foi removida.</p>
+                        <a href="https://wl.tec.br">Conhecer Soluções da WL TEC</a>
+                    `;
+                    return;
+                }
+
+                // Verifica expiração de 7 dias
+                const dataCriado = new Date(prospect.criado_em);
+                const diasDecorridos = (new Date() - dataCriado) / (1000 * 60 * 60 * 24);
+
+                if (diasDecorridos > 7) {
+                    document.getElementById('loading').innerHTML = `
+                        <h2>⏳ Demonstração Expirada</h2>
+                        <p>O prazo de visualização gratuita desta demonstração de 7 dias expirou.</p>
+                        <p style="font-size:0.8rem; color:#aaa;">Entre em contato conosco para solicitar um novo link de apresentação.</p>
+                        <a href="https://wa.me/5511995314831?text=${encodeURIComponent('Olá! Gostaria de renovar a prévia do site para a empresa ' + prospect.dominio)}">💬 Falar com a WL TEC no WhatsApp</a>
+                    `;
+                    return;
+                }
+
+                // Registra telemetria de visualização por IP e localização no Supabase em segundo plano
+                registrarAcessoETelemetria(prospect);
+
+                if (prospect.lp_html) {
+                    document.open();
+                    document.write(prospect.lp_html);
+                    document.close();
+                } else {
+                    document.getElementById('loading').innerHTML = `
+                        <h2>⚙️ Gerando Demonstração...</h2>
+                        <p>A Landing Page desta empresa está sendo processada.</p>
+                        <a href="https://wl.tec.br">Voltar para WL TEC</a>
+                    `;
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loading').innerHTML = `
+                    <h2>⚠️ Erro ao carregar</h2>
+                    <p>Ocorreu um erro ao buscar os dados da apresentação.</p>
+                `;
+            }
+        }
+
+        carregarPreviewPublica();
+    </script>
+</body>
+</html>

@@ -127,3 +127,45 @@ As principais capacidades do sistema incluem:
 - Criado o arquivo padronizado `/llms.txt` para consumo e citação por robôs de Inteligência Artificial.
 - Atualizado `robots.txt` com mapeamento de 20+ robôs de IA, bloqueio de scrapers comerciais e proteção de rotas privadas.
 - Atualizado `sitemap.xml` para incluir a rota `/manutencao/`.
+
+### Módulo Modo Agêntico Outbound (Varredura Ativa & Prospecção)
+- **Script SQL (`/supabase/schema_outbound.sql`)**: Criada a tabela `prospects_outbound` com políticas RLS para persistência de prospects varridos e auditados.
+- **Interface CRM (`wl.leads.html`)**: Adicionada navegação por abas (`📋 Inbound` e `🤖 Modo Agêntico Outbound`).
+- **Auditor de Perímetro Front-end**: Robô de varredura que consulta registros DNS (`DMARC`, `SPF`, `MX`, `SSL`) via `dns.google` diretamente pelo navegador.
+- **Redação de Cold Mail com IA**: Integração com a API do Google Gemini para redação de e-mails de prospecção e dossiês de resiliência.
+- **Filtro Pré-Validação DNS Anti-Domínio Morto**: Verificação prévia de existência na web via `dns.google` (`Record A` e `NS`). Se o domínio for inativo, descontinuado ou inexistente (`NXDOMAIN - Status 3`), ele é descartado automaticamente antes da geração de propostas com IA para evitar devolução de e-mails (*bounces*).
+- **Filtro Comercial Anti-Falso Alerta**: Domínios que já possuem blindagem total (`DMARC Estrito p=reject/quarantine` + `SPF OK`) são descartados automaticamente da prospecção para evitar abordagens indevidas a empresas já protegidas.
+- **Detecção Específica de DMARC Passivo (`p=none`)**: Identificação precisa de domínios com DMARC configurado em modo monitoramento (sem política de bloqueio de golpes).
+- **Deduplicação de Prospects Varridos**: Verificação prévia que pula domínios já salvos e auditados no Supabase, evitando reprocessamento desnecessário e economizando cotas da IA.
+- **Auto-Geolocalização (Raio 20km)**: Detecção automática da UF e Cidade do usuário ao abrir o painel via GeoIP/IBGE (`servicodados.ibge.gov.br`), definindo o raio de 20km padrão sem exigir seleção manual inicial. Permite alteração manual a qualquer momento.
+- **Sanitização de Sigla de Estado no IBGE**: Mapeamento rigoroso para extração da sigla de 2 letras (ex: `SP`), impedindo o envio de nomes extensos que causavam erro HTTP 500 na API de municípios do IBGE.
+- **Camada de Resiliência de Prospecção por Nicho**: Garantia de varredura contínua e sem falhas mesmo quando os proxies de busca sofrem instabilidade temporária de CORS.
+- **Tratamento de Rate Limit (HTTP 429) & Resiliência na API Gemini (Detalhado)**:
+  - **`wl.leads.html`**:
+    - **Nova função `chamarGeminiComRetry(prompt, apiKey, maxRetries = 3)`**: Implementada no escopo principal do script. Realiza loop nos modelos `['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']` com retentativa (*exponential backoff*: 2000ms, 4000ms, 8000ms) ao detectar `res.status === 429`. Valida `res.ok` antes de invocar `.json()`.
+    - **Ajuste em `gerarPropostaIA(lead)`**: Substituída a chamada direta `fetch('https://generativelanguage...gemini-2.5-flash:generateContent')` por `await chamarGeminiComRetry(prompt, apiKey)`.
+    - **Ajuste no loop de `iniciarVarreduraAgentica()`**: Aumentado o `setTimeout` de 1200ms para 3500ms entre auditorias de domínios (para não ultrapassar a cota de 15 RPM da API Gemini gratuita). Substituída a chamada direta por `await chamarGeminiComRetry()`. Em caso de indisponibilidade total da IA, mantém o fallback silencioso usando a mensagem estática predefinida sem interromper a execução do robô.
+- **Captura Autônoma de WhatsApp do Site**:
+  - Implementado scraper leve via proxy CORS (`allorigins`) durante a varredura autônoma em `iniciarVarreduraAgentica()`. O robô lê o HTML da página inicial da empresa em busca de links `wa.me/`, `api.whatsapp.com` ou padrões de celulares brasileiros `(XX) 9XXXX-XXXX`. Se identificado, preenche automaticamente o campo `whatsapp_contato` no Supabase.
+- **Módulo Cruzamento de Domínio Morto + Google Negócios (Leads Web Design, Temas por Nicho & Links Públicos)**:
+  - **Detecção de Domínio Morto + Atividade no Google**: Quando o robô detecta `NXDOMAIN` (sem A/NS DNS), em vez de descartar, ele executa a função `verificarAtividadeGoogleNegocios()`.
+  - **Captura de Avaliações Reais do Google**: Raspagem de notas e contagem de avaliações (ex: `4.9★ (47 avaliações no Google)`).
+  - **Temas Visuais Personalizados por Nicho (Sem cara de IA genérica)**:
+    - *Saúde / Clínicas*: Paleta médica limpa e clara (Branco #FFFFFF, Ciano #0284C7, Esmeralda #059669), seções "Atendimento Humanizado" e "Corpo Clínico".
+    - *Advocacia*: Paleta corporativa executiva (#0F172A azul marinho, #D4AF37 dourado), tipografia jurídica elegante, seções "Defesa Estratégica" e "Sigilo".
+    - *Construção / Engenharia*: Paleta cinza escuro industrial (#F1F5F9, #EA580C laranja industrial, #1E293B), seções "Engenharia e Projetos de Alta Performance".
+    - *Estética / Fitness*: Paleta vibrante e limpa (#FFFFFF, #BE185D rosa choque), seções "Transformação e Bem-Estar".
+    - *Serviços Gerais*: Paleta Indigo/Ciano profissional moderna (#F8FAFC, #4F46E5).
+  - **Gestão de Exclusão na Aba Inbound (Receptivo)**:
+    - Adicionado botão **`🗑️`** em cada linha da tabela de Leads Receptivos (`leads`) para remover varreduras indesejadas individualmente.
+    - Adicionado botão **`🗑️ Limpar Base Inbound`** com trava de segurança: exige que o usuário digite a palavra **`DELETE`** em maiúsculo na caixa de diálogo de confirmação antes de executar a limpeza completa da base.
+  - **Link Público Válido por 7 Dias com Telemetria por IP (`preview.html`)**:
+    - Arquivo standalone `preview.html?id=<prospect_id>` que carrega a Landing Page estática salva no Supabase.
+    - **Rastreamento por IP e Localização em Tempo Real**: Ao ser aberta pelo cliente, a página consulta serviços de IP/Geolocalização, grava o IP, cidade e estado no Supabase e altera o status para `👁️ LP Visualizada`.
+    - **Badge em Tempo Real no CRM**: O CRM exibe um alerta de engajamento pulsante `👁️ LP VISUALIZADA (São Paulo, SP) [2x]`, notificando o usuário instantaneamente para follow-up via WhatsApp.
+  - **Link Direto do Perfil no Google Maps**: Botão e link `📍 Perfil Google Maps` em cada prospect na tabela e no Dossiê para abrir a ficha oficial no Maps em 1 clique.
+  - **Identificador de Prospect (ID)**: Exibido na esteira e no título do Dossiê.
+  - **Matriz de Temas Dark & Clean por Nicho**: Alternância de cores e tipografias (Advocacia Dark Navy & Gold, Clínicas Clean White/Ciano, Construção Industrial Orange, Estética Rose Glow, Gastronomia Amber Dark e B2B High-Tech Cyan).
+
+
+
