@@ -117,6 +117,11 @@ async function capturarLead(dominio, score, ssl, reputacao, velocidade, platafor
     try {
         const { error } = await _supabase.rpc('upsert_lead', params);
         if (error) throw error;
+
+        // Atualiza a data created_at no Supabase para forçar o lead re-escaneado a subir para o topo da lista
+        const nowIso = new Date().toISOString();
+        await _supabase.from('leads').update({ created_at: nowIso }).eq('dominio', dominio);
+
         console.log("[RPC] Lead técnico salvo/atualizado com sucesso.");
     } catch (err) {
         console.error("[RPC] Erro ao salvar lead técnico, ativando fallback:", err);
@@ -149,6 +154,9 @@ async function finalizarSolicitacao() {
         });
 
         if (error) throw error;
+
+        // Atualiza a data do lead ao enviar e-mail para subir no topo do CRM
+        await _supabase.from('leads').update({ created_at: new Date().toISOString() }).eq('dominio', dominio);
 
         alert("Sucesso! WL Tec | Longo Shield enviará seu dossiê em instantes.");
         document.getElementById('modalEmail').style.display = 'none';
