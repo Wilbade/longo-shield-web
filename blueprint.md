@@ -173,6 +173,11 @@ As principais capacidades do sistema incluem:
     - **Módulo Benchmark de Concorrentes**: Cadastro dinâmico de domínios concorrentes para auditoria automatizada e comparação de posture SEO/GEO no `seo-geo.html`.
     - **Embed do Looker Studio (GSC + GA4 + Cloudflare)**: Suporte a `iframe` persistido via `localStorage` para exibição unificada de dashboards oficiais do Google e Cloudflare sem sair da aplicação.
     - **Hiperlink no CRM**: Botão `📊 Radar SEO & GEO` no cabeçalho do `wl.leads.html`.
+    - **Agente Autônomo 24/7 de Nuvem (`agente-247`)**:
+      - Edge Function em TypeScript Deno (`supabase/functions/agente-247/index.ts`) que roda na nuvem do Supabase.
+      - Alternância automática de nichos (Cibersegurança B2B vs Manutenção ABC Paulista), auditoria de DNS/SSL/DMARC e geração de propostas comerciais via IA Gemini.
+      - Agendamento por Cron (`supabase/cron_agente.sql`) via `pg_cron` executando 4x ao dia (a cada 6 horas).
+      - Badge de status `🤖 Agente 24/7 Ativo na Nuvem` incorporado ao cabeçalho do CRM `wl.leads.html`.
   - **Link Público Válido por 7 Dias com Telemetria por IP (`preview.html`)**:
     - Arquivo standalone `preview.html?id=<prospect_id>` que carrega a Landing Page estática salva no Supabase.
     - **Rastreamento por IP e Localização em Tempo Real**: Ao ser aberta pelo cliente, a página consulta serviços de IP/Geolocalização, grava o IP, cidade e estado no Supabase e altera o status para `👁️ LP Visualizada`.
