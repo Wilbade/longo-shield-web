@@ -1441,7 +1441,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                         const mapsUrlStr = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nomeEmpresa + ' ' + (buscaQuery || ''))}`;
 
                         // Persiste no Supabase como Oportunidade de Web Design com HTML da LP salvo
-                        await _supabase.from('prospects_outbound').upsert({
+                        const { error: errUpsertWD } = await _supabase.from('prospects_outbound').upsert({
                             dominio: dom,
                             nome_empresa: nomeEmpresa,
                             nicho_cidade: buscaQuery || 'Varredura Direta',
@@ -1458,7 +1458,12 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                             status_prospeccao: 'Domínio Morto (Google Ativo)'
                         }, { onConflict: 'dominio' });
 
-                        concluidos++;
+                        if (errUpsertWD) {
+                            console.error(`[CRM Outbound] Erro ao salvar prospect Web Design (${dom}):`, errUpsertWD);
+                            statusLbl.innerText = `⚠️ Erro Supabase em ${dom}: ${errUpsertWD.message}`;
+                        } else {
+                            concluidos++;
+                        }
                         continue;
                     }
 
@@ -1650,13 +1655,16 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                         .replace(/\n\s*WL TEC\s*(?:Cibersegurança)?[\s\S]*$/i, '')
                         .trim();
 
+                    const mapsUrlStrSec = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dom + ' ' + (buscaQuery || ''))}`;
+
                     // 3. Persistência no Supabase prospects_outbound
-                    await _supabase.from('prospects_outbound').upsert({
+                    const { error: errUpsertCyber } = await _supabase.from('prospects_outbound').upsert({
                         dominio: dom,
                         nome_empresa: dom.split('.')[0].toUpperCase(),
                         nicho_cidade: buscaQuery || 'Varredura Direta',
                         email_comercial: emailComercial,
                         whatsapp_contato: whatsappEncontrado,
+                        google_maps_url: mapsUrlStrSec,
                         status_dmarc: temDmarc ? 'Ok' : 'Ausente',
                         status_spf: temSpf ? 'Ok' : 'Incompleto',
                         provedor_email: provedor,
@@ -1666,8 +1674,12 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                         status_prospeccao: 'Auditado'
                     }, { onConflict: 'dominio' });
 
-
-                    concluidos++;
+                    if (errUpsertCyber) {
+                        console.error(`[CRM Outbound] Erro ao salvar prospect Cibersegurança (${dom}):`, errUpsertCyber);
+                        statusLbl.innerText = `⚠️ Erro Supabase em ${dom}: ${errUpsertCyber.message}`;
+                    } else {
+                        concluidos++;
+                    }
                 } catch (eDom) {
                     console.error(`Erro ao auditar ${dom}:`, eDom);
                 }
@@ -1686,6 +1698,19 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
             const termoLimpo = nichoQuery.replace(/[^a-zA-Z0-9-áàâãéèêíïóôõöúçñÁÀÂÃÉÈÊÍÏÓÔÕÖÚÇÑ ]/g, ' ').replace(/\s+/g, ' ').trim();
             if (statusLbl) statusLbl.innerText = `🔍 Radar buscando empresas na web para: "${termoLimpo}"...`;
 
+            const ignoresGlobais = ['duckduckgo', 'google', 'facebook', 'instagram', 'youtube', 'bing', 'wikipedia', 'allorigins', 'corsproxy', 'schema.org', 'twitter', 'tiktok', 'linkedin', 'whatsapp', 'github', 'w3.org', 'wordpress', 'microsoft', 'apple', 'cloudflare', 'amazon'];
+
+            function eDominioValido(host) {
+                if (!host || host.length < 4 || !host.includes('.')) return false;
+                if (ignoresGlobais.some(ig => host.includes(ig))) return false;
+                // Aceita TLDs corporativos comuns e TLDs brasileiros (.com, .com.br, .adv.br, .med.br, .org.br, .ind.br, etc.)
+                return (
+                    host.endsWith('.com.br') || host.endsWith('.adv.br') || host.endsWith('.med.br') || 
+                    host.endsWith('.org.br') || host.endsWith('.ind.br') || host.endsWith('.art.br') ||
+                    host.endsWith('.esp.br') || host.endsWith('.com') || host.endsWith('.app') || host.endsWith('.tech')
+                );
+            }
+
             // Método 1: Busca em DuckDuckGo API pública / Lite
             try {
                 const searchUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(termoLimpo + ' site:.com.br')}&format=json&no_redirect=1`;
@@ -1695,7 +1720,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                         if (topico.FirstURL) {
                             try {
                                 const host = new URL(topico.FirstURL).hostname.replace(/^www\./, '').toLowerCase();
-                                if (host.endsWith('.com.br') || host.endsWith('.adv.br') || host.endsWith('.med.br') || host.endsWith('.org.br')) {
+                                if (eDominioValido(host)) {
                                     dominiosEncontrados.add(host);
                                 }
                             } catch(e) {}
@@ -1707,7 +1732,8 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
             // Método 2: Proxies CORS resilientes (AllOrigins / Scraper)
             const variacoes = [
                 `${termoLimpo} site:.com.br`,
-                `${termoLimpo} empresas .com.br`
+                `${termoLimpo} empresas .com.br`,
+                `${termoLimpo} site:.com`
             ];
 
             for (const qStr of variacoes) {
@@ -1734,25 +1760,19 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                             try {
                                 const rawUrl = decodeURIComponent(m.replace('uddg=', ''));
                                 const host = new URL(rawUrl).hostname.replace(/^www\./, '').toLowerCase();
-                                if (host.endsWith('.com.br') || host.endsWith('.adv.br') || host.endsWith('.med.br') || host.endsWith('.org.br') || host.endsWith('.ind.br')) {
-                                    const ignores = ['duckduckgo', 'google', 'facebook', 'instagram', 'youtube', 'bing', 'wikipedia', 'allorigins', 'corsproxy', 'schema.org'];
-                                    if (!ignores.some(ig => host.includes(ig))) {
-                                        dominiosEncontrados.add(host);
-                                    }
+                                if (eDominioValido(host)) {
+                                    dominiosEncontrados.add(host);
                                 }
                             } catch(e) {}
                         });
 
-                        // Extração direta de links .com.br
+                        // Extração direta de links http/https
                         const directMatches = htmlContent.match(/https?:\/\/(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\.[a-zA-Z]{2,})?/g) || [];
                         directMatches.forEach(url => {
                             try {
                                 const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
-                                if (host.endsWith('.com.br') || host.endsWith('.adv.br') || host.endsWith('.med.br') || host.endsWith('.org.br') || host.endsWith('.ind.br')) {
-                                    const ignores = ['duckduckgo', 'google', 'facebook', 'instagram', 'youtube', 'bing', 'wikipedia', 'allorigins', 'corsproxy', 'schema.org'];
-                                    if (!ignores.some(ig => host.includes(ig))) {
-                                        dominiosEncontrados.add(host);
-                                    }
+                                if (eDominioValido(host)) {
+                                    dominiosEncontrados.add(host);
                                 }
                             } catch(e) {}
                         });
@@ -1772,7 +1792,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                 } else if (tLow.includes('transporte') || tLow.includes('logística') || tLow.includes('logistica')) {
                     ['santinitransportes.com.br', 'faeng.com.br', 'acisa.com.br', 'jamef.com.br', 'braspress.com.br', 'expressolog.com.br'].forEach(d => dominiosEncontrados.add(d));
                 } else if (tLow.includes('academia') || tLow.includes('fitness') || tLow.includes('gym')) {
-                    ['smartfit.com.br', 'bluefit.com.br', 'bioritmo.com.br', 'bodytech.com.br', 'academiasport.com.br'].forEach(d => dominiosEncontrados.add(d));
+                    ['academiasport.com.br', 'smartfit.com.br', 'bluefit.com.br', 'bioritmo.com.br', 'bodytech.com.br'].forEach(d => dominiosEncontrados.add(d));
                 } else if (tLow.includes('escola') || tLow.includes('educação') || tLow.includes('educacao') || tLow.includes('faculdade')) {
                     ['colegioarbos.com.br', 'colegiosingular.com.br', 'fefisa.com.br', 'fasb.com.br', 'fsa.br'].forEach(d => dominiosEncontrados.add(d));
                 } else if (tLow.includes('indústria') || tLow.includes('industria') || tLow.includes('fábrica') || tLow.includes('fabrica')) {

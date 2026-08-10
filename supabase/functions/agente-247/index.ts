@@ -103,37 +103,51 @@ Cite os riscos de DMARC/SSL e ofereça a solução WL TEC. Finalize convidando p
       propostaIaText = `Proposta Automática WL TEC para ${targetDomain}: Identificamos que o ambiente corporativo necessita de hardening e adequação LGPD. Entre em contato com Wiliam Longo (11 99531-4831) para agendar uma auditoria gratuita.`
     }
 
-    // 4. Salva o prospect qualificado no Supabase
-    const novoProspect = {
+    // 4. Salva o prospect qualificado no Supabase (tabela prospects_outbound do CRM)
+    const statusDmarcStr = isDmarcOk ? 'Ok' : 'Ausente'
+    const statusSpfStr = 'Incompleto'
+    const provedorStr = isRedirected ? `Servidor Webmail (Redireciona ➔ ${canonicalDomain})` : 'Servidor Webmail Corporativo'
+    const vulnsStr = `DMARC: ${statusDmarcStr} | Origem: Robô Agêntico 24/7 (Cloud)${isRedirected ? ' | Redirecionamento HTTP: ' + targetDomain + ' ➔ ' + canonicalDomain : ''}`
+    const dossieStr = `DMARC: ${statusDmarcStr}\nNicho: ${nichoAtual.nicho}\nRedirecionamento: ${isRedirected ? canonicalDomain : 'Não'}`
+    const mapsUrlStr = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(targetDomain + ' ' + (nichoAtual.nicho || ''))}`
+
+    const novoProspectOutbound = {
       dominio: targetDomain,
-      score: score,
+      nome_empresa: targetDomain.split('.')[0].toUpperCase(),
+      nicho_cidade: nichoAtual.nicho,
+      email_comercial: `contato@${domainToTest}`,
+      whatsapp_contato: null,
+      google_maps_url: mapsUrlStr,
+      status_dmarc: statusDmarcStr,
+      status_spf: statusSpfStr,
       status_ssl: isSslOk ? 'VÁLIDO' : 'INVÁLIDO',
-      status_dmarc: isDmarcOk ? 'CONFIGURADO' : 'AUSENTE',
-      origem: '✨ Robô Agêntico 24/7 (Cloud/Supabase)',
-      status: isRedirected ? `Redireciona para ${canonicalDomain}` : 'Novo Lead 24/7',
-      detalhes: JSON.stringify({
-        nicho: nichoAtual.nicho,
-        canonical_domain: canonicalDomain,
-        redirecionado: isRedirected,
-        proposta: propostaIaText,
-        gerado_em: new Date().toISOString()
-      })
+      score_resiliencia: `${score}%`,
+      provedor_email: provedorStr,
+      vulnerabilidades_resumo: vulnsStr,
+      email_prospeccao_gerado: propostaIaText,
+      dossie_markdown: dossieStr,
+      status_prospeccao: 'Auditado (24/7 Nuvem)'
     }
 
     const { data: inserted, error: dbErr } = await supabase
-      .from('prospects')
-      .upsert([novoProspect], { onConflict: 'dominio' })
+      .from('prospects_outbound')
+      .upsert([novoProspectOutbound], { onConflict: 'dominio' })
       .select()
+
+    if (dbErr) {
+      console.error('[Agente 24/7] Erro ao salvar prospect outbound:', dbErr)
+    }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        message: 'Agente 24/7 executou varredura autônoma com sucesso!',
+        success: !dbErr,
+        message: dbErr ? `Erro ao gravar no banco: ${dbErr.message}` : 'Agente 24/7 executou varredura autônoma com sucesso!',
         target: targetDomain,
         nicho: nichoAtual.nicho,
-        prospect: inserted || novoProspect
+        prospect: inserted || novoProspectOutbound,
+        error: dbErr
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: dbErr ? 500 : 200 }
     )
 
   } catch (err: any) {
