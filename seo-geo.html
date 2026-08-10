@@ -220,8 +220,10 @@
                 const temLlms = llmsTxtText && llmsTxtText.length > 50 && !llmsTxtText.includes('404 Not Found') && !llmsTxtText.includes('Cannot GET');
                 const robLow = (robotsTxtText || '').toLowerCase();
                 
-                // Checa se o Cloudflare injetou bloqueio gerenciado de IA no topo do robots.txt
-                const bloqueadoCloudflare = robLow.includes('cloudflare managed content') || (robLow.includes('gptbot') && robLow.includes('disallow: /'));
+                // Checa se o Cloudflare injetou bloqueio gerenciado de IA no topo do robots.txt ou se o GPTBot está bloqueado na raiz
+                const temBloqueioCloudflareHeader = robLow.includes('cloudflare managed content');
+                const gptBotBloqueado = /user-agent:\s*gptbot[\s\S]*?disallow:\s*\/\s*(?:\r?\n|$)/i.test(robotsTxtText) && !/user-agent:\s*gptbot[\s\S]*?allow:\s*\/\s*(?:\r?\n|$)/i.test(robotsTxtText);
+                const bloqueadoCloudflare = temBloqueioCloudflareHeader || gptBotBloqueado;
                 const temAiRobots = robLow.includes('oai-searchbot') || robLow.includes('gptbot') || robLow.includes('google-extended') || robLow.includes('perplexity');
 
                 let statusBotsStr = '<span class="status-ok">✅ GPTBot / SearchBot Liberados</span>';

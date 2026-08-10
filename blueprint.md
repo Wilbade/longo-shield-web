@@ -163,9 +163,9 @@ As principais capacidades do sistema incluem:
       - `wl.tec.br/manutencao/` (Abrangência: ABC Paulista | Manutenção Leva & Traz)
       - `wtkd.com.br` (Abrangência: ABC Paulista | Artes Marciais & Treino)
     - **Google PageSpeed Insights API**: Pontuação real do Google para SEO e Performance sem necessidade de autenticação.
-    - **Diagnóstico de Bloqueio Encontrado em Produção**:
-      - Descobrimos que a opção **"Block AI Scrapers and Crawlers"** no painel da **Cloudflare** está injetando `Disallow: /` para os crawlers `GPTBot` (OpenAI/ChatGPT), `Google-Extended` (Gemini) e `ClaudeBot` (Anthropic) no arquivo `robots.txt` servido ao vivo.
-      - **Solução Registrada**: Acessar o painel Cloudflare > *Security > Bots* (ou *Scrapers*) e desativar o bloqueio gerenciado de IAs para que as IAs consigam ler o `robots.txt` personalizado e indexar o site.
+    - **Diagnóstico e Correção de Falso Positivo na Verificação do Cloudflare**:
+      - Identificado um falso positivo na função de auditoria do `seo-geo.html`, onde a busca textual ingênua por `'disallow: /'` disparava o alerta `🚨 Bloqueado pelo Cloudflare (AI Scrapers)` mesmo quando as configurações da Cloudflare estavam liberadas (devido ao `Disallow: /os/` e `Disallow: /wl.leads.html` presentes no `robots.txt`).
+      - **Solução Aplicada**: Atualizado o código em `seo-geo.html` com Expressão Regular (`Regex`) para validar de forma estrita se o `Disallow: /` bloqueia a raiz inteira exclusivamente para o `GPTBot` ou se o cabeçalho oficial de injeção da Cloudflare (`cloudflare managed content`) está presente, resolvendo falsos alarmes e refletindo com precisão as configurações do Cloudflare Security > Bots.
     - **Radar Diário de Google Trends Brasil**: Integração com RSS do Google Trends Brasil para recomendar palavras-chave estratégicas em tempo real.
     - **Hiperlink no CRM**: Botão `📊 Radar SEO & GEO` no cabeçalho do `wl.leads.html`.
   - **Link Público Válido por 7 Dias com Telemetria por IP (`preview.html`)**:
