@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WL TEC — Radar de Auditoria SEO & GEO (AI Search Engine)</title>
+    <title>WL TEC — Radar de Auditoria SEO, GEO & Analytics Centralizado</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --bg: #090D16;
@@ -38,6 +39,7 @@
         .badge-scope { display: inline-block; padding: 4px 10px; border-radius: 50px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; margin-bottom: 12px; }
         .badge-nacional { background: rgba(0, 229, 255, 0.1); color: var(--cyan); border: 1px solid rgba(0, 229, 255, 0.3); }
         .badge-regional { background: rgba(255, 179, 0, 0.1); color: var(--ambar); border: 1px solid rgba(255, 179, 0, 0.3); }
+        .badge-competitor { background: rgba(255, 68, 68, 0.1); color: var(--red); border: 1px solid rgba(255, 68, 68, 0.3); }
 
         .score-circle { width: 60px; height: 60px; border-radius: 50%; border: 3px solid var(--cyan); display: flex; justify-content: center; align-items: center; font-family: 'Rajdhani', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--cyan); margin-left: auto; }
         
@@ -48,6 +50,14 @@
         .status-warn { color: var(--ambar); font-weight: 600; }
         .status-err { color: var(--red); font-weight: 600; }
 
+        /* Painel de Telemetria de Tráfego */
+        .analytics-section { background: rgba(17, 24, 39, 0.9); border: 1px solid var(--card-border); border-radius: 14px; padding: 25px; margin-bottom: 30px; }
+        .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .stat-card { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 18px; text-align: center; }
+        .stat-card h4 { font-size: 0.8rem; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+        .stat-card .val { font-size: 2rem; font-family: 'Rajdhani', sans-serif; font-weight: 700; color: var(--cyan); }
+        .stat-card .desc { font-size: 0.75rem; color: #8899aa; margin-top: 4px; }
+
         .trends-section { background: rgba(17, 24, 39, 0.8); border: 1px solid var(--card-border); border-radius: 14px; padding: 25px; margin-top: 30px; }
         .trends-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .trends-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
@@ -57,13 +67,16 @@
         .custom-audit { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
         .custom-audit input { flex: 1; min-width: 250px; background: #0D1117; border: 1px solid var(--card-border); padding: 12px 16px; border-radius: 8px; color: #FFF; font-size: 0.9rem; }
         .custom-audit input:focus { border-color: var(--cyan); outline: none; }
+
+        .looker-container { background: #0D1117; border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; margin-top: 20px; }
+        .looker-iframe { width: 100%; height: 600px; border: none; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="logo">
-            ⚡ <span>WL TEC</span> — Radar de Auditoria SEO & GEO (AI Engine)
+            ⚡ <span>WL TEC</span> — Radar SEO, GEO & Analytics Centralizado
         </div>
         <div style="display:flex; gap:10px;">
             <button class="btn btn-primary" onclick="executarVarreduraCompleta()">🚀 Auditar Todos em Tempo Real</button>
@@ -71,19 +84,60 @@
         </div>
     </div>
 
-    <!-- Barra de Busca Personalizada -->
-    <div class="custom-audit">
-        <input type="text" id="customDomainInput" placeholder="Digite outro domínio para auditar (ex: empresa.com.br)">
-        <button class="btn" onclick="auditarDominioCustomizado()">🔍 Auditar Domínio Específico</button>
+    <!-- 📊 MÓDULO DE TELEMETRIA DE TRÁFEGO EM TEMPO REAL -->
+    <div class="analytics-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="font-family:'Rajdhani', sans-serif; font-size:1.4rem; color:#FFF;">📈 Origem da Audiência em Tempo Real (Telemetria do Site)</h3>
+                <p style="font-size:0.85rem; color:var(--text-dim);" id="cntTotalVisitas">Buscando telemetria de visitas no Supabase...</p>
+            </div>
+            <div>
+                <span style="font-size:0.8rem; color:var(--cyan);" id="cntDispositivos">📱 Mobile: -- | 💻 Desktop: --</span>
+                <button class="btn" style="margin-left:10px; padding:6px 12px; font-size:0.78rem;" onclick="carregarMetricasTrafego()">🔄 Atualizar Tráfego</button>
+            </div>
+        </div>
+
+        <div class="analytics-grid">
+            <div class="stat-card">
+                <h4>🔍 Buscadores Orgânicos</h4>
+                <div class="val" id="cntOrganico" style="color:var(--cyan);">--</div>
+                <div class="desc">Google, Bing, DuckDuckGo</div>
+            </div>
+
+            <div class="stat-card">
+                <h4>🤖 Pesquisa por IA (GEO)</h4>
+                <div class="val" id="cntIaGeo" style="color:var(--green);">--</div>
+                <div class="desc">ChatGPT, Perplexity, Gemini</div>
+            </div>
+
+            <div class="stat-card">
+                <h4>📱 Redes & Mensagistas</h4>
+                <div class="val" id="cntRedes" style="color:var(--ambar);">--</div>
+                <div class="desc">WhatsApp, Instagram, Social</div>
+            </div>
+
+            <div class="stat-card">
+                <h4>🌐 Acesso Direto</h4>
+                <div class="val" id="cntDireto" style="color:#FFF;">--</div>
+                <div class="desc">Digitou URL ou Favoritos</div>
+            </div>
+        </div>
     </div>
 
-    <!-- Grid de Domínios Monitorados -->
-    <div class="domains-grid">
+    <!-- Barra de Busca Personalizada & Benchmark de Concorrente -->
+    <div class="custom-audit">
+        <input type="text" id="customDomainInput" placeholder="Auditar outro domínio ou concorrente (ex: concorrente.com.br)">
+        <button class="btn" onclick="auditarDominioCustomizado()">🔍 Auditar Domínio</button>
+        <button class="btn" style="border-color:var(--red); color:var(--red);" onclick="adicionarConcorrente()">⚔️ Salvar como Concorrente</button>
+    </div>
+
+    <!-- Grid de Domínios Monitorados (Seus Domínios + Concorrentes) -->
+    <div class="domains-grid" id="domainsGrid">
         <!-- DOMÍNIO 1: wl.tec.br (Nacional) -->
         <div class="domain-card" id="card-wl-tec">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
-                    <span class="badge-scope badge-nacional">🌐 Abrangência Nacional</span>
+                    <span class="badge-scope badge-nacional">🌐 Sua Empresa (Nacional)</span>
                     <h2 style="font-size:1.3rem; margin-bottom:4px;">wl.tec.br</h2>
                     <p style="font-size:0.8rem; color:var(--text-dim);">Cibersegurança, Audit & Blindagem Digital</p>
                 </div>
@@ -95,7 +149,7 @@
                 <li><span>Entrega para IA (GEO / llms.txt):</span> <span class="status-warn">Aguardando...</span></li>
                 <li><span>Permissão Bots IA (robots.txt):</span> <span class="status-warn">Aguardando...</span></li>
                 <li><span>Schema.org JSON-LD:</span> <span class="status-warn">Aguardando...</span></li>
-                <li><span>Sitemap & Indexação:</span> <span class="status-warn">Aguardando...</span></li>
+                <li><span>Resolução de Servidor DNS:</span> <span class="status-warn">Aguardando...</span></li>
             </ul>
         </div>
 
@@ -103,7 +157,7 @@
         <div class="domain-card" id="card-wl-manutencao">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
-                    <span class="badge-scope badge-regional">📍 Abrangência ABC Paulista</span>
+                    <span class="badge-scope badge-regional">📍 Sua Empresa (ABC Paulista)</span>
                     <h2 style="font-size:1.3rem; margin-bottom:4px;">wl.tec.br/manutencao/</h2>
                     <p style="font-size:0.8rem; color:var(--text-dim);">Manutenção de PCs & Notebooks Leva & Traz</p>
                 </div>
@@ -123,7 +177,7 @@
         <div class="domain-card" id="card-wtkd">
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
-                    <span class="badge-scope badge-regional">📍 Abrangência ABC Paulista</span>
+                    <span class="badge-scope badge-regional">📍 Sua Empresa (ABC Paulista)</span>
                     <h2 style="font-size:1.3rem; margin-bottom:4px;">wtkd.com.br</h2>
                     <p style="font-size:0.8rem; color:var(--text-dim);">Artes Marciais, Taekwondo & Treinos no ABC</p>
                 </div>
@@ -164,9 +218,34 @@
         </div>
     </div>
 
+    <!-- MÓDULO OPCIONAL: EMBED LOOKER STUDIO / GOOGLE SEARCH CONSOLE -->
+    <div class="trends-section" style="margin-top:30px;">
+        <div class="trends-header">
+            <div>
+                <h3 style="font-family:'Rajdhani', sans-serif; font-size:1.4rem; color:#FFF;">📊 Dashboard Oficial do Looker Studio (Google Search Console + GA4 + Cloudflare)</h3>
+                <p style="font-size:0.85rem; color:var(--text-dim);">Cole aqui a URL de incorporação do seu relatório no Looker Studio para ver tudo em uma única página.</p>
+            </div>
+            <button class="btn" onclick="configurarUrlLooker()">⚙️ Configurar URL do Looker Studio</button>
+        </div>
+
+        <div id="lookerFrameContainer" class="looker-container" style="display:none;">
+            <iframe id="lookerIframe" class="looker-iframe" src=""></iframe>
+        </div>
+        <div id="lookerPlaceholder" style="padding:20px; text-align:center; background:rgba(0,0,0,0.2); border-radius:8px;">
+            <p style="font-size:0.88rem; color:var(--text-dim);">Nenhum relatório incorporado no momento. Clique no botão acima para cole a URL `https://lookerstudio.google.com/embed/reporting/...` e integrá-lo ao painel.</p>
+        </div>
+    </div>
+
     <script>
+        // Configuração do Supabase Client para carregar site_visits
+        const SUPABASE_URL = 'https://giikoiqpnzgmhcqiuvhs.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB';
+        const _supabase = window.supabase ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+        let concorrentesSalvos = JSON.parse(localStorage.getItem('wl_concorrentes') || '[]');
+
         // Função de Auditoria em Tempo Real de SEO & GEO
-        async function auditarAlvo(urlAlvo, cardPrefix) {
+        async function auditarAlvo(urlAlvo, cardPrefix, isCompetitor = false) {
             const metricsEl = document.getElementById(`metrics-${cardPrefix}`);
             const scoreEl = document.getElementById(`score-${cardPrefix}`);
 
@@ -233,7 +312,7 @@
                     statusBotsStr = '<span class="status-warn">⚠️ Sem Regra Específica</span>';
                 }
 
-                // 3. Renderiza os resultados
+                // Renderiza os resultados
                 metricsEl.innerHTML = `
                     <li><span>Google PageSpeed SEO:</span> <span class="${scoreSeo >= 80 ? 'status-ok' : 'status-warn'}">${scoreSeo}/100 (Performance: ${scorePerf}/100)</span></li>
                     <li><span>Entrega para IA (GEO / llms.txt):</span> <span class="${temLlms ? 'status-ok' : 'status-warn'}">${temLlms ? '✅ Ativo e Mapeado' : '⚠️ Ausente ou Incompleto'}</span></li>
@@ -248,11 +327,102 @@
             }
         }
 
+        async function carregarMetricasTrafego() {
+            if (!_supabase) return;
+            try {
+                const { data, error } = await _supabase.from('site_visits').select('*').order('criado_em', { ascending: false }).limit(500);
+                if (error || !data) return;
+
+                let total = data.length;
+                let organico = 0;
+                let iaGeo = 0;
+                let redes = 0;
+                let direto = 0;
+                let mobile = 0;
+                let desktop = 0;
+
+                data.forEach(v => {
+                    const tipo = v.origem_tipo || '';
+                    if (tipo.includes('Orgânica')) organico++;
+                    else if (tipo.includes('IA')) iaGeo++;
+                    else if (tipo.includes('Redes')) redes++;
+                    else direto++;
+
+                    if (v.dispositivo === 'Mobile') mobile++;
+                    else desktop++;
+                });
+
+                document.getElementById('cntOrganico').innerText = organico;
+                document.getElementById('cntIaGeo').innerText = iaGeo;
+                document.getElementById('cntRedes').innerText = redes;
+                document.getElementById('cntDireto').innerText = direto;
+                document.getElementById('cntTotalVisitas').innerText = `📊 Total: ${total} acessos registrados na base de telemetria`;
+                document.getElementById('cntDispositivos').innerText = `📱 Mobile: ${mobile} | 💻 Desktop: ${desktop}`;
+            } catch(e) {
+                console.error('Erro ao carregar telemetria de tráfego:', e);
+            }
+        }
+
+        function renderizarConcorrentesSalvos() {
+            const container = document.getElementById('domainsGrid');
+            
+            // Remove cards de concorrentes antigos se existirem
+            document.querySelectorAll('.card-concorrente').forEach(el => el.remove());
+
+            concorrentesSalvos.forEach((domain, idx) => {
+                const cardId = `card-comp-${idx}`;
+                const div = document.createElement('div');
+                div.className = 'domain-card card-concorrente';
+                div.id = cardId;
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div>
+                            <span class="badge-scope badge-competitor">⚔️ Concorrente Auditado</span>
+                            <h2 style="font-size:1.3rem; margin-bottom:4px;">${escapeHTML(domain)}</h2>
+                            <p style="font-size:0.8rem; color:var(--text-dim);">Análise de Benchmark & GEO/SEO</p>
+                        </div>
+                        <div class="score-circle" id="score-${cardId}">--</div>
+                    </div>
+                    <ul class="metrics-list" id="metrics-${cardId}">
+                        <li><span>Aguardando varredura...</span></li>
+                    </ul>
+                    <div style="margin-top:10px; text-align:right;">
+                        <button class="btn" style="padding:4px 8px; font-size:0.75rem; border-color:var(--red); color:var(--red);" onclick="removerConcorrente(${idx})">🗑️ Remover</button>
+                    </div>
+                `;
+                container.appendChild(div);
+                auditarAlvo(`https://${domain}`, cardId, true);
+            });
+        }
+
+        function adicionarConcorrente() {
+            const input = document.getElementById('customDomainInput');
+            if (!input || !input.value) return alert("Digite o domínio do concorrente.");
+            const dom = input.value.trim().toLowerCase().replace(/^https?:\/\//,'').replace(/\/.*$/,'');
+            if (!dom) return;
+
+            if (!concorrentesSalvos.includes(dom)) {
+                concorrentesSalvos.push(dom);
+                localStorage.setItem('wl_concorrentes', JSON.stringify(concorrentesSalvos));
+                renderizarConcorrentesSalvos();
+                input.value = '';
+            }
+        }
+
+        function removerConcorrente(idx) {
+            concorrentesSalvos.splice(idx, 1);
+            localStorage.setItem('wl_concorrentes', JSON.stringify(concorrentesSalvos));
+            renderizarConcorrentesSalvos();
+        }
+
         async function executarVarreduraCompleta() {
+            carregarMetricasTrafego();
             auditarAlvo('https://wl.tec.br', 'wl-tec');
             auditarAlvo('https://wl.tec.br/manutencao/', 'wl-manutencao');
             auditarAlvo('https://wtkd.com.br', 'wtkd');
+            renderizarConcorrentesSalvos();
             carregarGoogleTrendsDiario();
+            carregarLookerStudio();
         }
 
         async function auditarDominioCustomizado() {
@@ -296,6 +466,31 @@
             } catch(e) {}
 
             div.innerHTML = `<p style="font-size:0.85rem; color:var(--ambar);">⚠️ O Google Trends está disponível. Utilize as palavras-passe estratégicas sugeridas abaixo para otimizar seus conteúdos.</p>`;
+        }
+
+        function configurarUrlLooker() {
+            const atual = localStorage.getItem('wl_looker_url') || '';
+            const url = prompt("Cole a URL do iframe do seu relatório do Looker Studio (ex: https://lookerstudio.google.com/embed/reporting/...):", atual);
+            if (url !== null) {
+                localStorage.setItem('wl_looker_url', url.trim());
+                carregarLookerStudio();
+            }
+        }
+
+        function carregarLookerStudio() {
+            const url = localStorage.getItem('wl_looker_url');
+            const container = document.getElementById('lookerFrameContainer');
+            const placeholder = document.getElementById('lookerPlaceholder');
+            const iframe = document.getElementById('lookerIframe');
+
+            if (url && url.startsWith('http')) {
+                iframe.src = url;
+                container.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                container.style.display = 'none';
+                placeholder.style.display = 'block';
+            }
         }
 
         function escapeHTML(str) {

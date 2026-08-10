@@ -167,6 +167,11 @@ As principais capacidades do sistema incluem:
       - Identificado um falso positivo na função de auditoria do `seo-geo.html`, onde a busca textual ingênua por `'disallow: /'` disparava o alerta `🚨 Bloqueado pelo Cloudflare (AI Scrapers)` mesmo quando as configurações da Cloudflare estavam liberadas (devido ao `Disallow: /os/` e `Disallow: /wl.leads.html` presentes no `robots.txt`).
       - **Solução Aplicada**: Atualizado o código em `seo-geo.html` com Expressão Regular (`Regex`) para validar de forma estrita se o `Disallow: /` bloqueia a raiz inteira exclusivamente para o `GPTBot` ou se o cabeçalho oficial de injeção da Cloudflare (`cloudflare managed content`) está presente, resolvendo falsos alarmes e refletindo com precisão as configurações do Cloudflare Security > Bots.
     - **Radar Diário de Google Trends Brasil**: Integração com RSS do Google Trends Brasil para recomendar palavras-chave estratégicas em tempo real.
+    - **Telemetria de Tráfego & Origem em Tempo Real (Buscadores vs IAs)**:
+      - Interceptador autônomo em `main.js` e `/manutencao/app.js` registrando visitas na tabela `site_visits` do Supabase.
+      - Classificação em tempo real por canal (**Google/Bing Orgânico**, **ChatGPT/Perplexity/Gemini GEO**, **Redes Sociais/WhatsApp** e **Acesso Direto**).
+    - **Módulo Benchmark de Concorrentes**: Cadastro dinâmico de domínios concorrentes para auditoria automatizada e comparação de posture SEO/GEO no `seo-geo.html`.
+    - **Embed do Looker Studio (GSC + GA4 + Cloudflare)**: Suporte a `iframe` persistido via `localStorage` para exibição unificada de dashboards oficiais do Google e Cloudflare sem sair da aplicação.
     - **Hiperlink no CRM**: Botão `📊 Radar SEO & GEO` no cabeçalho do `wl.leads.html`.
   - **Link Público Válido por 7 Dias com Telemetria por IP (`preview.html`)**:
     - Arquivo standalone `preview.html?id=<prospect_id>` que carrega a Landing Page estática salva no Supabase.

@@ -13,6 +13,53 @@
     const { createClient } = window.supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    /* ── Telemetria Autônoma de Visitas (Analytics GEO & Buscadores) ── */
+    (function registrarTelemetriaVisita() {
+        try {
+            const ref = (document.referrer || '').toLowerCase();
+            const host = window.location.hostname;
+            const path = window.location.pathname || '/manutencao/';
+
+            let tipo = 'Direto / Outros';
+            let nome = 'Direto';
+
+            if (ref.includes('google.') || ref.includes('bing.com') || ref.includes('duckduckgo.com') || ref.includes('yahoo.com') || ref.includes('ecosia.org')) {
+                tipo = 'Pesquisa Orgânica';
+                if (ref.includes('google')) nome = 'Google Search';
+                else if (ref.includes('bing')) nome = 'Bing Search';
+                else if (ref.includes('duckduckgo')) nome = 'DuckDuckGo';
+                else nome = 'Outro Buscador';
+            } else if (ref.includes('chatgpt.com') || ref.includes('openai.com') || ref.includes('perplexity.ai') || ref.includes('gemini.google') || ref.includes('claude.ai') || ref.includes('copilot.microsoft')) {
+                tipo = 'Pesquisa IA (GEO)';
+                if (ref.includes('chatgpt') || ref.includes('openai')) nome = 'ChatGPT';
+                else if (ref.includes('perplexity')) nome = 'Perplexity AI';
+                else if (ref.includes('gemini')) nome = 'Google Gemini';
+                else if (ref.includes('claude')) nome = 'Claude AI';
+                else nome = 'Outra IA';
+            } else if (ref.includes('instagram') || ref.includes('facebook') || ref.includes('wa.me') || ref.includes('whatsapp') || ref.includes('t.co') || ref.includes('linkedin')) {
+                tipo = 'Redes Sociais';
+                if (ref.includes('instagram')) nome = 'Instagram';
+                else if (ref.includes('wa.me') || ref.includes('whatsapp')) nome = 'WhatsApp';
+                else if (ref.includes('facebook')) nome = 'Facebook';
+                else nome = 'Redes Sociais';
+            } else if (ref && !ref.includes(host)) {
+                tipo = 'Referral (Outros Sites)';
+                try { nome = new URL(ref).hostname; } catch(e) { nome = 'Referral'; }
+            }
+
+            const isMobile = /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+            db.from('site_visits').insert([{
+                domain: host,
+                pagina: path,
+                referrer: document.referrer || 'Direto',
+                origem_tipo: tipo,
+                origem_nome: nome,
+                dispositivo: isMobile ? 'Mobile' : 'Desktop'
+            }]).then(() => {}).catch(() => {});
+        } catch(e) {}
+    })();
+
     /* ── DOM Refs ──────────────────────────────────────────── */
     const form      = document.getElementById('formPreOs');
     const btnSubmit = document.getElementById('btnEnviarOS');
