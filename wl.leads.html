@@ -1510,42 +1510,102 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
 
                     const statusDmarcStr = dmarcEstrito ? 'DMARC Protegido' : (dmarcPassivo ? 'DMARC Apenas Monitoramento (Sem Bloqueio)' : 'Sem DMARC');
                     const statusSpfStr = temSpf ? 'SPF OK' : 'SPF Incompleto/Ausente';
-                    const emailComercial = `contato@${dom}`;
-                    const vulns = `DMARC: ${statusDmarcStr} | SPF: ${statusSpfStr} | Provedor Hospedagem: ${provedor}`;
 
-                    // 1.5. Busca autônoma de WhatsApp / Telefone de Contato no site da empresa via proxy CORS
+                    // 1.5. Raspagem de Site: WhatsApp, E-mail Real divulgado e Detecção de Redirecionamento HTTP
                     let whatsappEncontrado = null;
+                    let emailEncontradoSite = null;
+                    let dominioFinal = dom;
+                    let ehRedirecionado = false;
+
                     try {
                         const proxiedHtmlUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://' + dom)}`;
                         const controllerWP = new AbortController();
-                        const timeoutWP = setTimeout(() => controllerWP.abort(), 2500);
+                        const timeoutWP = setTimeout(() => controllerWP.abort(), 3500);
                         const resWP = await fetch(proxiedHtmlUrl, { signal: controllerWP.signal }).then(r => r.ok ? r.json() : null).catch(() => null);
                         clearTimeout(timeoutWP);
 
-                        if (resWP && resWP.contents) {
-                            const bodyText = resWP.contents;
-                            // Procura links de WhatsApp wa.me ou api.whatsapp.com
-                            const waMatch = bodyText.match(/(?:wa\.me\/|api\.whatsapp\.com\/send\?phone=)(\d{10,13})/i);
-                            if (waMatch && waMatch[1]) {
-                                let num = waMatch[1];
-                                if (!num.startsWith('55') && (num.length === 10 || num.length === 11)) num = '55' + num;
-                                whatsappEncontrado = num;
-                            } else {
-                                // Procura números de celular BR: (11) 99999-9999 ou 11999999999
-                                const phoneMatches = bodyText.match(/(?:\(?\d{2}\)?\s?)?(?:9\d{4}[-.\s]?\d{4})/g) || [];
-                                for (const pm of phoneMatches) {
-                                    let numClean = pm.replace(/\D/g, '');
-                                    if (numClean.length === 11 && numClean[2] === '9') {
-                                        whatsappEncontrado = '55' + numClean;
+                        if (resWP) {
+                            // Detecção de Redirecionamento de Domínio (ex: braspress.com.br -> braspress.com)
+                            if (resWP.status && resWP.status.url) {
+                                try {
+                                    const u = new URL(resWP.status.url);
+                                    const hostLimpo = u.hostname.replace(/^www\./i, '').toLowerCase();
+                                    if (hostLimpo && hostLimpo !== dom.toLowerCase() && hostLimpo.includes('.')) {
+                                        dominioFinal = hostLimpo;
+                                        ehRedirecionado = true;
+                                        console.log(`[Redirecionamento HTTP] Domínio ${dom} redireciona para ${dominioFinal}`);
+                                    }
+                                } catch(eUrl) {}
+                            }
+
+                            if (resWP.contents) {
+                                const bodyText = resWP.contents;
+                                const ignoresEmail = ['w3.org', 'schema.org', 'wordpress', 'jquery', 'bootstrap', 'example', 'sentry', 'allorigins', 'github', 'png', 'jpg', 'elementor', 'gravatar', 'cloudflare'];
+
+                                // Procura e-mails em links mailto:
+                                const mailtoMatches = bodyText.match(/href=["']mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})["']/gi) || [];
+                                for (const m of mailtoMatches) {
+                                    const em = m.replace(/^href=["']mailto:/i, '').replace(/["']$/, '').trim().toLowerCase();
+                                    if (em && !ignoresEmail.some(ig => em.includes(ig))) {
+                                        emailEncontradoSite = em;
                                         break;
-                                    } else if (numClean.length === 13 && numClean.startsWith('55')) {
-                                        whatsappEncontrado = numClean;
-                                        break;
+                                    }
+                                }
+
+                                // Se não achou mailto:, procura padrões de e-mail no texto HTML da página
+                                if (!emailEncontradoSite) {
+                                    const allEmails = bodyText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+                                    for (const em of allEmails) {
+                                        const emLow = em.toLowerCase();
+                                        if (!ignoresEmail.some(ig => emLow.includes(ig))) {
+                                            if (emLow.includes(dom.toLowerCase()) || (dominioFinal && emLow.includes(dominioFinal.toLowerCase()))) {
+                                                emailEncontradoSite = emLow;
+                                                break;
+                                            } else if (!emailEncontradoSite) {
+                                                emailEncontradoSite = emLow;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Procura links de WhatsApp wa.me ou api.whatsapp.com
+                                const waMatch = bodyText.match(/(?:wa\.me\/|api\.whatsapp\.com\/send\?phone=)(\d{10,13})/i);
+                                if (waMatch && waMatch[1]) {
+                                    let num = waMatch[1];
+                                    if (!num.startsWith('55') && (num.length === 10 || num.length === 11)) num = '55' + num;
+                                    whatsappEncontrado = num;
+                                } else {
+                                    // Procura números de celular BR: (11) 99999-9999 ou 11999999999
+                                    const phoneMatches = bodyText.match(/(?:\(?\d{2}\)?\s?)?(?:9\d{4}[-.\s]?\d{4})/g) || [];
+                                    for (const pm of phoneMatches) {
+                                        let numClean = pm.replace(/\D/g, '');
+                                        if (numClean.length === 11 && numClean[2] === '9') {
+                                            whatsappEncontrado = '55' + numClean;
+                                            break;
+                                        } else if (numClean.length === 13 && numClean.startsWith('55')) {
+                                            whatsappEncontrado = numClean;
+                                            break;
+                                        }
                                     }
                                 }
                             }
                         }
-                    } catch(eWP) { console.warn(`[WhatsApp Scraper] Não foi possível obter página de ${dom}:`, eWP); }
+                    } catch(eWP) { console.warn(`[Site Scraper] Não foi possível obter página de ${dom}:`, eWP); }
+
+                    // Definição Inteligente do E-mail Comercial
+                    let emailComercial = emailEncontradoSite;
+                    if (!emailComercial) {
+                        emailComercial = `contato@${dominioFinal}`;
+                    }
+
+                    if (ehRedirecionado) {
+                        provedor = `${provedor} (Redireciona ➔ ${dominioFinal})`;
+                    }
+
+                    let vulns = `DMARC: ${statusDmarcStr} | SPF: ${statusSpfStr} | Provedor Hospedagem: ${provedor}`;
+                    if (ehRedirecionado) {
+                        vulns += ` | Redirecionamento HTTP: ${dom} ➔ ${dominioFinal}`;
+                    }
 
                     // 2. Redação de E-mail de Prospecção Coerente (Sem Contradições)
                     let descricaoFalha = "";
@@ -1567,7 +1627,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
                             // Pausa de 3.5s para respeitar a taxa limite da API gratuita do Gemini (15 RPM / evita Erro 429)
                             await new Promise(r => setTimeout(r, 3500));
 
-                            const prompt = `Escreva um e-mail frio de prospecção B2B (Cold Mail) curto, profissional e consultivo para a empresa dona do domínio ${dom}. 
+                            const prompt = `Escreva um e-mail frio de prospecção B2B (Cold Mail) curto, profissional e consultivo para a empresa dona do domínio ${dom}${ehRedirecionado ? ' (que redireciona para ' + dominioFinal + ')' : ''}. 
 Diagnóstico preciso encontrado:
 - DMARC: ${statusDmarcStr}
 - SPF: ${statusSpfStr}

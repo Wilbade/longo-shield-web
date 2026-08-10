@@ -48,13 +48,31 @@ serve(async (req) => {
       targetDomain = lista[Math.floor(Math.random() * lista.length)]
     }
 
-    // 2. Executa varredura técnica do domínio
+    // 2. Executa varredura técnica do domínio (redirecionamento HTTP + DNS)
     let isSslOk = true
     let isDmarcOk = false
+    let canonicalDomain = targetDomain
+    let isRedirected = false
     let score = Math.floor(Math.random() * 25) + 65 // Score simulação realista entre 65 e 90
 
     try {
-      const dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(targetDomain)}&type=TXT`).then(r => r.json()).catch(() => null)
+      const httpRes = await fetch(`https://${targetDomain}`, { method: 'HEAD', redirect: 'follow' }).catch(() => null)
+      if (httpRes && httpRes.url) {
+        try {
+          const u = new URL(httpRes.url)
+          const cleanHost = u.hostname.replace(/^www\./i, '').toLowerCase()
+          if (cleanHost && cleanHost !== targetDomain.toLowerCase()) {
+            canonicalDomain = cleanHost
+            isRedirected = true
+          }
+        } catch (eHost) {}
+      }
+    } catch (eHttp) {}
+
+    const domainToTest = isRedirected ? canonicalDomain : targetDomain
+
+    try {
+      const dnsRes = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domainToTest)}&type=TXT`).then(r => r.json()).catch(() => null)
       if (dnsRes && dnsRes.Answer) {
         const txtData = JSON.stringify(dnsRes.Answer).toLowerCase()
         if (txtData.includes('v=dmarc1')) isDmarcOk = true
@@ -66,7 +84,7 @@ serve(async (req) => {
     if (geminiKey) {
       try {
         const prompt = `Atue como Wiliam Longo, Especialista da WL TEC (Cibersegurança e TI).
-Gere uma proposta de prospecção comercial ultra-direta (máx 3 parágrafos) para o domínio **${targetDomain}** (${nichoAtual.nicho}).
+Gere uma proposta de prospecção comercial ultra-direta (máx 3 parágrafos) para o domínio **${targetDomain}**${isRedirected ? ' (que redireciona para ' + canonicalDomain + ')' : ''} (${nichoAtual.nicho}).
 Cite os riscos de DMARC/SSL e ofereça a solução WL TEC. Finalize convidando para uma reunião via WhatsApp 11 99531-4831.`
 
         const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
@@ -92,9 +110,11 @@ Cite os riscos de DMARC/SSL e ofereça a solução WL TEC. Finalize convidando p
       status_ssl: isSslOk ? 'VÁLIDO' : 'INVÁLIDO',
       status_dmarc: isDmarcOk ? 'CONFIGURADO' : 'AUSENTE',
       origem: '✨ Robô Agêntico 24/7 (Cloud/Supabase)',
-      status: 'Novo Lead 24/7',
+      status: isRedirected ? `Redireciona para ${canonicalDomain}` : 'Novo Lead 24/7',
       detalhes: JSON.stringify({
         nicho: nichoAtual.nicho,
+        canonical_domain: canonicalDomain,
+        redirecionado: isRedirected,
         proposta: propostaIaText,
         gerado_em: new Date().toISOString()
       })

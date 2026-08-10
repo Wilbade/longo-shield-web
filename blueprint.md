@@ -185,6 +185,7 @@ As principais capacidades do sistema incluem:
   - **Link Direto do Perfil no Google Maps**: Botão e link `📍 Perfil Google Maps` em cada prospect na tabela e no Dossiê para abrir a ficha oficial no Maps em 1 clique.
   - **Identificador de Prospect (ID)**: Exibido na esteira e no título do Dossiê.
   - **Matriz de Temas Dark & Clean por Nicho**: Alternância de cores e tipografias (Advocacia Dark Navy & Gold, Clínicas Clean White/Ciano, Construção Industrial Orange, Estética Rose Glow, Gastronomia Amber Dark e B2B High-Tech Cyan).
-
-
-
+  - **Filtro Autônomo de Redirecionamentos HTTP e Scraper de E-mails Reais (`wl.leads.html` & `agente-247`)**:
+    - **Detecção de Redirecionamento HTTP (Canonical Domain)**: Inspeção autônoma do cabeçalho `Location` e URL final de resposta da página (ex: `braspress.com.br` ➔ `braspress.com`). Quando um domínio redireciona para outro TLD/canonical, o robô automaticamente assume o domínio de destino ativo e rotula o evento no CRM.
+    - **Scraper Inteligente de E-mails do Site**: Varredura em tempo real do código da página do prospect buscando tags `mailto:` e e-mails corporativos divulgados (ex: `sac@braspress.com`), substituindo o e-mail genérico `contato@<dominio>` para eliminar falhas de entrega (Bounces 550 / Endereço não encontrado no Gmail).
+    - **Aprimoramento dos Prompts Gemini**: As propostas de prospecção autônoma passam a citar o domínio canonical e o redirecionamento com precisão sem inventar endereços mortos.
