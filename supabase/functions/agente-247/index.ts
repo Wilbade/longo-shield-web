@@ -35,7 +35,7 @@ serve(async (req) => {
     // 1. Escolhe um nicho aleatório ou recebe via body
     let targetDomain = ""
     let nichoAtual = BANCO_DE_NICHOS[Math.floor(Math.random() * BANCO_DE_NICHOS.length)]
-    
+
     try {
       const body = await req.json()
       if (body && body.domain) targetDomain = body.domain
@@ -65,9 +65,9 @@ serve(async (req) => {
             canonicalDomain = cleanHost
             isRedirected = true
           }
-        } catch (eHost) {}
+        } catch (eHost) { }
       }
-    } catch (eHttp) {}
+    } catch (eHttp) { }
 
     const domainToTest = isRedirected ? canonicalDomain : targetDomain
 
@@ -77,7 +77,7 @@ serve(async (req) => {
         const txtData = JSON.stringify(dnsRes.Answer).toLowerCase()
         if (txtData.includes('v=dmarc1')) isDmarcOk = true
       }
-    } catch(e) {}
+    } catch (e) { }
 
     // 3. Síntese por IA (Google Gemini) se a chave estiver configurada
     let propostaIaText = ""
@@ -96,7 +96,7 @@ Cite os riscos de DMARC/SSL e ofereça a solução WL TEC. Finalize convidando p
         if (geminiRes && geminiRes.candidates && geminiRes.candidates[0]?.content?.parts[0]?.text) {
           propostaIaText = geminiRes.candidates[0].content.parts[0].text
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!propostaIaText) {
