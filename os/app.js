@@ -271,11 +271,6 @@ const formNovaOs = document.getElementById('formNovaOs');
 formNovaOs.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    if (signaturePad.isEmpty()) {
-        alert('Por favor, recolha a assinatura do cliente.');
-        return;
-    }
-
     showLoading('Fazendo upload das fotos...');
     try {
         const uploadedUrls = [];
@@ -297,6 +292,8 @@ formNovaOs.addEventListener('submit', async (e) => {
         const modeloVal = document.getElementById('clienteModelo')?.value.trim() || '';
         const equipTipo = document.getElementById('equipamento').value.trim();
         const equipFull = `${marcaVal} ${modeloVal} (${equipTipo})`.trim();
+
+        const sigBase64 = signaturePad.isEmpty() ? null : signaturePad.toDataURL();
 
         showLoading('Salvando dados...');
         let clienteId = null;
@@ -323,7 +320,7 @@ formNovaOs.addEventListener('submit', async (e) => {
             modelo:                    modeloVal,
             numero_serie:              document.getElementById('numeroSerie').value.trim(),
             defeito_relatado:          document.getElementById('defeitoRelatado').value.trim(),
-            assinatura_cliente_base64: signaturePad.toDataURL(),
+            assinatura_cliente_base64: sigBase64,
             fotos_urls:                uploadedUrls,
             status:                    'Aberto',
             criado_em:                 new Date().toISOString(),
@@ -336,7 +333,7 @@ formNovaOs.addEventListener('submit', async (e) => {
                 equipamento:               equipFull,
                 numero_serie:              osPayload.numero_serie,
                 defeito_relatado:          osPayload.defeito_relatado,
-                assinatura_cliente_base64: osPayload.assinatura_cliente_base64,
+                assinatura_cliente_base64: sigBase64,
                 fotos_urls:                uploadedUrls,
                 status:                    'Aberto',
             }]).select().single();
@@ -349,7 +346,7 @@ formNovaOs.addEventListener('submit', async (e) => {
         _ordensCache.unshift(osPayload);
 
         hideLoading();
-        alert(`Ordem de Serviço Nº #${osPayload.numero_os} criada com sucesso!`);
+        alert(`Ordem de Serviço Nº #${osPayload.numero_os} criada com sucesso!${!sigBase64 ? ' (Assinatura poderá ser colhida presencialmente na visita)' : ''}`);
         formNovaOs.reset();
         signaturePad.clear();
         fotosPreview.innerHTML = '';
@@ -411,6 +408,10 @@ function renderOsList(ordens) {
         const statusClean = escapeHTML(os.status || 'Aberto');
         const valFormatted = os.valor_total ? `R$ ${parseFloat(os.valor_total).toFixed(2)}` : 'A definir';
 
+        const badgeAssinatura = !os.assinatura_cliente_base64
+            ? `<span style="background:rgba(255,179,0,0.15);color:var(--color-amber);border:1px solid rgba(255,179,0,0.3);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">✍️ Assinatura Pendente</span>`
+            : `<span style="background:rgba(16,185,129,0.15);color:var(--color-emerald);border:1px solid rgba(16,185,129,0.3);padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600;display:inline-block">✅ Assinada</span>`;
+
         const card  = document.createElement('div');
         card.className = 'os-card';
         card.innerHTML = `
@@ -419,7 +420,10 @@ function renderOsList(ordens) {
                     <h3>${nome}</h3>
                     <span class="os-id">Data: ${new Date(os.criado_em).toLocaleDateString('pt-BR')}</span>
                 </div>
-                <span class="os-status status-${statusClean.toLowerCase().replace(/ /g,'-')}">${statusClean}</span>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.35rem;">
+                    <span class="os-status status-${statusClean.toLowerCase().replace(/ /g,'-')}">${statusClean}</span>
+                    ${badgeAssinatura}
+                </div>
             </div>
             <div class="os-body">
                 <p><strong>Equipamento:</strong> ${equip}</p>
@@ -438,7 +442,7 @@ function renderOsList(ordens) {
     });
 }
 
-// ── Modal Editar OS (Esteira de Reparo) ──────────────────────
+// ── Modal Editar OS (Esteira de Reparo, Assinatura & Fotos) ──
 const modalEditarOs          = document.getElementById('modalEditarOs');
 const btnCloseModalEditar    = document.getElementById('btnCloseModalEditar');
 const formEditarOs           = document.getElementById('formEditarOs');
@@ -452,6 +456,65 @@ const editValor              = document.getElementById('editValor');
 const editDiagnostico        = document.getElementById('editDiagnostico');
 const editServicoRealizado   = document.getElementById('editServicoRealizado');
 const editPix                = document.getElementById('editPix');
+
+// Assinatura Presencial no Modal de Edição
+const editCanvas             = document.getElementById('editSignatureCanvas');
+const btnClearEditSignature  = document.getElementById('btnClearEditSignature');
+const boxAssinaturaExistente = document.getElementById('boxAssinaturaExistente');
+const imgAssinaturaExistente = document.getElementById('imgAssinaturaExistente');
+const btnRefazerAssinatura   = document.getElementById('btnRefazerAssinatura');
+const boxCanvasAssinatura    = document.getElementById('boxCanvasAssinatura');
+
+let editSignaturePad = null;
+if (editCanvas) {
+    editSignaturePad = new SignaturePad(editCanvas, { backgroundColor: 'rgb(255, 255, 255)' });
+}
+
+function resizeEditCanvas() {
+    if (!editCanvas || !editSignaturePad) return;
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+    const parentW = editCanvas.parentElement ? editCanvas.parentElement.offsetWidth : 400;
+    if (parentW > 0) {
+        editCanvas.width = parentW * ratio;
+        editCanvas.height = 200 * ratio;
+        editCanvas.getContext('2d').scale(ratio, ratio);
+        editSignaturePad.clear();
+    }
+}
+
+btnClearEditSignature?.addEventListener('click', () => {
+    if (editSignaturePad) editSignaturePad.clear();
+});
+
+btnRefazerAssinatura?.addEventListener('click', () => {
+    boxAssinaturaExistente.classList.add('hidden');
+    boxCanvasAssinatura.classList.remove('hidden');
+    resizeEditCanvas();
+});
+
+// Upload de Fotos Adicionais na Visita Presencial
+const editFotosUpload  = document.getElementById('editFotosUpload');
+const editFotosPreview = document.getElementById('editFotosPreview');
+let editSelectedFiles  = [];
+
+editFotosUpload?.addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+        if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+            alert(`O arquivo "${file.name}" não é uma imagem válida (apenas JPG, PNG ou WEBP).`);
+            continue;
+        }
+        editSelectedFiles.push(file);
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = document.createElement('img');
+            img.src = ev.target.result;
+            img.className = 'foto-preview';
+            editFotosPreview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    }
+});
 
 // Recálculo em Tempo Real de Valor Total da OS (Mão de Obra + Peças + Deslocamento)
 function recalcularValorTotalOS() {
@@ -500,12 +563,16 @@ window.abrirModalEditar = function(osId) {
     const editClienteEmail    = document.getElementById('editClienteEmail');
     const editClienteCpf      = document.getElementById('editClienteCpf');
     const editEquipamento     = document.getElementById('editEquipamento');
+    const editNumeroSerie     = document.getElementById('editNumeroSerie');
+    const editDefeitoRelatado = document.getElementById('editDefeitoRelatado');
 
     if (editClienteNome) editClienteNome.value = os.clientes_os?.nome || '';
     if (editClienteTelefone) editClienteTelefone.value = os.clientes_os?.telefone || '';
     if (editClienteEmail) editClienteEmail.value = os.clientes_os?.email || '';
     if (editClienteCpf) editClienteCpf.value = os.clientes_os?.cpf_cnpj || '';
     if (editEquipamento) editEquipamento.value = os.equipamento || '';
+    if (editNumeroSerie) editNumeroSerie.value = os.numero_serie || '';
+    if (editDefeitoRelatado) editDefeitoRelatado.value = os.defeito_relatado || '';
 
     editStatus.value           = os.status || 'Aberto';
     editDeslocamento.value     = os.custo_deslocamento || '';
@@ -515,8 +582,35 @@ window.abrirModalEditar = function(osId) {
     editServicoRealizado.value = os.servico_realizado || '';
     editPix.value              = os.pix_copia_cola || '';
 
+    // Limpa e exibe fotos existentes
+    if (editFotosPreview) {
+        editFotosPreview.innerHTML = '';
+        editSelectedFiles = [];
+        if (os.fotos_urls && os.fotos_urls.length > 0) {
+            os.fotos_urls.forEach(url => {
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'foto-preview';
+                img.title = 'Foto já anexada';
+                editFotosPreview.appendChild(img);
+            });
+        }
+    }
+
+    // Assinatura do Cliente
+    if (os.assinatura_cliente_base64) {
+        boxAssinaturaExistente?.classList.remove('hidden');
+        if (imgAssinaturaExistente) imgAssinaturaExistente.src = os.assinatura_cliente_base64;
+        boxCanvasAssinatura?.classList.add('hidden');
+    } else {
+        boxAssinaturaExistente?.classList.add('hidden');
+        boxCanvasAssinatura?.classList.remove('hidden');
+        if (editSignaturePad) editSignaturePad.clear();
+    }
+
     recalcularValorTotalOS();
     modalEditarOs.classList.remove('hidden');
+    setTimeout(resizeEditCanvas, 150);
 };
 
 btnCloseModalEditar.addEventListener('click', () => modalEditarOs.classList.add('hidden'));
@@ -527,41 +621,70 @@ formEditarOs.addEventListener('submit', async (e) => {
     if (!osId) return;
 
     showLoading('Atualizando Ordem de Serviço...');
-    const valNum = editValor.value ? parseFloat(editValor.value) : null;
-    const desNum = editDeslocamento.value ? parseFloat(editDeslocamento.value) : 0;
-    const diagText = editDiagnostico.value.trim();
-    const feitoText = editServicoRealizado.value.trim();
-    const pixText = editPix.value.trim();
-    const statusVal = editStatus.value;
+    try {
+        const osObj = _ordensCache.find(o => o.id === osId);
 
-    const nomeVal = document.getElementById('editClienteNome')?.value.trim() || '';
-    const telVal = document.getElementById('editClienteTelefone')?.value.trim() || '';
-    const emailVal = document.getElementById('editClienteEmail')?.value.trim() || '';
-    const cpfVal = document.getElementById('editClienteCpf')?.value.trim() || '';
-    const equipVal = document.getElementById('editEquipamento')?.value.trim() || '';
+        // 1. Upload de novas fotos se houver
+        let novasFotosUrls = [];
+        if (editSelectedFiles.length > 0) {
+            showLoading(`Fazendo upload de ${editSelectedFiles.length} nova(s) foto(s)...`);
+            for (const file of editSelectedFiles) {
+                const ext = file.name.split('.').pop();
+                const fileName = `${generateUUID()}.${ext}`;
+                const { error: errUpload } = await db.storage.from('fotos-os').upload(fileName, file);
+                if (errUpload) throw errUpload;
+                const { data: urlData } = db.storage.from('fotos-os').getPublicUrl(fileName);
+                novasFotosUrls.push(urlData.publicUrl);
+            }
+        }
 
-    // Atualiza imediatamente o cache local para UX fluida
-    const osObj = _ordensCache.find(o => o.id === osId);
-    if (osObj) {
-        osObj.status = statusVal;
-        osObj.valor_total = valNum;
-        osObj.custo_deslocamento = desNum;
-        osObj.diagnostico = diagText;
-        osObj.servico_realizado = feitoText;
-        osObj.pix_copia_cola = pixText;
-        if (equipVal) osObj.equipamento = equipVal;
+        const fotosFinais = [...(osObj?.fotos_urls || []), ...novasFotosUrls];
 
-        if (!osObj.clientes_os) osObj.clientes_os = {};
-        if (nomeVal) osObj.clientes_os.nome = nomeVal;
-        if (telVal) osObj.clientes_os.telefone = telVal;
-        osObj.clientes_os.email = emailVal;
-        osObj.clientes_os.cpf_cnpj = cpfVal;
-    }
+        // 2. Assinatura do cliente
+        let assinaturaFinal = osObj?.assinatura_cliente_base64 || null;
+        if (editSignaturePad && !editSignaturePad.isEmpty()) {
+            assinaturaFinal = editSignaturePad.toDataURL();
+        }
 
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(osId);
+        const valNum = editValor.value ? parseFloat(editValor.value) : null;
+        const desNum = editDeslocamento.value ? parseFloat(editDeslocamento.value) : 0;
+        const diagText = editDiagnostico.value.trim();
+        const feitoText = editServicoRealizado.value.trim();
+        const pixText = editPix.value.trim();
+        const statusVal = editStatus.value;
 
-    if (isValidUUID) {
-        try {
+        const nomeVal = document.getElementById('editClienteNome')?.value.trim() || '';
+        const telVal = document.getElementById('editClienteTelefone')?.value.trim() || '';
+        const emailVal = document.getElementById('editClienteEmail')?.value.trim() || '';
+        const cpfVal = document.getElementById('editClienteCpf')?.value.trim() || '';
+        const equipVal = document.getElementById('editEquipamento')?.value.trim() || '';
+        const numSerieVal = document.getElementById('editNumeroSerie')?.value.trim() || '';
+        const defRelVal = document.getElementById('editDefeitoRelatado')?.value.trim() || '';
+
+        // Atualiza imediatamente o cache local para UX fluida
+        if (osObj) {
+            osObj.status = statusVal;
+            osObj.valor_total = valNum;
+            osObj.custo_deslocamento = desNum;
+            osObj.diagnostico = diagText;
+            osObj.servico_realizado = feitoText;
+            osObj.pix_copia_cola = pixText;
+            osObj.fotos_urls = fotosFinais;
+            osObj.assinatura_cliente_base64 = assinaturaFinal;
+            if (equipVal) osObj.equipamento = equipVal;
+            if (numSerieVal !== undefined) osObj.numero_serie = numSerieVal;
+            if (defRelVal !== undefined) osObj.defeito_relatado = defRelVal;
+
+            if (!osObj.clientes_os) osObj.clientes_os = {};
+            if (nomeVal) osObj.clientes_os.nome = nomeVal;
+            if (telVal) osObj.clientes_os.telefone = telVal;
+            osObj.clientes_os.email = emailVal;
+            osObj.clientes_os.cpf_cnpj = cpfVal;
+        }
+
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(osId);
+
+        if (isValidUUID) {
             await db
                 .from('ordens_servico')
                 .update({
@@ -571,7 +694,11 @@ formEditarOs.addEventListener('submit', async (e) => {
                     diagnostico: diagText,
                     servico_realizado: feitoText,
                     pix_copia_cola: pixText,
-                    equipamento: equipVal || undefined
+                    equipamento: equipVal || undefined,
+                    numero_serie: numSerieVal || undefined,
+                    defeito_relatado: defRelVal || undefined,
+                    assinatura_cliente_base64: assinaturaFinal,
+                    fotos_urls: fotosFinais
                 })
                 .eq('id', osId);
 
@@ -582,15 +709,17 @@ formEditarOs.addEventListener('submit', async (e) => {
                     cpf_cnpj: cpfVal
                 }).eq('id', osObj.cliente_id);
             }
-        } catch (err) {
-            console.warn('Erro ao sincronizar com banco Supabase:', err);
         }
-    }
 
-    alert('Ordem de Serviço e dados do cliente atualizados com sucesso!');
-    modalEditarOs.classList.add('hidden');
-    renderOsList(_ordensCache);
-    hideLoading();
+        alert('Ordem de Serviço e dados atualizados com sucesso!');
+        modalEditarOs.classList.add('hidden');
+        renderOsList(_ordensCache);
+    } catch (err) {
+        console.error('Erro ao atualizar OS:', err);
+        alert('Erro ao atualizar OS: ' + (err.message || err));
+    } finally {
+        hideLoading();
+    }
 });
 
 // ── 🔔 LEADS WEB ─────────────────────────────────────────────

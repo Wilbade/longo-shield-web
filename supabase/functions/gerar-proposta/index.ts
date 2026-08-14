@@ -102,7 +102,7 @@ Dados para basear toda a análise:
     }
 
     if (!respostaTexto) {
-       throw new Error('A API do Gemini não retornou conteúdo devido a limite de taxa ou indisponibilidade.');
+      throw new Error('A API do Gemini não retornou conteúdo devido a limite de taxa ou indisponibilidade.');
     }
 
     return new Response(

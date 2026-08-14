@@ -159,9 +159,8 @@
 
                     <!-- Assinatura do Cliente -->
                     <div class="form-group full-width mt-4">
-                        <h3>4. Assinatura do Cliente</h3>
-                        <p class="text-muted text-sm mb-2">Assine no quadro abaixo para concordar com o termo de
-                            entrada.</p>
+                        <h3>4. Assinatura do Cliente (Opcional na Abertura)</h3>
+                        <p class="text-muted text-sm mb-2">Assine no quadro abaixo ou deixe em branco caso vá colher presencialmente na visita ao cliente.</p>
                         <div class="signature-wrapper">
                             <canvas id="signatureCanvas" width="400" height="200"></canvas>
                         </div>
@@ -440,6 +439,14 @@
                                 <label class="text-sm">Equipamento / Modelo</label>
                                 <input type="text" id="editEquipamento" class="text-sm">
                             </div>
+                            <div>
+                                <label class="text-sm">Número de Série (S/N)</label>
+                                <input type="text" id="editNumeroSerie" placeholder="Ex: ABC12345" class="text-sm">
+                            </div>
+                            <div class="full-width">
+                                <label class="text-sm">Defeito Relatado Inicial</label>
+                                <textarea id="editDefeitoRelatado" rows="2" class="text-sm" placeholder="Defeito inicial relatado pelo cliente..."></textarea>
+                            </div>
                         </div>
                     </div>
 
@@ -548,6 +555,42 @@
                         <label for="editPix">Chave PIX Copia e Cola / Chave PIX</label>
                         <input type="text" id="editPix"
                             placeholder="Cole o código PIX Copia e Cola ou sua chave PIX aqui...">
+                    </div>
+
+                    <!-- Fotos / Evidências Adicionais na Visita -->
+                    <div class="form-group mt-4 p-3" style="background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:var(--radius)">
+                        <label style="font-weight:700">📷 Evidências &amp; Fotos do Equipamento</label>
+                        <p class="text-muted text-sm mb-2">Tire mais fotos no local durante a visita para registrar o estado físico do aparelho.</p>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="editFotosUpload" multiple accept="image/*" class="file-input">
+                            <label for="editFotosUpload" class="btn btn-secondary btn-block text-sm">📸 Tirar Foto / Anexar Novas Imagens</label>
+                        </div>
+                        <div id="editFotosPreview" class="fotos-preview-grid mt-2"></div>
+                    </div>
+
+                    <!-- Assinatura do Cliente Presencial -->
+                    <div class="form-group mt-4 p-3" style="background:rgba(0,255,255,0.02);border:1px solid var(--border-color);border-radius:var(--radius)">
+                        <label style="font-weight:700;color:var(--color-cyan)">✍️ Assinatura do Cliente (Presencial na Visita)</label>
+                        <p class="text-muted text-sm mb-2">Colete a assinatura presencial da cliente na tela do celular/computador.</p>
+                        
+                        <div id="boxAssinaturaExistente" class="hidden mb-3" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:0.75rem;border-radius:var(--radius)">
+                            <div class="flex-between align-center" style="gap:0.5rem;flex-wrap:wrap">
+                                <span style="color:var(--color-emerald);font-weight:600;font-size:0.85rem">✅ Assinatura já coletada nesta OS</span>
+                                <button type="button" id="btnRefazerAssinatura" class="btn btn-outline text-sm" style="padding:0.25rem 0.5rem">🔄 Refazer / Substituir</button>
+                            </div>
+                            <div class="mt-2" style="text-align:center;background:#fff;border-radius:4px;padding:4px;display:inline-block">
+                                <img id="imgAssinaturaExistente" src="" alt="Assinatura Existente" style="max-height:70px;max-width:100%;display:block">
+                            </div>
+                        </div>
+
+                        <div id="boxCanvasAssinatura">
+                            <div class="signature-wrapper">
+                                <canvas id="editSignatureCanvas" width="400" height="200"></canvas>
+                            </div>
+                            <div class="signature-actions mt-2">
+                                <button type="button" id="btnClearEditSignature" class="btn btn-outline text-sm">Limpar Assinatura</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-actions mt-6">

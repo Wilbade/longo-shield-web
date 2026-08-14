@@ -197,3 +197,12 @@ As principais capacidades do sistema incluem:
   - **Alinhamento do Agente 24/7 de Nuvem (`supabase/functions/agente-247/index.ts`)**: Redirecionada a gravação de prospects do robô autônomo para a tabela `prospects_outbound` com os nomes de colunas e métricas exatas consumidas pela esteira do CRM.
   - **Validação de Erro no Upsert do CRM (`wl.leads.html`)**: O front-end passou a tratar e checar explicitamente o retorno do Supabase em `errUpsert`, exibindo alertas visuais caso ocorra qualquer falha na camada de banco de dados e incrementando o contador apenas após sucesso de gravação.
   - **Suporte Expandido a Domínios `.com` no Radar**: O algoritmo de extração de sites por nicho em `buscarDominiosAutonomosPorNicho()` passou a aceitar domínios empresariais `.com` além dos TLDs brasileiros `.com.br` / `.adv.br` / `.med.br` / `.org.br`.
+- **Fluxo Flexível de Pré-Cadastro de OS & Assinatura Presencial (/os/)**:
+  - **Criação Flexível sem Assinatura Prévia**: O formulário de "Nova OS" agora permite salvar ordens de serviço pré-agendadas pelo WhatsApp sem exigir assinatura no momento da abertura (`assinatura_cliente_base64: null`).
+  - **Sinalização Visual de Assinatura Pendente**: Adicionado badge `[✍️ Assinatura Pendente]` nos cards da Lista de OS para fácil identificação das ordens que aguardam coleta física.
+  - **Coleta Presencial & Upload de Fotos no Modal de Edição (`modalEditarOs`)**:
+    - Adicionados campos para preenchimento de **Número de Série** e **Defeito Relatado** caso precisem ser confirmados no local.
+    - Seção de **Evidências & Fotos** no modal de atualização para tirar novas fotos no endereço do cliente com upload automático para o bucket `fotos-os` do Supabase Storage.
+    - Quadro interativo de **Assinatura do Cliente** dentro do modal com SignaturePad responsivo para assinatura na tela do celular/notebook durante a visita. Exibe prévia de assinatura já existente com botão "Refazer".
+  - **Preservação Integral do Layout do PDF**: O gerador de PDF (`gerarPDF`) mantém estritamente toda a diagramação, milimetragem e fontes consolidadas, renderizando a assinatura quando presente ou a linha para assinatura manual quando pendente.
+
