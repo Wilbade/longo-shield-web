@@ -415,177 +415,182 @@
                 <form id="formEditarOs">
                     <input type="hidden" id="editOsId">
 
-                    <!-- Edição dos Dados do Cliente na OS -->
-                    <div class="form-group p-3 mb-3" style="background:rgba(0,255,255,0.03);border:1px solid var(--border-color);border-radius:var(--radius)">
-                        <label style="font-weight:700;color:var(--color-cyan)">👤 Editar Dados do Cliente &amp; Equipamento nesta OS</label>
-                        <div class="form-grid mt-2" style="grid-template-columns: 1fr 1fr; gap:0.5rem;">
-                            <div>
-                                <label class="text-sm">Nome do Cliente *</label>
-                                <input type="text" id="editClienteNome" required class="text-sm">
+                    <!-- SEÇÃO 1: Dados do Cliente & Equipamento -->
+                    <div class="modal-section-card">
+                        <div class="modal-section-title">
+                            <span>👤</span> Dados do Cliente &amp; Equipamento
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="editClienteNome" class="text-sm">Nome do Cliente *</label>
+                                <input type="text" id="editClienteNome" required class="text-sm" placeholder="Nome Completo">
                             </div>
-                            <div>
-                                <label class="text-sm">Telefone / WhatsApp *</label>
-                                <input type="tel" id="editClienteTelefone" required class="text-sm">
+                            <div class="form-group">
+                                <label for="editClienteTelefone" class="text-sm">Telefone / WhatsApp *</label>
+                                <input type="tel" id="editClienteTelefone" required class="text-sm" placeholder="(11) 99999-9999">
                             </div>
-                            <div>
-                                <label class="text-sm">E-mail do Cliente</label>
-                                <input type="email" id="editClienteEmail" class="text-sm">
+                            <div class="form-group">
+                                <label for="editClienteEmail" class="text-sm">E-mail do Cliente</label>
+                                <input type="email" id="editClienteEmail" class="text-sm" placeholder="cliente@email.com">
                             </div>
-                            <div>
-                                <label class="text-sm">CPF / CNPJ</label>
-                                <input type="text" id="editClienteCpf" class="text-sm">
+                            <div class="form-group">
+                                <label for="editClienteCpf" class="text-sm">CPF / CNPJ</label>
+                                <input type="text" id="editClienteCpf" class="text-sm" placeholder="000.000.000-00">
                             </div>
-                            <div class="full-width">
-                                <label class="text-sm">Equipamento / Modelo</label>
-                                <input type="text" id="editEquipamento" class="text-sm">
+                            <div class="form-group">
+                                <label for="editEquipamento" class="text-sm">Equipamento / Modelo</label>
+                                <input type="text" id="editEquipamento" class="text-sm" placeholder="Ex: Dell Inspiron 15 / Lenovo ThinkPad T480">
                             </div>
-                            <div>
-                                <label class="text-sm">Número de Série (S/N)</label>
+                            <div class="form-group">
+                                <label for="editNumeroSerie" class="text-sm">Número de Série (S/N)</label>
                                 <input type="text" id="editNumeroSerie" placeholder="Ex: ABC12345" class="text-sm">
                             </div>
-                            <div class="full-width">
-                                <label class="text-sm">Defeito Relatado Inicial</label>
-                                <textarea id="editDefeitoRelatado" rows="2" class="text-sm" placeholder="Defeito inicial relatado pelo cliente..."></textarea>
+                            <div class="form-group col-span-full">
+                                <label for="editDefeitoRelatado" class="text-sm">Defeito Relatado Inicial</label>
+                                <textarea id="editDefeitoRelatado" rows="2" class="text-sm" placeholder="Descreva o problema informado pelo cliente..."></textarea>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="editStatus">Status da OS *</label>
-                        <select id="editStatus" class="select-input" required>
-                            <option value="Aberto">Aberto</option>
-                            <option value="Em Orçamento">Em Orçamento</option>
-                            <option value="Aguardando Aprovação">Aguardando Aprovação</option>
-                            <option value="Em Reparo">Em Reparo</option>
-                            <option value="Concluído">Concluído</option>
-                            <option value="Cancelado">Cancelado</option>
-                        </select>
-                    </div>
-
-                    <!-- Decomposição do Valor (Mão de Obra + Peças + Deslocamento) -->
-                    <div class="form-grid mt-4" style="grid-template-columns: 1fr 1fr 1fr; gap:0.75rem;">
-                        <div class="form-group">
-                            <label for="editMaoDeObra">Mão de Obra (R$) *</label>
-                            <input type="number" step="0.01" id="editMaoDeObra"
-                                placeholder="Ex: 150.00 (Formatação/Limpeza)">
+                    <!-- SEÇÃO 2: Status & Orçamento / Esteira de Reparo -->
+                    <div class="modal-section-card">
+                        <div class="modal-section-title">
+                            <span>⚙️</span> Status &amp; Valores
                         </div>
                         <div class="form-group">
-                            <label for="editValorPecas">Peças/Terceiro (R$)</label>
-                            <input type="number" step="0.01" id="editValorPecas" placeholder="Ex: 180.00 (SSD/Tela)">
+                            <label for="editStatus" class="text-sm">Status da OS *</label>
+                            <select id="editStatus" class="select-input text-sm" required>
+                                <option value="Aberto">Aberto</option>
+                                <option value="Em Orçamento">Em Orçamento</option>
+                                <option value="Aguardando Aprovação">Aguardando Aprovação</option>
+                                <option value="Em Reparo">Em Reparo</option>
+                                <option value="Concluído">Concluído</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
                         </div>
-                        <div class="form-group">
-                            <label for="editDeslocamento">Custo Deslocamento (R$)</label>
-                            <input type="number" step="0.01" id="editDeslocamento"
-                                placeholder="Ex: 15.00 (Leva & Traz)">
+
+                        <!-- Decomposição de Valores -->
+                        <div class="grid-3 mt-2">
+                            <div class="form-group">
+                                <label for="editMaoDeObra" class="text-sm">Mão de Obra (R$) *</label>
+                                <input type="number" step="0.01" id="editMaoDeObra" class="text-sm" placeholder="Ex: 150.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="editValorPecas" class="text-sm">Peças/Terceiro (R$)</label>
+                                <input type="number" step="0.01" id="editValorPecas" class="text-sm" placeholder="Ex: 180.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="editDeslocamento" class="text-sm">Deslocamento (R$)</label>
+                                <input type="number" step="0.01" id="editDeslocamento" class="text-sm" placeholder="Ex: 15.00">
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-2 p-3" style="background:rgba(0,255,255,0.05);border:1px solid var(--color-cyan);border-radius:var(--radius)">
+                            <label style="color:var(--color-cyan);font-weight:700;font-size:1rem;">💰 Valor Total Cobrado do Cliente: R$ <span id="lblValorTotal">0,00</span></label>
+                            <input type="hidden" id="editValor">
+                        </div>
+
+                        <!-- Calculadora Leva & Traz -->
+                        <div class="form-group mt-2 p-3" style="background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:var(--radius)">
+                            <label style="font-weight:700;font-size:0.85rem;color:var(--color-amber);">🚗 Calculadora de Deslocamento (Leva &amp; Traz)</label>
+                            <div class="grid-3 mt-2">
+                                <div class="form-group">
+                                    <label class="text-sm">Veículo:</label>
+                                    <select id="calcVeiculo" class="select-input text-sm">
+                                        <option value="carro" selected>🚗 Carro (R$ 1,00/km)</option>
+                                        <option value="moto">🏍️ Moto (R$ 0,50/km)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="text-sm">Região / Bairro:</label>
+                                    <select id="calcRegiao" class="select-input text-sm">
+                                        <option value="4">Local (~4 km)</option>
+                                        <option value="10" selected>Santo André (~10 km)</option>
+                                        <option value="16">São Bernardo (~16 km)</option>
+                                        <option value="12">São Caetano (~12 km)</option>
+                                        <option value="custom">Km Personalizado...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="text-sm">Distância (Km Total):</label>
+                                    <input type="number" id="calcKmTotal" class="text-sm" value="10" placeholder="Km total">
+                                </div>
+                            </div>
+                            <button type="button" id="btnCalcularDeslocamento" class="btn btn-outline btn-block mt-2 text-sm">
+                                ⚡ Calcular &amp; Aplicar Deslocamento
+                            </button>
                         </div>
                     </div>
 
-                    <div class="form-group mt-2 p-3"
-                        style="background:rgba(0,255,255,0.05);border:1px solid var(--color-cyan);border-radius:var(--radius)">
-                        <label style="color:var(--color-cyan);font-weight:700">💰 Valor Total Cobrado do Cliente: R$
-                            <span id="lblValorTotal">0,00</span></label>
-                        <input type="hidden" id="editValor">
-                    </div>
-
-                    <!-- Calculadora Inteligente de Deslocamento / Leva & Traz -->
-                    <div class="form-group mt-4 p-3"
-                        style="background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:var(--radius)">
-                        <label style="font-weight:700">🚗 Calculadora Automática de Deslocamento (Leva &amp;
-                            Traz)</label>
-                        <div class="form-grid mt-2" style="grid-template-columns: 1fr 1fr 1fr; gap:0.5rem;">
-                            <div>
-                                <label class="text-sm">Veículo:</label>
-                                <select id="calcVeiculo" class="select-input text-sm">
-                                    <option value="carro" selected>🚗 Carro (10km/L - R$ 1,00/km - Pior Caso)</option>
-                                    <option value="moto">🏍️ Moto (20km/L - R$ 0,50/km)</option>
+                    <!-- SEÇÃO 3: Diagnóstico Técnico & Laudo -->
+                    <div class="modal-section-card">
+                        <div class="modal-section-title">
+                            <span>🛠️</span> Diagnóstico &amp; Laudo Técnico
+                        </div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="editPecaEstoque" class="text-sm">Peça do Estoque Consumida</label>
+                                <select id="editPecaEstoque" class="select-input text-sm">
+                                    <option value="">Nenhuma peça de estoque utilizada</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="text-sm">Região / Bairro:</label>
-                                <select id="calcRegiao" class="select-input text-sm">
-                                    <option value="4">Príncipe de Gales / Local (~4 km)</option>
-                                    <option value="10" selected>Santo André Centro / Bairros (~10 km)</option>
-                                    <option value="16">São Bernardo do Campo (~16 km)</option>
-                                    <option value="12">São Caetano do Sul (~12 km)</option>
-                                    <option value="custom">Km Personalizado...</option>
+                            <div class="form-group">
+                                <label for="editParceiroTerceiro" class="text-sm">Serviço Terceirizado / Parceiro</label>
+                                <select id="editParceiroTerceiro" class="select-input text-sm">
+                                    <option value="">Nenhum serviço terceirizado</option>
                                 </select>
                             </div>
-                            <div>
-                                <label class="text-sm">Distância (Km Total Ida/Volta):</label>
-                                <input type="number" id="calcKmTotal" class="text-sm" value="10" placeholder="Km total">
-                            </div>
                         </div>
-                        <button type="button" id="btnCalcularDeslocamento"
-                            class="btn btn-outline btn-block mt-2 text-sm">
-                            ⚡ Calcular &amp; Aplicar Deslocamento
-                        </button>
+
+                        <div class="form-group mt-2">
+                            <label for="editDiagnostico" class="text-sm">O Que Precisa Fazer / Diagnóstico Técnico</label>
+                            <textarea id="editDiagnostico" rows="2" class="text-sm" placeholder="Ex: Formatação + Troca de pasta térmica + SSD 512GB..."></textarea>
+                        </div>
+
+                        <div class="form-group mt-2">
+                            <label for="editServicoRealizado" class="text-sm">O Que Foi Feito (Laudo Concluído)</label>
+                            <textarea id="editServicoRealizado" rows="2" class="text-sm" placeholder="Ex: Teclado trocado, sistema testado e 100% funcional."></textarea>
+                        </div>
+
+                        <div class="form-group mt-2">
+                            <label for="editPix" class="text-sm">Chave PIX Copia e Cola / Chave PIX</label>
+                            <input type="text" id="editPix" class="text-sm" placeholder="Cole o código PIX Copia e Cola ou sua chave PIX aqui...">
+                        </div>
                     </div>
 
-                    <!-- Peça do Estoque a Baixar -->
-                    <div class="form-group mt-4">
-                        <label for="editPecaEstoque">Peça do Estoque Consumida <span class="label-optional">(dá baixa
-                                automática no estoque)</span></label>
-                        <select id="editPecaEstoque" class="select-input">
-                            <option value="">Nenhuma peça de estoque utilizada</option>
-                        </select>
-                    </div>
-
-                    <!-- Serviço Terceirizado -->
-                    <div class="form-group mt-4">
-                        <label for="editParceiroTerceiro">Serviço Terceirizado / Parceiro <span
-                                class="label-optional">(ex: Reparo BGA / Reballing)</span></label>
-                        <select id="editParceiroTerceiro" class="select-input">
-                            <option value="">Nenhum serviço terceirizado</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group mt-4">
-                        <label for="editDiagnostico">O Que Precisa Fazer / Diagnóstico Técnico</label>
-                        <textarea id="editDiagnostico" rows="2"
-                            placeholder="Ex: Formatação + Higienização Interna com Pasta de Prata + Upgrade SSD 512GB..."></textarea>
-                    </div>
-
-                    <div class="form-group mt-4">
-                        <label for="editServicoRealizado">O Que Foi Feito (Laudo Concluído)</label>
-                        <textarea id="editServicoRealizado" rows="2"
-                            placeholder="Ex: Sistema formatado com Windows 11, pasta de prata trocada e SSD instalado."></textarea>
-                    </div>
-
-                    <div class="form-group mt-4">
-                        <label for="editPix">Chave PIX Copia e Cola / Chave PIX</label>
-                        <input type="text" id="editPix"
-                            placeholder="Cole o código PIX Copia e Cola ou sua chave PIX aqui...">
-                    </div>
-
-                    <!-- Fotos / Evidências Adicionais na Visita -->
-                    <div class="form-group mt-4 p-3" style="background:rgba(255,255,255,0.02);border:1px solid var(--border-color);border-radius:var(--radius)">
-                        <label style="font-weight:700">📷 Evidências &amp; Fotos do Equipamento</label>
-                        <p class="text-muted text-sm mb-2">Tire mais fotos no local durante a visita para registrar o estado físico do aparelho.</p>
-                        <div class="file-upload-wrapper">
+                    <!-- SEÇÃO 4: Fotos & Evidências -->
+                    <div class="modal-section-card">
+                        <div class="modal-section-title">
+                            <span>📷</span> Evidências &amp; Fotos do Equipamento
+                        </div>
+                        <p class="text-muted text-sm">Tire fotos no local para registrar o estado físico do aparelho.</p>
+                        <div class="file-upload-wrapper mt-1">
                             <input type="file" id="editFotosUpload" multiple accept="image/*" class="file-input">
-                            <label for="editFotosUpload" class="btn btn-secondary btn-block text-sm">📸 Tirar Foto / Anexar Novas Imagens</label>
+                            <label for="editFotosUpload" class="btn btn-secondary btn-block text-sm">📸 Tirar Foto / Anexar Imagens no Local</label>
                         </div>
                         <div id="editFotosPreview" class="fotos-preview-grid mt-2"></div>
                     </div>
 
-                    <!-- Assinatura do Cliente Presencial -->
-                    <div class="form-group mt-4 p-3" style="background:rgba(0,255,255,0.02);border:1px solid var(--border-color);border-radius:var(--radius)">
-                        <label style="font-weight:700;color:var(--color-cyan)">✍️ Assinatura do Cliente (Presencial na Visita)</label>
-                        <p class="text-muted text-sm mb-2">Colete a assinatura presencial da cliente na tela do celular/computador.</p>
+                    <!-- SEÇÃO 5: Assinatura do Cliente Presencial -->
+                    <div class="modal-section-card" style="border-color: rgba(0,255,255,0.3);">
+                        <div class="modal-section-title">
+                            <span>✍️</span> Assinatura do Cliente (Presencial na Visita)
+                        </div>
+                        <p class="text-muted text-sm">Colete a assinatura presencial da cliente na tela do celular/computador.</p>
                         
-                        <div id="boxAssinaturaExistente" class="hidden mb-3" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:0.75rem;border-radius:var(--radius)">
-                            <div class="flex-between align-center" style="gap:0.5rem;flex-wrap:wrap">
+                        <div id="boxAssinaturaExistente" class="hidden" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:0.75rem;border-radius:var(--radius)">
+                            <div class="flex-between align-center" style="gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
                                 <span style="color:var(--color-emerald);font-weight:600;font-size:0.85rem">✅ Assinatura já coletada nesta OS</span>
                                 <button type="button" id="btnRefazerAssinatura" class="btn btn-outline text-sm" style="padding:0.25rem 0.5rem">🔄 Refazer / Substituir</button>
                             </div>
-                            <div class="mt-2" style="text-align:center;background:#fff;border-radius:4px;padding:4px;display:inline-block">
+                            <div style="text-align:center;background:#fff;border-radius:4px;padding:6px;display:inline-block">
                                 <img id="imgAssinaturaExistente" src="" alt="Assinatura Existente" style="max-height:70px;max-width:100%;display:block">
                             </div>
                         </div>
 
                         <div id="boxCanvasAssinatura">
                             <div class="signature-wrapper">
-                                <canvas id="editSignatureCanvas" width="400" height="200"></canvas>
+                                <canvas id="editSignatureCanvas"></canvas>
                             </div>
                             <div class="signature-actions mt-2">
                                 <button type="button" id="btnClearEditSignature" class="btn btn-outline text-sm">Limpar Assinatura</button>
@@ -593,9 +598,8 @@
                         </div>
                     </div>
 
-                    <div class="form-actions mt-6">
-                        <button type="submit" class="btn btn-primary btn-block">💾 Salvar Alterações &amp; Atualizar
-                            DRE</button>
+                    <div class="form-actions mt-4">
+                        <button type="submit" class="btn btn-primary btn-block btn-lg">💾 Salvar Alterações &amp; Atualizar DRE</button>
                     </div>
                 </form>
             </div>

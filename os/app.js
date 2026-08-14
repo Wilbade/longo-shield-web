@@ -475,10 +475,15 @@ function resizeEditCanvas() {
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     const parentW = editCanvas.parentElement ? editCanvas.parentElement.offsetWidth : 400;
     if (parentW > 0) {
+        const data = editSignaturePad.toData();
         editCanvas.width = parentW * ratio;
-        editCanvas.height = 200 * ratio;
+        editCanvas.height = 180 * ratio;
         editCanvas.getContext('2d').scale(ratio, ratio);
-        editSignaturePad.clear();
+        if (data && data.length > 0) {
+            editSignaturePad.fromData(data);
+        } else {
+            editSignaturePad.clear();
+        }
     }
 }
 
