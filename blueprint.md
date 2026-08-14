@@ -170,6 +170,8 @@ As principais capacidades do sistema incluem:
     - **Telemetria de Tráfego & Origem em Tempo Real (Buscadores vs IAs)**:
       - Interceptador autônomo em `main.js` e `/manutencao/app.js` registrando visitas na tabela `site_visits` do Supabase.
       - Classificação em tempo real por canal (**Google/Bing Orgânico**, **ChatGPT/Perplexity/Gemini GEO**, **Redes Sociais/WhatsApp** e **Acesso Direto**).
+      - **Desdobramento por Página Comercial (Público)**: Exibição separada das métricas de tráfego exclusivo das páginas comerciais (`/manutencao/` e `wl.tec.br`), isolando rotas internas de bancada (`/os/`).
+      - **Tabela de Log de Acessos Recentes**: Histórico em tempo real das últimas visitas públicas com Data/Hora, Página Acessada, Origem/Canal, Referrer e Dispositivo (Mobile/Desktop).
     - **Módulo Benchmark de Concorrentes**: Cadastro dinâmico de domínios concorrentes para auditoria automatizada e comparação de posture SEO/GEO no `seo-geo.html`.
     - **Embed do Looker Studio (GSC + GA4 + Cloudflare)**: Suporte a `iframe` persistido via `localStorage` para exibição unificada de dashboards oficiais do Google e Cloudflare sem sair da aplicação.
     - **Hiperlink no CRM**: Botão `📊 Radar SEO & GEO` no cabeçalho do `wl.leads.html`.
