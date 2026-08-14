@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     const promptText = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC.
-Telefone/WhatsApp: 11 99531-4831 | Email: contato@wl.tec.br | Site: wl.tec.br
+Telefone/WhatsApp: 11 91465-4157 | Email: contato@wl.tec.br | Site: wl.tec.br
 
 Escreva um dossiê técnico e comercial contendo EXATAMENTE 3 seções, rigorosamente separadas pela tag secreta [DIVISAO_WL]. Não escreva nada antes da primeira tag.
 

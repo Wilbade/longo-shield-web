@@ -362,7 +362,7 @@ async function iniciarDiagnostico() {
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button id="btnPDF" class="refresh-btn" style="flex: 1;">📥 DOSSIÊ PDF</button>
-                    <button onclick="window.open('https://wa.me/5511995314831')" class="refresh-btn" style="flex: 1; background: ${cor}; color: #000;">📢 CONSULTORIA</button>
+                    <button onclick="window.open('https://wa.me/5511914654157?text=Olá,%20Wiliam.%20Gostaria%20de%20um%20Diagnóstico%20de%20Blindagem%20Digital%20para%20minha%20empresa.')" class="refresh-btn" style="flex: 1; background: ${cor}; color: #000;">📢 CONSULTORIA</button>
                 </div>
             </div>
             <div style="padding: 20px; background: rgba(255, 179, 0, 0.08); border-top: 1px solid rgba(255, 179, 0, 0.2);">
@@ -416,6 +416,6 @@ function gerarRelatorioPDF(d) {
     doc.setFillColor(20, 20, 20); doc.rect(0, 260, 210, 37, 'F');
     try { doc.addImage("img/escudo_shiel.png", "PNG", 175, 265, 20, 20); } catch { }
     doc.setTextColor(255, 255, 255); doc.setFontSize(10); doc.text("WL TEC - CONSULTORIA EM CIBERSEGURANCA", 15, 275);
-    doc.setFontSize(8); doc.text("contato@wl.tec.br | (11) 99531-4831 | www.wl.tec.br", 15, 285);
+    doc.setFontSize(8); doc.text("contato@wl.tec.br | (11) 91465-4157 | www.wl.tec.br", 15, 285);
     doc.save(`Dossie_Resiliencia_${d.dominio}.pdf`);
 }

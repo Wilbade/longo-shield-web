@@ -225,7 +225,7 @@
         if (end) msg += `\n\n📍 Endereço para retirada: ${end}`;
         if (dados.levaTraz) msg += `\n🚗 Confirmo o serviço de *Leva & Traz*.`;
 
-        const url = `https://wa.me/5511995314831?text=${encodeURIComponent(msg)}`;
+        const url = `https://wa.me/5511914654157?text=${encodeURIComponent(msg)}`;
         setTimeout(() => window.open(url, '_blank'), 1800);
     }
 

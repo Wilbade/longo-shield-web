@@ -85,7 +85,7 @@ serve(async (req) => {
       try {
         const prompt = `Atue como Wiliam Longo, Especialista da WL TEC (Cibersegurança e TI).
 Gere uma proposta de prospecção comercial ultra-direta (máx 3 parágrafos) para o domínio **${targetDomain}**${isRedirected ? ' (que redireciona para ' + canonicalDomain + ')' : ''} (${nichoAtual.nicho}).
-Cite os riscos de DMARC/SSL e ofereça a solução WL TEC. Finalize convidando para uma reunião via WhatsApp 11 99531-4831.`
+Cite os riscos de DMARC/SSL e ofereça a solução WL TEC. Finalize convidando para uma reunião via WhatsApp 11 91465-4157.`
 
         const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
           method: 'POST',
@@ -100,7 +100,7 @@ Cite os riscos de DMARC/SSL e ofereça a solução WL TEC. Finalize convidando p
     }
 
     if (!propostaIaText) {
-      propostaIaText = `Proposta Automática WL TEC para ${targetDomain}: Identificamos que o ambiente corporativo necessita de hardening e adequação LGPD. Entre em contato com Wiliam Longo (11 99531-4831) para agendar uma auditoria gratuita.`
+      propostaIaText = `Proposta Automática WL TEC para ${targetDomain}: Identificamos que o ambiente corporativo necessita de hardening e adequação LGPD. Entre em contato com Wiliam Longo (11 91465-4157) para agendar uma auditoria gratuita.`
     }
 
     // 4. Salva o prospect qualificado no Supabase (tabela prospects_outbound do CRM)

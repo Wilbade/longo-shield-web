@@ -764,7 +764,7 @@ function formatWhatsAppNumber(raw) {
 window.contatarLead = function(telLimpo, nome, equipamento) {
     let num = formatWhatsAppNumber(telLimpo);
     if (!num || num.length < 12) {
-        const novoTel = prompt(`O número cadastrado "${telLimpo}" tem menos dígitos que o padrão do WhatsApp (DDD + Celular).\nDigite o número completo com DDD:`, telLimpo || '11995314831');
+        const novoTel = prompt(`O número cadastrado "${telLimpo}" tem menos dígitos que o padrão do WhatsApp (DDD + Celular).\nDigite o número completo com DDD:`, telLimpo || '11914654157');
         if (!novoTel) return;
         num = formatWhatsAppNumber(novoTel);
     }
@@ -823,7 +823,7 @@ window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, d
     if (!num || num.length < 12) {
         const novoTel = prompt(
             `O número cadastrado "${telefone || 'incompleto'}" parece ter menos dígitos do que o padrão de WhatsApp (DDD + Celular).\n\nPor favor, confirme ou digite o número correto do WhatsApp com DDD:`,
-            telefone || '11995314831'
+            telefone || '11914654157'
         );
         if (!novoTel) return;
         num = formatWhatsAppNumber(novoTel);
@@ -1078,7 +1078,7 @@ window.gerarPDF = async function(osId) {
 
         // Rodapé Fixo na Margem Inferior (286mm)
         doc.setFontSize(7); doc.setTextColor(148, 163, 184);
-        doc.text('WL TEC — Manutenção de Notebooks & Consultoria em TI | WhatsApp: (11) 99531-4831 | Santo André/SP | www.wl.tec.br', 12, 286);
+        doc.text('WL TEC — Manutenção de Notebooks & Consultoria em TI | WhatsApp: (11) 91465-4157 | Santo André/SP | www.wl.tec.br', 12, 286);
 
         // Nomenclatura Distinta de PDF por Status da OS
         const osStatus = os.status || 'Aberto';

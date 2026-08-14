@@ -578,7 +578,7 @@
             document.getElementById('textoProposta').value = "Processando...";
 
             const prompt = `Atue como Wiliam Longo, Especialista em Cibersegurança da WL TEC.
-Telefone/WhatsApp: 11 99531-4831 | Email: contato@wl.tec.br | Site: wl.tec.br
+Telefone/WhatsApp: 11 91465-4157 | Email: contato@wl.tec.br | Site: wl.tec.br
 
 Escreva um dossiê técnico e comercial contendo EXATAMENTE 3 seções, rigorosamente separadas pela tag secreta [DIVISAO_WL]. Não escreva nada antes da primeira tag.
 
@@ -977,7 +977,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
             const dom = prospect.dominio || 'empresa.com.br';
             const nome = escapeHTML(prospect.nome_empresa || dom.split('.')[0].toUpperCase());
             const nicho = escapeHTML(prospect.nicho_cidade || 'Serviços Especializados');
-            const zap = prospect.whatsapp_contato ? prospect.whatsapp_contato.replace(/\D/g, '') : '5511995314831';
+            const zap = prospect.whatsapp_contato ? prospect.whatsapp_contato.replace(/\D/g, '') : '5511914654157';
             
             // Extrai nota real do Google do resumo ou usa padrão 4.9★
             const notaMatch = (prospect.vulnerabilidades_resumo || '').match(/(\d\.\d★?)/);
@@ -1822,7 +1822,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
             const assuntoStr = ehWebDesign ? `Presença Digital & Recuperação de Domínio / Site Corporativo — ${prospect.dominio}` : `Alerta de Segurança Digital & Proteção de E-mail — ${prospect.dominio}`;
             const assunto = encodeURIComponent(assuntoStr);
             
-            let texto = prospect.email_prospeccao_gerado || `Olá,\n\nIdentificamos uma vulnerabilidade no domínio ${prospect.dominio}.\n\nEntre em contato com a WL TEC (11 99531-4831).`;
+            let texto = prospect.email_prospeccao_gerado || `Olá,\n\nIdentificamos uma vulnerabilidade no domínio ${prospect.dominio}.\n\nEntre em contato com a WL TEC (11 91465-4157).`;
             texto = texto.replace(/\*\*/g, '').replace(/#/g, '').trim();
 
             const body = encodeURIComponent(texto);
@@ -1834,7 +1834,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
         }
 
         async function adicionarWhatsappManual(id) {
-            const num = prompt("Digite o número de WhatsApp da empresa (ex: 11995314831):");
+            const num = prompt("Digite o número de WhatsApp da empresa (ex: 11914654157):");
             if (num) {
                 let numLimpo = num.replace(/\D/g, '');
                 if (numLimpo.length >= 10 && !numLimpo.startsWith('55')) numLimpo = '55' + numLimpo;
@@ -1846,7 +1846,7 @@ REGRA OBRIGATÓRIA DE ASSINATURA: NUNCA inclua nenhuma assinatura, "Atenciosamen
         async function dispararWhatsappOutbound(prospect) {
             let numZap = prospect.whatsapp_contato;
             if (!numZap) {
-                numZap = prompt(`Digite o WhatsApp de contato para a empresa ${prospect.dominio} (ex: 11995314831):`);
+                numZap = prompt(`Digite o WhatsApp de contato para a empresa ${prospect.dominio} (ex: 11914654157):`);
                 if (numZap) {
                     numZap = numZap.replace(/\D/g, '');
                     if (numZap.length >= 10 && !numZap.startsWith('55')) numZap = '55' + numZap;
