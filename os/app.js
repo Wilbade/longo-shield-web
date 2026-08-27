@@ -646,6 +646,18 @@ window.removerItemModal = function(idx) {
     renderTabelaItensModal();
 };
 
+window.adicionarPresetItem = function(tipo, desc, qtd, unit) {
+    _itensOsEditando.push({
+        id: 'it_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        tipo: tipo,
+        descricao: desc,
+        qtd: qtd,
+        valor_unitario: parseFloat(unit) || 0,
+        subtotal: tipo === 'brinde' ? 0 : (qtd * parseFloat(unit))
+    });
+    renderTabelaItensModal();
+};
+
 btnAdicionarItemManual?.addEventListener('click', () => {
     const desc = novoItemDesc.value.trim();
     if (!desc) {

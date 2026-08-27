@@ -521,8 +521,29 @@
 
                         <!-- ADIÇÃO RÁPIDA DE ITENS / PEÇAS -->
                         <div class="quick-add-box">
-                            <label style="font-weight:700;font-size:0.82rem;color:var(--color-amber);display:block;margin-bottom:0.5rem">
-                                ➕ Adicionar Item à Discriminação (Serviço, Estoque, Terceiro ou Deslocamento)
+                            <label style="font-weight:700;font-size:0.82rem;color:var(--color-amber);display:block;margin-bottom:0.4rem">
+                                ⚡ Atalhos Rápidos de Serviços &amp; Peças (Clique para Inserir Direto na OS):
+                            </label>
+                            <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Formatação e Instalação do Windows 11 + Ativação', 1, 100.00)">
+                                    💻 Formatação Win 11 (R$ 100)
+                                </button>
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Mão de Obra: Desmontagem e Troca de Bateria', 1, 150.00)">
+                                    🔋 Troca Bateria M.O. (R$ 150)
+                                </button>
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('peca_terceiro', 'Peça: Bateria Original/Compatível sob Encomenda', 1, 350.00)">
+                                    🤝 Bateria Nova Peça (R$ 350)
+                                </button>
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Higienização Interna Completa & Troca de Pasta Térmica', 1, 100.00)">
+                                    🧼 Limpeza &amp; Pasta (R$ 100)
+                                </button>
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('brinde', 'Higienização Interna Completa & Limpeza de Bancada', 1, 0.00)">
+                                    🎁 Higienização (BRINDE R$ 0)
+                                </button>
+                            </div>
+
+                            <label style="font-weight:700;font-size:0.82rem;color:var(--color-cyan);display:block;margin-bottom:0.5rem">
+                                ➕ Ou Adicione Item Personalizado:
                             </label>
 
                             <!-- Linha 1: Serviço Personalizado / Mão de Obra -->
