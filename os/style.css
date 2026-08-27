@@ -721,3 +721,119 @@ nav {
     background: rgba(34, 197, 94, 0.15);
     color: #22c55e;
 }
+
+/* ── Gerenciador de Itens & Discriminação da OS ── */
+.items-table-wrapper {
+    background: rgba(10, 12, 16, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    overflow-x: auto;
+    margin-top: 0.75rem;
+}
+
+.table-items-os {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.table-items-os th {
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.6rem 0.8rem;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    text-align: left;
+}
+
+.table-items-os td {
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+.table-items-os tr:last-child td {
+    border-bottom: none;
+}
+
+.item-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.item-badge.badge-servico {
+    background: rgba(0, 255, 255, 0.12);
+    color: var(--color-cyan);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.item-badge.badge-estoque {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.item-badge.badge-terceiro {
+    background: rgba(168, 85, 247, 0.12);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.item-badge.badge-insumo {
+    background: rgba(255, 179, 0, 0.12);
+    color: var(--color-amber);
+    border: 1px solid rgba(255, 179, 0, 0.3);
+}
+
+.item-badge.badge-deslocamento {
+    background: rgba(249, 115, 22, 0.12);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.item-badge.badge-brinde {
+    background: rgba(20, 184, 166, 0.12);
+    color: #2dd4bf;
+    border: 1px solid rgba(20, 184, 166, 0.3);
+}
+
+.items-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.8rem;
+}
+
+.item-summary-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+}
+
+.item-summary-card .lbl {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    display: block;
+}
+
+.item-summary-card .val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.quick-add-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius);
+    padding: 0.85rem;
+    margin-top: 0.75rem;
+}
+

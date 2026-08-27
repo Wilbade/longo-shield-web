@@ -435,7 +435,7 @@ function renderOsList(ordens) {
             <div class="os-actions" style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border-color);display:flex;gap:0.4rem;flex-wrap:wrap">
                 <button class="btn btn-secondary btn-action" onclick="abrirModalEditar('${escapeHTML(os.id)}')">⚙️ Atualizar OS</button>
                 <button class="btn btn-outline btn-action" onclick="gerarPDF('${escapeHTML(os.id)}')">📄 Gerar PDF</button>
-                <button class="btn btn-primary btn-action" onclick="enviarWhatsApp('${tel}','${nome}','${equip}',${os.valor_total||0},'${pixCode}','${statusClean}','${diag}','${feito}')">💬 WhatsApp + PIX</button>
+                <button class="btn btn-primary btn-action" onclick="enviarWhatsApp('${tel}','${nome}','${equip}',${os.valor_total||0},'${pixCode}','${statusClean}','${diag}','${feito}','${escapeHTML(os.id)}')">💬 WhatsApp + PIX</button>
                 ${os.fotos_urls?.length ? `<button class="btn btn-outline btn-action" onclick='verFotos(${JSON.stringify(os.fotos_urls)})'>📷 Fotos (${os.fotos_urls.length})</button>` : ''}
             </div>`;
         osListContainer.appendChild(card);
@@ -448,11 +448,6 @@ const btnCloseModalEditar    = document.getElementById('btnCloseModalEditar');
 const formEditarOs           = document.getElementById('formEditarOs');
 const editOsId               = document.getElementById('editOsId');
 const editStatus             = document.getElementById('editStatus');
-const editMaoDeObra          = document.getElementById('editMaoDeObra');
-const editValorPecas         = document.getElementById('editValorPecas');
-const editDeslocamento       = document.getElementById('editDeslocamento');
-const lblValorTotal          = document.getElementById('lblValorTotal');
-const editValor              = document.getElementById('editValor');
 const editDiagnostico        = document.getElementById('editDiagnostico');
 const editServicoRealizado   = document.getElementById('editServicoRealizado');
 const editPix                = document.getElementById('editPix');
@@ -521,41 +516,247 @@ editFotosUpload?.addEventListener('change', (e) => {
     }
 });
 
-// Recálculo em Tempo Real de Valor Total da OS (Mão de Obra + Peças + Deslocamento)
-function recalcularValorTotalOS() {
-    const mo  = parseFloat(editMaoDeObra.value || 0);
-    const pec = parseFloat(editValorPecas.value || 0);
-    const des = parseFloat(editDeslocamento.value || 0);
-    const tot = mo + pec + des;
-    lblValorTotal.textContent = tot.toFixed(2);
-    editValor.value = tot;
+// ── 🛠️ GERENCIADOR DE ITENS, PEÇAS & ORÇAMENTO DA OS ─────────
+const tabelaItensModal        = document.getElementById('tabelaItensModal');
+const corpoTabelaItensModal   = document.getElementById('corpoTabelaItensModal');
+const lblMoTotal              = document.getElementById('lblMoTotal');
+const lblPecasTotal           = document.getElementById('lblPecasTotal');
+const lblDeslocamentoTotal    = document.getElementById('lblDeslocamentoTotal');
+const lblValorTotal           = document.getElementById('lblValorTotal');
+
+const editValor               = document.getElementById('editValor');
+const editMaoDeObra           = document.getElementById('editMaoDeObra');
+const editValorPecas          = document.getElementById('editValorPecas');
+const editDeslocamento        = document.getElementById('editDeslocamento');
+
+const novoItemTipo            = document.getElementById('novoItemTipo');
+const novoItemDesc            = document.getElementById('novoItemDesc');
+const novoItemQtd             = document.getElementById('novoItemQtd');
+const novoItemValor           = document.getElementById('novoItemValor');
+const btnAdicionarItemManual  = document.getElementById('btnAdicionarItemManual');
+
+const editPecaEstoque         = document.getElementById('editPecaEstoque');
+const novoEstoqueQtd          = document.getElementById('novoEstoqueQtd');
+const novoEstoqueValor        = document.getElementById('novoEstoqueValor');
+const btnAdicionarPecaEstoque = document.getElementById('btnAdicionarPecaEstoque');
+
+const calcVeiculo             = document.getElementById('calcVeiculo');
+const calcRegiao              = document.getElementById('calcRegiao');
+const calcKmTotal             = document.getElementById('calcKmTotal');
+const calcCustoPrev           = document.getElementById('calcCustoPrev');
+const btnAplicarDeslocamento  = document.getElementById('btnAplicarDeslocamento');
+const btnGerarPdfModal        = document.getElementById('btnGerarPdfModal');
+
+let _itensOsEditando = [];
+
+function formatMoeda(val) {
+    return 'R$ ' + (parseFloat(val) || 0).toFixed(2);
 }
 
-[editMaoDeObra, editValorPecas, editDeslocamento].forEach(inp => {
-    inp?.addEventListener('input', recalcularValorTotalOS);
+function getTipoBadgeHtml(tipo) {
+    switch (tipo) {
+        case 'servico':
+            return '<span class="item-badge badge-servico">🔧 Serviço</span>';
+        case 'peca_estoque':
+            return '<span class="item-badge badge-estoque">📦 Estoque</span>';
+        case 'peca_terceiro':
+            return '<span class="item-badge badge-terceiro">🤝 Terceiro</span>';
+        case 'insumo':
+            return '<span class="item-badge badge-insumo">🧪 Insumo</span>';
+        case 'deslocamento':
+            return '<span class="item-badge badge-deslocamento">🚗 Leva & Traz</span>';
+        case 'brinde':
+            return '<span class="item-badge badge-brinde">🎁 Brinde</span>';
+        default:
+            return '<span class="item-badge badge-servico">🔧 Serviço</span>';
+    }
+}
+
+function renderTabelaItensModal() {
+    if (!corpoTabelaItensModal) return;
+    corpoTabelaItensModal.innerHTML = '';
+
+    if (!_itensOsEditando || _itensOsEditando.length === 0) {
+        corpoTabelaItensModal.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-muted text-center" style="padding:1rem;">
+                    Nenhum item ou serviço discriminado ainda. Adicione itens abaixo!
+                </td>
+            </tr>`;
+        recalcularTotaisItens();
+        return;
+    }
+
+    _itensOsEditando.forEach((it, idx) => {
+        const tr = document.createElement('tr');
+        const qtd = parseInt(it.qtd) || 1;
+        const unit = parseFloat(it.valor_unitario) || 0;
+        const sub = it.tipo === 'brinde' ? 0 : (qtd * unit);
+        it.subtotal = sub;
+
+        tr.innerHTML = `
+            <td>${getTipoBadgeHtml(it.tipo)}</td>
+            <td><strong>${escapeHTML(it.descricao)}</strong></td>
+            <td style="text-align:center;">${qtd}</td>
+            <td style="text-align:right;">${it.tipo === 'brinde' ? 'R$ 0,00' : formatMoeda(unit)}</td>
+            <td style="text-align:right;font-weight:700;color:${it.tipo === 'brinde' ? '#2dd4bf' : 'var(--color-cyan)'}">
+                ${it.tipo === 'brinde' ? 'R$ 0,00 (BRINDE)' : formatMoeda(sub)}
+            </td>
+            <td style="text-align:center;">
+                <button type="button" class="btn btn-outline" style="padding:0.2rem 0.4rem;font-size:0.75rem" onclick="removerItemModal(${idx})" title="Remover item">🗑️</button>
+            </td>
+        `;
+        corpoTabelaItensModal.appendChild(tr);
+    });
+
+    recalcularTotaisItens();
+}
+
+function recalcularTotaisItens() {
+    let mo = 0;
+    let pecas = 0;
+    let des = 0;
+
+    _itensOsEditando.forEach(it => {
+        const sub = parseFloat(it.subtotal || 0);
+        if (it.tipo === 'servico' || it.tipo === 'insumo') {
+            mo += sub;
+        } else if (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro') {
+            pecas += sub;
+        } else if (it.tipo === 'deslocamento') {
+            des += sub;
+        }
+    });
+
+    const tot = mo + pecas + des;
+
+    if (lblMoTotal) lblMoTotal.textContent = formatMoeda(mo);
+    if (lblPecasTotal) lblPecasTotal.textContent = formatMoeda(pecas);
+    if (lblDeslocamentoTotal) lblDeslocamentoTotal.textContent = formatMoeda(des);
+    if (lblValorTotal) lblValorTotal.textContent = formatMoeda(tot);
+
+    if (editValor) editValor.value = tot.toFixed(2);
+    if (editMaoDeObra) editMaoDeObra.value = mo.toFixed(2);
+    if (editValorPecas) editValorPecas.value = pecas.toFixed(2);
+    if (editDeslocamento) editDeslocamento.value = des.toFixed(2);
+}
+
+window.removerItemModal = function(idx) {
+    _itensOsEditando.splice(idx, 1);
+    renderTabelaItensModal();
+};
+
+btnAdicionarItemManual?.addEventListener('click', () => {
+    const desc = novoItemDesc.value.trim();
+    if (!desc) {
+        alert('Por favor, informe a descrição do item/serviço.');
+        novoItemDesc.focus();
+        return;
+    }
+    const tipo = novoItemTipo.value;
+    const qtd = parseInt(novoItemQtd.value) || 1;
+    const unit = tipo === 'brinde' ? 0 : (parseFloat(novoItemValor.value) || 0);
+
+    _itensOsEditando.push({
+        id: 'it_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        tipo: tipo,
+        descricao: desc,
+        qtd: qtd,
+        valor_unitario: unit,
+        subtotal: tipo === 'brinde' ? 0 : qtd * unit
+    });
+
+    novoItemDesc.value = '';
+    novoItemValor.value = '';
+    novoItemQtd.value = '1';
+    renderTabelaItensModal();
 });
 
-// Calculadora Automática de Deslocamento Leva & Traz
-const calcVeiculo   = document.getElementById('calcVeiculo');
-const calcRegiao    = document.getElementById('calcRegiao');
-const calcKmTotal   = document.getElementById('calcKmTotal');
-const btnCalcularDeslocamento = document.getElementById('btnCalcularDeslocamento');
+editPecaEstoque?.addEventListener('change', () => {
+    const stockId = editPecaEstoque.value;
+    if (!stockId) {
+        novoEstoqueValor.value = '';
+        return;
+    }
+    const item = _estoqueCache.find(i => String(i.id) === String(stockId));
+    if (item) {
+        novoEstoqueValor.value = parseFloat(item.preco_venda_sugerido || item.custo_unitario || 0).toFixed(2);
+    }
+});
 
+btnAdicionarPecaEstoque?.addEventListener('click', () => {
+    const stockId = editPecaEstoque.value;
+    if (!stockId) {
+        alert('Selecione uma peça cadastrada no estoque.');
+        return;
+    }
+    const item = _estoqueCache.find(i => String(i.id) === String(stockId));
+    if (!item) return;
+
+    const qtd = parseInt(novoEstoqueQtd.value) || 1;
+    const unit = parseFloat(novoEstoqueValor.value) || parseFloat(item.preco_venda_sugerido || item.custo_unitario || 0);
+
+    _itensOsEditando.push({
+        id: 'it_' + Date.now(),
+        tipo: 'peca_estoque',
+        ref_id: item.id,
+        descricao: item.nome,
+        qtd: qtd,
+        valor_unitario: unit,
+        subtotal: qtd * unit
+    });
+
+    editPecaEstoque.value = '';
+    novoEstoqueValor.value = '';
+    novoEstoqueQtd.value = '1';
+    renderTabelaItensModal();
+});
+
+function atualizarCustoDeslocamentoPrev() {
+    const km = parseFloat(calcKmTotal?.value || 0);
+    const taxaKm = calcVeiculo?.value === 'carro' ? 1.00 : 0.50;
+    const custo = km * taxaKm;
+    if (calcCustoPrev) calcCustoPrev.value = `R$ ${custo.toFixed(2)}`;
+}
+
+calcVeiculo?.addEventListener('change', atualizarCustoDeslocamentoPrev);
+calcKmTotal?.addEventListener('input', atualizarCustoDeslocamentoPrev);
 calcRegiao?.addEventListener('change', () => {
     if (calcRegiao.value !== 'custom') {
         calcKmTotal.value = calcRegiao.value;
     }
+    atualizarCustoDeslocamentoPrev();
 });
 
-btnCalcularDeslocamento?.addEventListener('click', () => {
-    const km = parseFloat(calcKmTotal.value || 0);
-    const taxaKm = calcVeiculo.value === 'carro' ? 1.00 : 0.50; // Carro: R$ 1,00/km (gasolina + desgaste 10km/l) vs Moto R$ 0,50/km (20km/l)
-    const custoTotal = km * taxaKm;
-    editDeslocamento.value = custoTotal.toFixed(2);
-    recalcularValorTotalOS();
-    alert(`Custo de Deslocamento calculado: R$ ${custoTotal.toFixed(2)} (${km} km no modo ${calcVeiculo.value.toUpperCase()})`);
+btnAplicarDeslocamento?.addEventListener('click', () => {
+    const km = parseFloat(calcKmTotal?.value || 0);
+    const taxaKm = calcVeiculo?.value === 'carro' ? 1.00 : 0.50;
+    const custo = km * taxaKm;
+    const regiaoNome = calcRegiao?.options[calcRegiao.selectedIndex]?.text || `${km} km`;
+
+    // Remove deslocamento anterior se já existir na lista
+    _itensOsEditando = _itensOsEditando.filter(i => i.tipo !== 'deslocamento');
+
+    _itensOsEditando.push({
+        id: 'it_' + Date.now(),
+        tipo: 'deslocamento',
+        descricao: `Serviço de Leva & Traz (${regiaoNome} - ${calcVeiculo?.value.toUpperCase() || 'CARRO'})`,
+        qtd: 1,
+        valor_unitario: custo,
+        subtotal: custo
+    });
+
+    renderTabelaItensModal();
 });
 
+btnGerarPdfModal?.addEventListener('click', () => {
+    const osId = editOsId.value;
+    if (osId) {
+        gerarPDF(osId);
+    }
+});
+
+// ── Abrir Modal de Edição & Atualizar OS ──────────────────────
 window.abrirModalEditar = function(osId) {
     const os = _ordensCache.find(item => item.id === osId);
     if (!os) return alert('OS não encontrada em cache.');
@@ -580,12 +781,61 @@ window.abrirModalEditar = function(osId) {
     if (editDefeitoRelatado) editDefeitoRelatado.value = os.defeito_relatado || '';
 
     editStatus.value           = os.status || 'Aberto';
-    editDeslocamento.value     = os.custo_deslocamento || '';
-    editMaoDeObra.value        = os.valor_total ? Math.max(0, os.valor_total - (os.custo_deslocamento || 0)) : '';
-    editValorPecas.value       = '';
     editDiagnostico.value      = os.diagnostico || '';
     editServicoRealizado.value = os.servico_realizado || '';
     editPix.value              = os.pix_copia_cola || '';
+
+    // Carrega itens detalhados da OS ou do cache/localStorage
+    let itensSalvos = os.itens_detalhados;
+    if (!itensSalvos || itensSalvos.length === 0) {
+        try {
+            const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+            if (local) itensSalvos = JSON.parse(local);
+        } catch (_) {}
+    }
+
+    if (!itensSalvos || itensSalvos.length === 0) {
+        // Decomposição / migração inteligente caso seja uma OS sem itens discriminados
+        itensSalvos = [];
+        const totVal = parseFloat(os.valor_total || 0);
+        const desVal = parseFloat(os.custo_deslocamento || 0);
+        const moVal  = Math.max(0, totVal - desVal);
+
+        if (moVal > 0) {
+            itensSalvos.push({
+                id: 'it_mo_' + os.id,
+                tipo: 'servico',
+                descricao: os.diagnostico ? `Serviço Especializado: ${os.diagnostico}` : 'Serviço Técnico / Mão de Obra Especializada',
+                qtd: 1,
+                valor_unitario: moVal,
+                subtotal: moVal
+            });
+        }
+        if (desVal > 0) {
+            itensSalvos.push({
+                id: 'it_des_' + os.id,
+                tipo: 'deslocamento',
+                descricao: 'Serviço de Leva & Traz (Deslocamento Ida e Volta)',
+                qtd: 1,
+                valor_unitario: desVal,
+                subtotal: desVal
+            });
+        }
+        // Brinde higienização
+        itensSalvos.push({
+            id: 'it_brinde_' + os.id,
+            tipo: 'brinde',
+            descricao: 'Higienização Interna Completa & Limpeza de Bancada',
+            qtd: 1,
+            valor_unitario: 0,
+            subtotal: 0
+        });
+    }
+
+    _itensOsEditando = JSON.parse(JSON.stringify(itensSalvos));
+    renderTabelaItensModal();
+    atualizarDropdownEstoque();
+    atualizarCustoDeslocamentoPrev();
 
     // Limpa e exibe fotos existentes
     if (editFotosPreview) {
@@ -613,7 +863,6 @@ window.abrirModalEditar = function(osId) {
         if (editSignaturePad) editSignaturePad.clear();
     }
 
-    recalcularValorTotalOS();
     modalEditarOs.classList.remove('hidden');
     setTimeout(resizeEditCanvas, 150);
 };
@@ -625,7 +874,7 @@ formEditarOs.addEventListener('submit', async (e) => {
     const osId = editOsId.value;
     if (!osId) return;
 
-    showLoading('Atualizando Ordem de Serviço...');
+    showLoading('Atualizando Ordem de Serviço & Itens...');
     try {
         const osObj = _ordensCache.find(o => o.id === osId);
 
@@ -651,8 +900,13 @@ formEditarOs.addEventListener('submit', async (e) => {
             assinaturaFinal = editSignaturePad.toDataURL();
         }
 
+        recalcularTotaisItens();
+
         const valNum = editValor.value ? parseFloat(editValor.value) : null;
         const desNum = editDeslocamento.value ? parseFloat(editDeslocamento.value) : 0;
+        const moNum = editMaoDeObra.value ? parseFloat(editMaoDeObra.value) : 0;
+        const pecasNum = editValorPecas.value ? parseFloat(editValorPecas.value) : 0;
+
         const diagText = editDiagnostico.value.trim();
         const feitoText = editServicoRealizado.value.trim();
         const pixText = editPix.value.trim();
@@ -666,11 +920,20 @@ formEditarOs.addEventListener('submit', async (e) => {
         const numSerieVal = document.getElementById('editNumeroSerie')?.value.trim() || '';
         const defRelVal = document.getElementById('editDefeitoRelatado')?.value.trim() || '';
 
+        // Salva itens detalhados no cache e no localStorage
+        const itensCopia = JSON.parse(JSON.stringify(_itensOsEditando));
+        try {
+            localStorage.setItem(`wltec_os_itens_${osId}`, JSON.stringify(itensCopia));
+        } catch (_) {}
+
         // Atualiza imediatamente o cache local para UX fluida
         if (osObj) {
             osObj.status = statusVal;
             osObj.valor_total = valNum;
             osObj.custo_deslocamento = desNum;
+            osObj.mao_de_obra = moNum;
+            osObj.valor_pecas = pecasNum;
+            osObj.itens_detalhados = itensCopia;
             osObj.diagnostico = diagText;
             osObj.servico_realizado = feitoText;
             osObj.pix_copia_cola = pixText;
@@ -690,22 +953,21 @@ formEditarOs.addEventListener('submit', async (e) => {
         const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(osId);
 
         if (isValidUUID) {
-            await db
-                .from('ordens_servico')
-                .update({
-                    status: statusVal,
-                    valor_total: valNum,
-                    custo_deslocamento: desNum,
-                    diagnostico: diagText,
-                    servico_realizado: feitoText,
-                    pix_copia_cola: pixText,
-                    equipamento: equipVal || undefined,
-                    numero_serie: numSerieVal || undefined,
-                    defeito_relatado: defRelVal || undefined,
-                    assinatura_cliente_base64: assinaturaFinal,
-                    fotos_urls: fotosFinais
-                })
-                .eq('id', osId);
+            const updatePayload = {
+                status: statusVal,
+                valor_total: valNum,
+                custo_deslocamento: desNum,
+                diagnostico: diagText,
+                servico_realizado: feitoText,
+                pix_copia_cola: pixText,
+                equipamento: equipVal || undefined,
+                numero_serie: numSerieVal || undefined,
+                defeito_relatado: defRelVal || undefined,
+                assinatura_cliente_base64: assinaturaFinal,
+                fotos_urls: fotosFinais
+            };
+
+            await db.from('ordens_servico').update(updatePayload).eq('id', osId);
 
             if (osObj?.cliente_id) {
                 await db.from('clientes_os').update({
@@ -716,7 +978,7 @@ formEditarOs.addEventListener('submit', async (e) => {
             }
         }
 
-        alert('Ordem de Serviço e dados atualizados com sucesso!');
+        alert('Ordem de Serviço, orçamento e itens atualizados com sucesso!');
         modalEditarOs.classList.add('hidden');
         renderOsList(_ordensCache);
     } catch (err) {
@@ -951,7 +1213,7 @@ window.verFotos = function(urls) {
 btnCloseModal.addEventListener('click', () => modalFotos.classList.add('hidden'));
 
 // ── WhatsApp + PIX ───────────────────────────────────────────
-window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, diagnostico, servico) {
+window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, diagnostico, servico, osId) {
     let num = formatWhatsAppNumber(telefone);
 
     if (!num || num.length < 12) {
@@ -964,19 +1226,40 @@ window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, d
     }
 
     let statusText = status || 'Aberto';
+    const isOrcamento = statusText === 'Em Orçamento' || statusText === 'Aguardando Aprovação';
+
     let msg = `Olá *${cliente}*!\nSomos da WL TEC (Manutenção de TI).\n\n`;
-    msg += `📌 *Ordem de Serviço - Status:* ${statusText}\n`;
+    msg += isOrcamento ? `📋 *PROPOSTA DE ORÇAMENTO TÉCNICO*\n` : `📌 *Ordem de Serviço - Status:* ${statusText}\n`;
     msg += `💻 *Equipamento:* ${equip}\n\n`;
 
-    if (diagnostico) {
-        msg += `🔍 *Diagnóstico / A Fazer:* ${diagnostico}\n\n`;
+    // Itens discriminados
+    let osObj = osId ? _ordensCache.find(o => o.id === osId) : null;
+    let itens = osObj?.itens_detalhados;
+    if (!itens && osId) {
+        try {
+            const loc = localStorage.getItem(`wltec_os_itens_${osId}`);
+            if (loc) itens = JSON.parse(loc);
+        } catch (_) {}
     }
-    if (servico) {
-        msg += `✅ *Serviço Realizado:* ${servico}\n\n`;
+
+    if (itens && itens.length > 0) {
+        msg += `🧾 *Discriminação de Serviços & Peças:*\n`;
+        itens.forEach(it => {
+            const sub = it.tipo === 'brinde' ? 'BRINDE' : `R$ ${parseFloat(it.subtotal || (it.qtd * it.valor_unitario)).toFixed(2)}`;
+            msg += `• ${it.descricao} (x${it.qtd}) — ${sub}\n`;
+        });
+        msg += `\n`;
+    } else {
+        if (diagnostico) {
+            msg += `🔍 *Diagnóstico / A Fazer:* ${diagnostico}\n\n`;
+        }
+        if (servico) {
+            msg += `✅ *Serviço Realizado:* ${servico}\n\n`;
+        }
     }
 
     if (valor > 0) {
-        msg += `💰 *Valor Total do Serviço:* R$ ${parseFloat(valor).toFixed(2)}\n\n`;
+        msg += `💰 *Valor Total:* R$ ${parseFloat(valor).toFixed(2)}\n\n`;
         if (pix) {
             msg += `📲 *Chave PIX Copia e Cola:*\n\`${pix}\`\n\n`;
         }
@@ -984,13 +1267,17 @@ window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, d
         msg += `⏳ *Valor:* Em análise técnica sem custo.\n\n`;
     }
 
-    msg += `Qualquer dúvida ou confirmação, basta responder aqui no WhatsApp! 😊`;
+    if (isOrcamento) {
+        msg += `Caso aprove o orçamento ou tenha alguma dúvida, só me responder aqui! 😊`;
+    } else {
+        msg += `Qualquer dúvida ou confirmação, basta responder aqui no WhatsApp! 😊`;
+    }
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
 // ── Gerar PDF (Comprovante & Certificado de Garantia OS - 1 Página Única) ──
 window.gerarPDF = async function(osId) {
-    showLoading('Gerando PDF da OS & Termo de Garantia...');
+    showLoading('Gerando PDF da OS / Orçamento...');
     try {
         let os = _ordensCache.find(item => item.id === osId);
         if (!os) {
@@ -1006,11 +1293,41 @@ window.gerarPDF = async function(osId) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        const isConcluido = os.status === 'Concluído';
+        const osStatus = os.status || 'Aberto';
         const osNumDisplay = (os.numero_os || os.id.substring(0, 6)).toUpperCase();
-        const tituloDoc = isConcluido 
-            ? `WL TEC — LAUDO TÉCNICO & CERTIFICADO DE GARANTIA (OS #${osNumDisplay})` 
-            : `WL TEC — COMPROVANTE DE ENTRADA DE OS (Nº #${osNumDisplay})`;
+
+        const isOrcamento = osStatus === 'Em Orçamento' || osStatus === 'Aguardando Aprovação' || osStatus === 'Orçamento';
+        const isConcluido = osStatus === 'Concluído';
+        const isReparo    = osStatus === 'Em Reparo';
+
+        let tituloDoc = `WL TEC — COMPROVANTE DE ENTRADA DE OS (Nº #${osNumDisplay})`;
+        let statusBadgeText = `STATUS: ${osStatus.toUpperCase()}`;
+        let tituloSec4 = '4. Discriminação de Valores & Peças';
+        let tituloSec5 = 'TERMO DE RECEBIMENTO & AUTORIZAÇÃO DE DIAGNÓSTICO';
+        let termoTxt = "O equipamento acima descrito foi recebido para análise técnica e diagnóstico em bancada. A WL TEC compromete-se a manter total sigilo sobre os dados e arquivos contidos no aparelho conforme a LGPD e normas de privacidade.";
+        let labelAssinaturaDireita = 'Assinatura do Cliente';
+        let prefijoName = 'COMPROVANTE_ENTRADA';
+
+        if (isOrcamento) {
+            tituloDoc = `WL TEC — PROPOSTA DE ORÇAMENTO TÉCNICO (Nº #${osNumDisplay})`;
+            statusBadgeText = `STATUS: EM ORÇAMENTO (AGUARDANDO APROVAÇÃO)`;
+            tituloSec4 = '4. Discriminação de Serviços, Peças & Orçamento Proposto';
+            tituloSec5 = 'TERMO DE PROPOSTA DE ORÇAMENTO & CONDIÇÕES COMERCIAIS';
+            termoTxt = "Validade da proposta: 10 (dez) dias corridos a partir da emissão. Valores e prazos sujeitos a alteração caso sejam identificados defeitos ocultos adicionais durante a execução. Peças novas substituídas possuem garantia legal de 90 dias após instalação. Formas de pagamento: PIX à vista ou Cartão.";
+            labelAssinaturaDireita = 'Aprovação do Cliente (De Acordo)';
+            prefijoName = 'PROPOSTA_ORCAMENTO';
+        } else if (isConcluido) {
+            tituloDoc = `WL TEC — LAUDO TÉCNICO & CERTIFICADO DE GARANTIA (Nº #${osNumDisplay})`;
+            statusBadgeText = `STATUS: CONCLUÍDO & ENTREGUE`;
+            tituloSec4 = '4. Discriminação de Serviços Executados & Peças Instaladas';
+            tituloSec5 = 'CERTIFICADO DE GARANTIA LEGAL (90 DIAS - ART. 26 DO CDC)';
+            termoTxt = "Conforme o Artigo 26, II da Lei 8.078/90 (Código de Defesa do Consumidor), o serviço executado e as peças substituídas constantes neste laudo possuem garantia legal de 90 (noventa) dias a partir da data de entrega. A garantia cobre defeitos de fabricação em peças e falhas no serviço. Não cobre vícios decorrentes de quedas, derramamento de líquidos, picos de tensão elétrica ou remoção do lacre de segurança.";
+            labelAssinaturaDireita = 'Assinatura do Cliente';
+            prefijoName = 'LAUDO_CONCLUIDO_E_GARANTIA';
+        } else if (isReparo) {
+            tituloDoc = `WL TEC — ORDEM DE SERVIÇO EM EXECUÇÃO (Nº #${osNumDisplay})`;
+            prefijoName = 'EM_REPARO_ANDAMENTO';
+        }
 
         // ── Cabeçalho Oficial Compacto ──────────────────────────────
         doc.setFillColor(10, 12, 16);
@@ -1028,202 +1345,210 @@ window.gerarPDF = async function(osId) {
         doc.setFontSize(9.5); doc.setFont(undefined, 'bold');
         doc.text(`Nº OS: #${osNumDisplay}`, 155, 12);
         doc.setFontSize(8); doc.setFont(undefined, 'normal');
-        doc.text(`Data: ${new Date(os.criado_em).toLocaleDateString('pt-BR')}`, 155, 18);
-        doc.text(`Status: ${(os.status || 'Aberto').toUpperCase()}`, 155, 24);
+        doc.text(`Data: ${new Date(os.criado_em || Date.now()).toLocaleDateString('pt-BR')}`, 155, 18);
+        doc.text(statusBadgeText, 155, 24);
 
         doc.setTextColor(30, 41, 59);
         let y = 35;
-        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.setFontSize(10.5); doc.setFont(undefined, 'bold');
         doc.text(tituloDoc, 12, y);
         y += 2;
         doc.setLineWidth(0.5); doc.setDrawColor(0, 255, 255);
         doc.line(12, y, 198, y);
 
         // 1. Dados do Cliente
-        y += 7;
-        doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        y += 6.5;
+        doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
         doc.text('1. Dados do Cliente', 12, y);
-        doc.setFontSize(8.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
-        y += 4.5; doc.text(`Nome: ${os.clientes_os?.nome || '—'}  |  Telefone / WhatsApp: ${os.clientes_os?.telefone || '—'}`, 12, y);
-        y += 4; doc.text(`CPF/CNPJ: ${os.clientes_os?.cpf_cnpj || 'Não informado'} ${os.clientes_os?.email ? ` | E-mail: ${os.clientes_os.email}` : ''}`, 12, y);
+        doc.setFontSize(8.2); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
+        y += 4.2; doc.text(`Nome: ${os.clientes_os?.nome || '—'}  |  Telefone / WhatsApp: ${os.clientes_os?.telefone || '—'}`, 12, y);
+        y += 3.8; doc.text(`CPF/CNPJ: ${os.clientes_os?.cpf_cnpj || 'Não informado'} ${os.clientes_os?.email ? ` | E-mail: ${os.clientes_os.email}` : ''}`, 12, y);
 
         // 2. Dados do Equipamento & Defeito
-        y += 7;
-        doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        y += 6.5;
+        doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
         doc.text('2. Dados do Equipamento', 12, y);
-        doc.setFontSize(8.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
-        y += 4.5; doc.text(`Equipamento / Modelo: ${os.equipamento || '—'}  |  Nº Série: ${os.numero_serie || 'Não informado'}`, 12, y);
-        y += 4;
+        doc.setFontSize(8.2); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
+        y += 4.2; doc.text(`Equipamento / Modelo: ${os.equipamento || '—'}  |  Nº Série: ${os.numero_serie || 'Não informado'}`, 12, y);
+        y += 3.8;
         const defeitoLines = doc.splitTextToSize(`Defeito Relatado: ${os.defeito_relatado || '—'}`, 180);
         doc.text(defeitoLines, 12, y);
-        y += (defeitoLines.length * 3.8);
+        y += (defeitoLines.length * 3.6);
 
         // 3. Diagnóstico Técnico & Laudo
         if (os.diagnostico || os.servico_realizado) {
-            y += 4;
-            doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+            y += 3.5;
+            doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
             doc.text('3. Diagnóstico Técnico & Serviço Realizado', 12, y);
-            doc.setFontSize(8.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
+            doc.setFontSize(8.2); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
             if (os.diagnostico) {
-                y += 4.5;
-                const diagLines = doc.splitTextToSize(`Diagnóstico / Orçamento: ${os.diagnostico}`, 180);
+                y += 4.2;
+                const diagLines = doc.splitTextToSize(`Diagnóstico / A Fazer: ${os.diagnostico}`, 180);
                 doc.text(diagLines, 12, y);
-                y += (diagLines.length * 3.8);
+                y += (diagLines.length * 3.6);
             }
             if (os.servico_realizado) {
-                y += 3.8;
+                y += 3.6;
                 const feitoLines = doc.splitTextToSize(`Serviço Executado: ${os.servico_realizado}`, 180);
                 doc.text(feitoLines, 12, y);
-                y += (feitoLines.length * 3.8);
+                y += (feitoLines.length * 3.6);
             }
         }
 
         // 4. TABELA DISCRIMINADA DE VALORES E PEÇAS
-        y += 6;
-        doc.setFontSize(9.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
-        doc.text('4. Discriminação de Valores & Peças', 12, y);
-        y += 3.5;
+        y += 5.5;
+        doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        doc.text(tituloSec4, 12, y);
+        y += 3.2;
 
         // Cabeçalho da Tabela
         doc.setFillColor(241, 245, 249);
-        doc.rect(12, y, 186, 6, 'F');
+        doc.rect(12, y, 186, 5.5, 'F');
         doc.setDrawColor(203, 213, 225);
-        doc.rect(12, y, 186, 6, 'S');
+        doc.rect(12, y, 186, 5.5, 'S');
 
-        doc.setFontSize(8); doc.setFont(undefined, 'bold'); doc.setTextColor(30, 41, 59);
-        doc.text('ITEM / DESCRIÇÃO DOS SERVIÇOS E INSUMOS', 15, y + 4.2);
-        doc.text('QTD', 130, y + 4.2);
-        doc.text('VALOR UNIT.', 146, y + 4.2);
-        doc.text('SUBTOTAL', 174, y + 4.2);
+        doc.setFontSize(7.5); doc.setFont(undefined, 'bold'); doc.setTextColor(30, 41, 59);
+        doc.text('ITEM / DESCRIÇÃO DOS SERVIÇOS E INSUMOS', 15, y + 3.8);
+        doc.text('QTD', 130, y + 3.8);
+        doc.text('VALOR UNIT.', 146, y + 3.8);
+        doc.text('SUBTOTAL', 174, y + 3.8);
 
-        y += 6;
+        y += 5.5;
 
-        // Separação de Mão de Obra, Insumos (Pasta Térmica) e Higienização (BRINDE)
-        const desVal = parseFloat(os.custo_deslocamento || 0);
-        const totVal = parseFloat(os.valor_total || 0);
-        const moTotal = Math.max(0, totVal - desVal);
+        // Carrega itens detalhados
+        let itens = os.itens_detalhados;
+        if (!itens || itens.length === 0) {
+            try {
+                const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+                if (local) itens = JSON.parse(local);
+            } catch (_) {}
+        }
 
-        const itens = [];
-        const valorPasta = moTotal >= 30 ? 15.00 : 0.00;
-        const valorMoPura = Math.max(0, moTotal - valorPasta);
-
-        if (valorMoPura > 0) {
+        if (!itens || itens.length === 0) {
+            const desVal = parseFloat(os.custo_deslocamento || 0);
+            const totVal = parseFloat(os.valor_total || 0);
+            const moTotal = Math.max(0, totVal - desVal);
+            itens = [];
+            if (moTotal > 0) {
+                itens.push({
+                    tipo: 'servico',
+                    descricao: os.diagnostico ? `Serviço Especializado: ${os.diagnostico}` : 'Serviço Técnico / Mão de Obra Especializada',
+                    qtd: 1,
+                    valor_unitario: moTotal,
+                    subtotal: moTotal
+                });
+            }
+            if (desVal > 0) {
+                itens.push({
+                    tipo: 'deslocamento',
+                    descricao: 'Serviço de Leva & Traz (Deslocamento Técnico Ida e Volta)',
+                    qtd: 1,
+                    valor_unitario: desVal,
+                    subtotal: desVal
+                });
+            }
             itens.push({
-                desc: 'Serviço Técnico / Mão de Obra Especializada (Diagnóstico, Montagem e Testes de Estresse)',
+                tipo: 'brinde',
+                descricao: 'Higienização Interna Completa & Limpeza de Bancada (BRINDE WL TEC)',
                 qtd: 1,
-                unit: valorMoPura,
-                sub: valorMoPura
+                valor_unitario: 0,
+                subtotal: 0
             });
         }
 
-        if (valorPasta > 0) {
-            itens.push({
-                desc: 'Insumo de Bancada: Aplicação de Pasta Térmica de Prata (Alta Condutividade Térmica)',
-                qtd: 1,
-                unit: valorPasta,
-                sub: valorPasta
-            });
-        }
+        // Renderiza cada linha com cálculo dinâmico de altura e quebra de texto perfeita
+        doc.setFontSize(7.3); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
 
-        // BRINDE DE HIGIENIZAÇÃO
-        itens.push({
-            desc: 'Higienização Interna Completa & Limpeza de Bancada (BRINDE WL TEC)',
-            qtd: 1,
-            unit: 0.00,
-            sub: 0.00
-        });
-
-        if (desVal > 0) {
-            itens.push({
-                desc: 'Serviço de Leva & Traz (Deslocamento Técnico Ida e Volta)',
-                qtd: 1,
-                unit: desVal,
-                sub: desVal
-            });
-        }
-
-        // Renderiza cada linha com bordas de tabela compactas
-        doc.setFontSize(7.5); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
+        let totalGeralCalculado = 0;
 
         itens.forEach((it, idx) => {
-            const lineH = 5.8;
+            let tipoPrefix = '';
+            if (it.tipo === 'servico') tipoPrefix = '[Serviço] ';
+            else if (it.tipo === 'peca_estoque') tipoPrefix = '[Peça/Estoque] ';
+            else if (it.tipo === 'peca_terceiro') tipoPrefix = '[Peça/Terceiro] ';
+            else if (it.tipo === 'insumo') tipoPrefix = '[Insumo] ';
+            else if (it.tipo === 'deslocamento') tipoPrefix = '[Leva & Traz] ';
+            else if (it.tipo === 'brinde') tipoPrefix = '[Brinde] ';
+
+            const fullDesc = `${idx + 1}. ${tipoPrefix}${it.descricao}`;
+            const descLines = doc.splitTextToSize(fullDesc, 114);
+            const lineH = Math.max(5.8, 3.2 + (descLines.length * 3.2));
+
+            // Borda da linha da tabela
+            doc.setDrawColor(203, 213, 225);
             doc.rect(12, y, 186, lineH, 'S');
 
-            const descLines = doc.splitTextToSize(`${idx + 1}. ${it.desc}`, 112);
-            doc.text(descLines[0], 15, y + 4);
+            // Desenha todas as linhas da descrição
+            descLines.forEach((dLine, dIdx) => {
+                doc.text(dLine, 15, y + 3.6 + (dIdx * 3.2));
+            });
 
-            doc.text(String(it.qtd), 132, y + 4);
-            doc.text(it.unit > 0 ? `R$ ${it.unit.toFixed(2)}` : 'R$ 0,00', 146, y + 4);
-            doc.text(it.sub > 0 ? `R$ ${it.sub.toFixed(2)}` : 'R$ 0,00 (BRINDE)', 174, y + 4);
+            const qtdVal = parseInt(it.qtd) || 1;
+            const unitVal = parseFloat(it.valor_unitario) || 0;
+            const subVal = it.tipo === 'brinde' ? 0 : (parseFloat(it.subtotal) || (qtdVal * unitVal));
+            totalGeralCalculado += subVal;
+
+            doc.text(String(qtdVal), 132, y + 3.6);
+            doc.text(it.tipo === 'brinde' ? 'R$ 0,00' : (unitVal > 0 ? `R$ ${unitVal.toFixed(2)}` : 'R$ 0,00'), 146, y + 3.6);
+            doc.text(it.tipo === 'brinde' ? 'R$ 0,00 (BRINDE)' : (subVal > 0 ? `R$ ${subVal.toFixed(2)}` : 'R$ 0,00'), 174, y + 3.6);
 
             y += lineH;
         });
 
         // Linha do Total Geral Destacado
+        const valorFinalExibicao = os.valor_total ? parseFloat(os.valor_total) : totalGeralCalculado;
         doc.setFillColor(236, 253, 245);
-        doc.rect(12, y, 186, 7, 'F');
+        doc.rect(12, y, 186, 6.5, 'F');
         doc.setDrawColor(16, 185, 129);
-        doc.rect(12, y, 186, 7, 'S');
+        doc.rect(12, y, 186, 6.5, 'S');
 
-        doc.setFontSize(9); doc.setFont(undefined, 'bold'); doc.setTextColor(6, 95, 70);
-        doc.text('VALOR TOTAL DA ORDEM DE SERVIÇO:', 15, y + 4.8);
-        doc.text(`R$ ${totVal > 0 ? totVal.toFixed(2) : '0.00'}`, 170, y + 4.8);
+        doc.setFontSize(8.5); doc.setFont(undefined, 'bold'); doc.setTextColor(6, 95, 70);
+        doc.text(isOrcamento ? 'VALOR TOTAL DO ORÇAMENTO PROPOSTO:' : 'VALOR TOTAL DA ORDEM DE SERVIÇO:', 15, y + 4.5);
+        doc.text(`R$ ${valorFinalExibicao > 0 ? valorFinalExibicao.toFixed(2) : '0.00'}`, 170, y + 4.5);
 
-        y += 9;
+        y += 8.5;
 
-        // 5. TERMO DE GARANTIA LEGAL (90 DIAS) - MANTÉM TUDO EM 1 PÁGINA
+        // 5. TERMO / CONDIÇÕES (MANTÉM TUDO EM 1 PÁGINA)
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(203, 213, 225);
-        doc.rect(12, y, 186, 24, 'FD');
+        doc.rect(12, y, 186, 22, 'FD');
 
-        doc.setFontSize(8.5); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
-        doc.text('CERTIFICADO DE GARANTIA LEGAL (90 DIAS - ART. 26 DO CDC)', 16, y + 5);
+        doc.setFontSize(8); doc.setFont(undefined, 'bold'); doc.setTextColor(15, 23, 42);
+        doc.text(tituloSec5, 16, y + 4.5);
         
-        doc.setFontSize(7.2); doc.setFont(undefined, 'normal'); doc.setTextColor(71, 85, 105);
-        const termoTxt = "Conforme o Artigo 26, II da Lei 8.078/90 (Código de Defesa do Consumidor), o serviço executado e as peças substituídas constantes neste laudo possuem garantia legal de 90 (noventa) dias a partir da data de entrega. A garantia cobre defeitos de fabricação em peças e falhas no serviço. Não cobre vícios decorrentes de quedas, derramamento de líquidos, picos de tensão elétrica ou remoção do lacre de segurança.";
+        doc.setFontSize(6.8); doc.setFont(undefined, 'normal'); doc.setTextColor(71, 85, 105);
         const termoLines = doc.splitTextToSize(termoTxt, 178);
-        doc.text(termoLines, 16, y + 10);
+        doc.text(termoLines, 16, y + 9);
 
-        // ── Assinaturas Sem Sobreposição (Espaçamento de 38mm abaixo do topo da caixa) ──
-        y += 38;
+        // ── Assinaturas Sem Sobreposição (Espaçamento abaixo do topo da caixa) ──
+        y += 33;
 
         // Assinatura & Carimbo Digital - Técnico Responsável Wiliam Longo
-        doc.setFontSize(10); doc.setFont('helvetica', 'bolditalic'); doc.setTextColor(0, 150, 200);
+        doc.setFontSize(9.5); doc.setFont('helvetica', 'bolditalic'); doc.setTextColor(0, 150, 200);
         doc.text('Wiliam Longo', 16, y + 3);
-        doc.setFontSize(7); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
+        doc.setFontSize(6.8); doc.setFont('helvetica', 'bold'); doc.setTextColor(100, 116, 139);
         doc.text('WL TEC — TÉCNICO RESPONSÁVEL', 16, y + 7);
 
         doc.setLineWidth(0.5); doc.setDrawColor(203, 213, 225);
         doc.line(16, y + 9, 90, y + 9);
         
-        doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
+        doc.setFontSize(7.5); doc.setFont('helvetica', 'normal'); doc.setTextColor(51, 65, 85);
         doc.text('Wiliam Longo — Responsável Técnico', 16, y + 13);
         doc.text('WL TEC | Santo André - SP', 16, y + 17);
 
-        // Assinatura Cliente
+        // Assinatura Cliente / Aprovação
         if (os.assinatura_cliente_base64) {
             try {
                 doc.addImage(os.assinatura_cliente_base64, 'PNG', 116, y - 6, 45, 13);
             } catch (_) {}
         }
         doc.line(116, y + 9, 190, y + 9);
-        doc.text('Assinatura do Cliente', 116, y + 13);
+        doc.text(labelAssinaturaDireita, 116, y + 13);
         doc.text(os.clientes_os?.nome || 'Cliente', 116, y + 17);
 
         // Rodapé Fixo na Margem Inferior (286mm)
         doc.setFontSize(7); doc.setTextColor(148, 163, 184);
         doc.text('WL TEC — Manutenção de Notebooks & Consultoria em TI | WhatsApp: (11) 91465-4157 | Santo André/SP | www.wl.tec.br', 12, 286);
-
-        // Nomenclatura Distinta de PDF por Status da OS
-        const osStatus = os.status || 'Aberto';
-        let prefijoName = 'COMPROVANTE_ENTRADA';
-        if (osStatus === 'Concluído') {
-            prefijoName = 'LAUDO_CONCLUIDO_E_GARANTIA';
-        } else if (osStatus === 'Aguardando Aprovação' || osStatus === 'Orçamento') {
-            prefijoName = 'ORCAMENTO_PROPOSTA';
-        } else if (osStatus === 'Em Reparo') {
-            prefijoName = 'EM_REPARO_ANDAMENTO';
-        }
 
         const nomeClienteClean = (os.clientes_os?.nome || 'cliente')
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -1385,11 +1710,12 @@ window.deletarItemEstoque = function(id) {
 function atualizarDropdownEstoque() {
     const select = document.getElementById('editPecaEstoque');
     if (!select) return;
-    select.innerHTML = '<option value="">Nenhuma peça de estoque utilizada</option>';
+    select.innerHTML = '<option value="">Selecione uma peça cadastrada no estoque...</option>';
     _estoqueCache.forEach(item => {
         const opt = document.createElement('option');
         opt.value = item.id;
-        opt.textContent = `${item.nome} (Qtd: ${item.quantidade} | Custo: R$ ${parseFloat(item.custo_unitario).toFixed(2)})`;
+        const vendaSug = parseFloat(item.preco_venda_sugerido || item.custo_unitario || 0).toFixed(2);
+        opt.textContent = `${item.nome} (Disp: ${item.quantidade} un | Sugerido: R$ ${vendaSug})`;
         select.appendChild(opt);
     });
 }

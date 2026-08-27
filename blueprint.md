@@ -205,4 +205,13 @@ As principais capacidades do sistema incluem:
     - Seção de **Evidências & Fotos** no modal de atualização para tirar novas fotos no endereço do cliente com upload automático para o bucket `fotos-os` do Supabase Storage.
     - Quadro interativo de **Assinatura do Cliente** dentro do modal com SignaturePad responsivo para assinatura na tela do celular/notebook durante a visita. Exibe prévia de assinatura já existente com botão "Refazer".
   - **Preservação Integral do Layout do PDF**: O gerador de PDF (`gerarPDF`) mantém estritamente toda a diagramação, milimetragem e fontes consolidadas, renderizando a assinatura quando presente ou a linha para assinatura manual quando pendente.
+- **Discriminação Completa de Peças, Serviços, Terceiros e Geração de Orçamento em PDF (/os/)**:
+  - **Gerenciador Dinâmico de Itens da OS**: Tabela interativa para adicionar e gerenciar linhas individuais de Mão de Obra, Peças de Estoque, Peças de Terceiros / Encomenda, Insumos, Deslocamento e Brindes com cálculo automático dos subtotais e valor total.
+  - **Correção da Persistência de Peças de Terceiros e Estoque**: Vinculação real dos dados de peças e serviços salvos no cache e persistidos com a OS.
+  - **Geração de PDF Inteligente por Status da OS**:
+    - *Em Orçamento / Aguardando Aprovação*: Cabeçalho oficial `WL TEC — PROPOSTA DE ORÇAMENTO TÉCNICO & COMERCIAL`, discriminação completa de todas as peças e serviços cotados, termos comerciais (validade 10 dias, pagamento PIX/cartão) e campo de aprovação do cliente.
+    - *Concluído*: `WL TEC — LAUDO TÉCNICO & CERTIFICADO DE GARANTIA` com termos de 90 dias do CDC.
+    - *Aberto / Em Reparo*: `WL TEC — COMPROVANTE DE ENTRADA & ORDEM DE SERVIÇO`.
+  - **Correção da Tabela do PDF (Quebra de Linha Dinâmica)**: Cálculo da altura da linha (`rowHeight`) baseado no número de linhas da descrição para evitar que textos longos fiquem sobrepostos ou jogados na mesma linha.
+
 
