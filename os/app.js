@@ -34,6 +34,7 @@ const btnEstoque        = document.getElementById('btnEstoque');
 const btnTerceiros      = document.getElementById('btnTerceiros');
 const btnCrmPreventiva  = document.getElementById('btnCrmPreventiva');
 const btnDre            = document.getElementById('btnDre');
+const btnRelatorios     = document.getElementById('btnRelatorios');
 
 const secNovaOs         = document.getElementById('secNovaOs');
 const secListaOs        = document.getElementById('secListaOs');
@@ -43,11 +44,12 @@ const secEstoque        = document.getElementById('secEstoque');
 const secTerceiros      = document.getElementById('secTerceiros');
 const secCrmPreventiva  = document.getElementById('secCrmPreventiva');
 const secDre            = document.getElementById('secDre');
+const secRelatorios     = document.getElementById('secRelatorios');
 
 const leadsBadge        = document.getElementById('leadsBadge');
 
-const allSections = [secNovaOs, secListaOs, secLeadsOs, secClientes, secEstoque, secTerceiros, secCrmPreventiva, secDre];
-const allNavBtns  = [btnNovaOs, btnListaOs, btnLeadsOs, btnClientes, btnEstoque, btnTerceiros, btnCrmPreventiva, btnDre];
+const allSections = [secNovaOs, secListaOs, secLeadsOs, secClientes, secEstoque, secTerceiros, secCrmPreventiva, secDre, secRelatorios];
+const allNavBtns  = [btnNovaOs, btnListaOs, btnLeadsOs, btnClientes, btnEstoque, btnTerceiros, btnCrmPreventiva, btnDre, btnRelatorios];
 
 function switchSection(showSec, activeBtn) {
     allSections.forEach(s => s?.classList.add('hidden'));
@@ -192,6 +194,11 @@ btnCrmPreventiva?.addEventListener('click', () => {
 btnDre?.addEventListener('click', () => {
     switchSection(secDre, btnDre);
     loadDreFinanceiro();
+});
+
+btnRelatorios?.addEventListener('click', () => {
+    switchSection(secRelatorios, btnRelatorios);
+    inicializarModuloRelatorios();
 });
 
 // ── Assinatura ───────────────────────────────────────────────
@@ -529,17 +536,22 @@ const tabelaItensModal        = document.getElementById('tabelaItensModal');
 const corpoTabelaItensModal   = document.getElementById('corpoTabelaItensModal');
 const lblMoTotal              = document.getElementById('lblMoTotal');
 const lblPecasTotal           = document.getElementById('lblPecasTotal');
+const lblCustoPecasTotal      = document.getElementById('lblCustoPecasTotal');
 const lblDeslocamentoTotal    = document.getElementById('lblDeslocamentoTotal');
 const lblValorTotal           = document.getElementById('lblValorTotal');
+const lblLucroRealOs          = document.getElementById('lblLucroRealOs');
 
 const editValor               = document.getElementById('editValor');
 const editMaoDeObra           = document.getElementById('editMaoDeObra');
 const editValorPecas          = document.getElementById('editValorPecas');
+const editCustoPecas          = document.getElementById('editCustoPecas');
 const editDeslocamento        = document.getElementById('editDeslocamento');
 
 const novoItemTipo            = document.getElementById('novoItemTipo');
 const novoItemDesc            = document.getElementById('novoItemDesc');
 const novoItemQtd             = document.getElementById('novoItemQtd');
+const novoItemCusto           = document.getElementById('novoItemCusto');
+const novoItemParcelas        = document.getElementById('novoItemParcelas');
 const novoItemValor           = document.getElementById('novoItemValor');
 const btnAdicionarItemManual  = document.getElementById('btnAdicionarItemManual');
 
@@ -568,15 +580,15 @@ function getTipoBadgeHtml(tipo) {
         case 'peca_estoque':
             return '<span class="item-badge badge-estoque">📦 Estoque</span>';
         case 'peca_terceiro':
-            return '<span class="item-badge badge-terceiro">🤝 Terceiro</span>';
+            return '<span class="item-badge badge-terceiro">🤝 Peça</span>';
         case 'insumo':
             return '<span class="item-badge badge-insumo">🧪 Insumo</span>';
         case 'deslocamento':
-            return '<span class="item-badge badge-deslocamento">🚗 Leva & Traz</span>';
+            return '<span class="item-badge badge-deslocamento">🚗 Leva&amp;Traz</span>';
         case 'brinde':
             return '<span class="item-badge badge-brinde">🎁 Brinde</span>';
         default:
-            return '<span class="item-badge badge-servico">🔧 Serviço</span>';
+            return '<span class="item-badge badge-servico">Item</span>';
     }
 }
 
@@ -587,7 +599,7 @@ function renderTabelaItensModal() {
     if (!_itensOsEditando || _itensOsEditando.length === 0) {
         corpoTabelaItensModal.innerHTML = `
             <tr>
-                <td colspan="6" class="text-muted text-center" style="padding:1rem;">
+                <td colspan="7" class="text-muted text-center" style="padding:1rem;">
                     Nenhum item ou serviço discriminado ainda. Adicione itens abaixo!
                 </td>
             </tr>`;
@@ -598,15 +610,40 @@ function renderTabelaItensModal() {
     _itensOsEditando.forEach((it, idx) => {
         const tr = document.createElement('tr');
         const qtd = parseInt(it.qtd) || 1;
-        const unit = parseFloat(it.valor_unitario) || 0;
-        const sub = it.tipo === 'brinde' ? 0 : (qtd * unit);
+        const unitVenda = parseFloat(it.valor_unitario) || 0;
+        const custoUnit = parseFloat(it.custo_unitario) || 0;
+        const parcelas = parseInt(it.parcelas) || 1;
+        const sub = it.tipo === 'brinde' ? 0 : (qtd * unitVenda);
+        const custoTotalItem = (qtd * custoUnit);
+
         it.subtotal = sub;
+        it.custo_unitario = custoUnit;
+        it.parcelas = parcelas;
+        it.custo_total = (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo') ? custoTotalItem : 0;
+        it.valor_parcela = parcelas > 1 ? (custoTotalItem / parcelas) : custoTotalItem;
+
+        const isPecaOuInsumo = (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo');
+        let custoDisplay = '<span style="color:#64748b;font-size:0.8rem">—</span>';
+
+        if (isPecaOuInsumo) {
+            if (custoUnit > 0) {
+                if (parcelas > 1) {
+                    const valParc = (custoTotalItem / parcelas);
+                    custoDisplay = `<div>R$ ${custoTotalItem.toFixed(2)}</div><div style="font-size:0.72rem;color:#fbbf24;font-weight:600">💳 ${parcelas}x de R$ ${valParc.toFixed(2)}/mês</div>`;
+                } else {
+                    custoDisplay = `<div>R$ ${custoTotalItem.toFixed(2)}</div><div style="font-size:0.72rem;color:#94a3b8">À Vista (1x)</div>`;
+                }
+            } else {
+                custoDisplay = '<span style="color:#64748b;font-size:0.8rem">R$ 0,00</span>';
+            }
+        }
 
         tr.innerHTML = `
             <td>${getTipoBadgeHtml(it.tipo)}</td>
             <td><strong>${escapeHTML(it.descricao)}</strong></td>
             <td style="text-align:center;">${qtd}</td>
-            <td style="text-align:right;">${it.tipo === 'brinde' ? 'R$ 0,00' : formatMoeda(unit)}</td>
+            <td style="text-align:right;color:#f87171;font-weight:600;">${custoDisplay}</td>
+            <td style="text-align:right;">${it.tipo === 'brinde' ? 'R$ 0,00' : formatMoeda(unitVenda)}</td>
             <td style="text-align:right;font-weight:700;color:${it.tipo === 'brinde' ? '#2dd4bf' : 'var(--color-cyan)'}">
                 ${it.tipo === 'brinde' ? 'R$ 0,00 (BRINDE)' : formatMoeda(sub)}
             </td>
@@ -622,30 +659,45 @@ function renderTabelaItensModal() {
 
 function recalcularTotaisItens() {
     let mo = 0;
-    let pecas = 0;
+    let pecasVenda = 0;
+    let pecasCusto = 0;
     let des = 0;
 
     _itensOsEditando.forEach(it => {
         const sub = parseFloat(it.subtotal || 0);
+        const qtd = parseInt(it.qtd) || 1;
+        const custoUnit = parseFloat(it.custo_unitario || 0);
+
         if (it.tipo === 'servico' || it.tipo === 'insumo') {
             mo += sub;
+            if (it.tipo === 'insumo') {
+                pecasCusto += (qtd * custoUnit);
+            }
         } else if (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro') {
-            pecas += sub;
+            pecasVenda += sub;
+            pecasCusto += (qtd * custoUnit);
         } else if (it.tipo === 'deslocamento') {
             des += sub;
         }
     });
 
-    const tot = mo + pecas + des;
+    const tot = mo + pecasVenda + des;
+    const lucroRealOs = tot - pecasCusto - des;
 
     if (lblMoTotal) lblMoTotal.textContent = formatMoeda(mo);
-    if (lblPecasTotal) lblPecasTotal.textContent = formatMoeda(pecas);
+    if (lblPecasTotal) lblPecasTotal.textContent = formatMoeda(pecasVenda);
+    if (lblCustoPecasTotal) lblCustoPecasTotal.textContent = formatMoeda(pecasCusto);
     if (lblDeslocamentoTotal) lblDeslocamentoTotal.textContent = formatMoeda(des);
     if (lblValorTotal) lblValorTotal.textContent = formatMoeda(tot);
+    if (lblLucroRealOs) {
+        lblLucroRealOs.textContent = formatMoeda(lucroRealOs);
+        lblLucroRealOs.style.color = lucroRealOs >= 0 ? '#4ade80' : '#ef4444';
+    }
 
     if (editValor) editValor.value = tot.toFixed(2);
     if (editMaoDeObra) editMaoDeObra.value = mo.toFixed(2);
-    if (editValorPecas) editValorPecas.value = pecas.toFixed(2);
+    if (editValorPecas) editValorPecas.value = pecasVenda.toFixed(2);
+    if (editCustoPecas) editCustoPecas.value = pecasCusto.toFixed(2);
     if (editDeslocamento) editDeslocamento.value = des.toFixed(2);
 }
 
@@ -654,14 +706,19 @@ window.removerItemModal = function(idx) {
     renderTabelaItensModal();
 };
 
-window.adicionarPresetItem = function(tipo, desc, qtd, unit) {
+window.adicionarPresetItem = function(tipo, desc, qtd, custoUnit, parcelas, vendaUnit) {
+    const p = parseInt(parcelas) || 1;
+    const c = parseFloat(custoUnit) || 0;
     _itensOsEditando.push({
         id: 'it_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
         tipo: tipo,
         descricao: desc,
         qtd: qtd,
-        valor_unitario: parseFloat(unit) || 0,
-        subtotal: tipo === 'brinde' ? 0 : (qtd * parseFloat(unit))
+        custo_unitario: c,
+        parcelas: p,
+        valor_parcela: p > 1 ? (c * qtd) / p : (c * qtd),
+        valor_unitario: parseFloat(vendaUnit) || 0,
+        subtotal: tipo === 'brinde' ? 0 : (qtd * parseFloat(vendaUnit))
     });
     renderTabelaItensModal();
 };
@@ -675,6 +732,8 @@ btnAdicionarItemManual?.addEventListener('click', () => {
     }
     const tipo = novoItemTipo.value;
     const qtd = parseInt(novoItemQtd.value) || 1;
+    const custo = parseFloat(novoItemCusto?.value || 0) || 0;
+    const parcelas = parseInt(novoItemParcelas?.value) || 1;
     const unit = tipo === 'brinde' ? 0 : (parseFloat(novoItemValor.value) || 0);
 
     _itensOsEditando.push({
@@ -682,12 +741,16 @@ btnAdicionarItemManual?.addEventListener('click', () => {
         tipo: tipo,
         descricao: desc,
         qtd: qtd,
+        custo_unitario: custo,
+        parcelas: parcelas,
+        valor_parcela: parcelas > 1 ? (custo * qtd) / parcelas : (custo * qtd),
         valor_unitario: unit,
         subtotal: tipo === 'brinde' ? 0 : qtd * unit
     });
 
     novoItemDesc.value = '';
     novoItemValor.value = '';
+    if (novoItemCusto) novoItemCusto.value = '';
     novoItemQtd.value = '1';
     renderTabelaItensModal();
 });
@@ -714,6 +777,7 @@ btnAdicionarPecaEstoque?.addEventListener('click', () => {
     if (!item) return;
 
     const qtd = parseInt(novoEstoqueQtd.value) || 1;
+    const custo = parseFloat(item.custo_unitario || 0);
     const unit = parseFloat(novoEstoqueValor.value) || parseFloat(item.preco_venda_sugerido || item.custo_unitario || 0);
 
     _itensOsEditando.push({
@@ -926,6 +990,7 @@ formEditarOs.addEventListener('submit', async (e) => {
         const desNum = editDeslocamento.value ? parseFloat(editDeslocamento.value) : 0;
         const moNum = editMaoDeObra.value ? parseFloat(editMaoDeObra.value) : 0;
         const pecasNum = editValorPecas.value ? parseFloat(editValorPecas.value) : 0;
+        const custoPecasNum = editCustoPecas?.value ? parseFloat(editCustoPecas.value) : 0;
 
         const diagText = editDiagnostico.value.trim();
         const feitoText = editServicoRealizado.value.trim();
@@ -953,6 +1018,7 @@ formEditarOs.addEventListener('submit', async (e) => {
             osObj.custo_deslocamento = desNum;
             osObj.mao_de_obra = moNum;
             osObj.valor_pecas = pecasNum;
+            osObj.custo_pecas = custoPecasNum;
             osObj.itens_detalhados = itensCopia;
             osObj.diagnostico = diagText;
             osObj.servico_realizado = feitoText;
@@ -1895,22 +1961,49 @@ let _custosFixosCache = [
 
 async function loadDreFinanceiro() {
     try {
+        const localCustos = localStorage.getItem('wltec_custos_fixos');
+        if (localCustos) {
+            _custosFixosCache = JSON.parse(localCustos);
+        }
         const { data, error } = await db.from('custos_fixos').select('*');
         if (!error && data && data.length > 0) {
             _custosFixosCache = data;
         }
     } catch (_) { /* fallback */ }
 
-    // Calcula DRE baseado no faturamento das OS Concluídas + Deslocamento + Custos de Estoque + Fixos
+    // Calcula DRE baseado no faturamento das OS Concluídas + Deslocamento + Custos de Peças (Estoque + Terceiros) + Fixos
     let faturamentoTotal = 0;
     let custoDeslocamentoTotal = 0;
     let custoPecasTotal = 0;
 
     _ordensCache.forEach(os => {
-        if (os.status === 'Concluído' && os.valor_total) {
-            faturamentoTotal += parseFloat(os.valor_total || 0);
+        if (os.status === 'Concluído') {
+            const fat = parseFloat(os.valor_total || 0);
+            faturamentoTotal += fat;
+            custoDeslocamentoTotal += parseFloat(os.custo_deslocamento || 0);
+
+            let custoOsPecas = 0;
+            let itens = os.itens_detalhados;
+            if (!itens || itens.length === 0) {
+                try {
+                    const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+                    if (local) itens = JSON.parse(local);
+                } catch (_) {}
+            }
+
+            if (itens && Array.isArray(itens) && itens.length > 0) {
+                itens.forEach(it => {
+                    if (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo') {
+                        const q = parseInt(it.qtd) || 1;
+                        const c = parseFloat(it.custo_unitario || 0);
+                        custoOsPecas += (q * c);
+                    }
+                });
+            } else if (os.custo_pecas) {
+                custoOsPecas = parseFloat(os.custo_pecas || 0);
+            }
+            custoPecasTotal += custoOsPecas;
         }
-        custoDeslocamentoTotal += parseFloat(os.custo_deslocamento || 0);
     });
 
     let custoFixosTotal = 0;
@@ -1934,6 +2027,72 @@ async function loadDreFinanceiro() {
 
     renderCustosFixos();
     renderOsConcluidas();
+    renderProjecaoParcelas();
+}
+
+function renderProjecaoParcelas() {
+    const tabela = document.getElementById('tabelaProjecaoParcelas');
+    if (!tabela) return;
+    tabela.innerHTML = '';
+
+    const linhasParcelas = [];
+
+    _ordensCache.forEach(os => {
+        let itens = os.itens_detalhados;
+        if (!itens || itens.length === 0) {
+            try {
+                const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+                if (local) itens = JSON.parse(local);
+            } catch (_) {}
+        }
+
+        if (itens && Array.isArray(itens)) {
+            itens.forEach(it => {
+                const parcelas = parseInt(it.parcelas) || 1;
+                const custoTot = (parseFloat(it.custo_unitario) || 0) * (parseInt(it.qtd) || 1);
+
+                if (custoTot > 0 && parcelas > 1) {
+                    const valorParc = custoTot / parcelas;
+                    const dataBase = new Date(os.criado_em || Date.now());
+
+                    for (let p = 1; p <= parcelas; p++) {
+                        const dtVenc = new Date(dataBase.getFullYear(), dataBase.getMonth() + (p - 1), dataBase.getDate());
+                        const mesAno = dtVenc.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                        const saldoRestante = Math.max(0, custoTot - (valorParc * p));
+
+                        linhasParcelas.push({
+                            dataVenc: dtVenc,
+                            mesAno: mesAno.charAt(0).toUpperCase() + mesAno.slice(1),
+                            origem: `${escapeHTML(it.descricao)} (OS #${(os.numero_os || os.id.substring(0, 6)).toUpperCase()} - ${escapeHTML(os.clientes_os?.nome || 'Cliente')})`,
+                            numParcela: `${p}/${parcelas}`,
+                            valorParc: valorParc,
+                            saldoRestante: saldoRestante
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+    if (linhasParcelas.length === 0) {
+        tabela.innerHTML = '<tr><td colspan="5" class="text-muted text-center" style="padding:1rem;">Nenhuma peça parcelada no cartão registrada. Ao parcelar compras de peças (ex: 8x), elas serão projetadas aqui mês a mês!</td></tr>';
+        return;
+    }
+
+    // Ordena por data de vencimento
+    linhasParcelas.sort((a, b) => a.dataVenc - b.dataVenc);
+
+    linhasParcelas.forEach(lp => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>📅 ${lp.mesAno}</strong></td>
+            <td>${lp.origem}</td>
+            <td><span class="lead-pill" style="color:#fbbf24;background:rgba(251,191,36,0.15);font-weight:600">💳 ${lp.numParcela}</span></td>
+            <td style="color:#ef4444;font-weight:700">R$ ${lp.valorParc.toFixed(2)}</td>
+            <td style="color:#94a3b8">R$ ${lp.saldoRestante.toFixed(2)}</td>
+        `;
+        tabela.appendChild(tr);
+    });
 }
 
 function renderOsConcluidas() {
@@ -1943,7 +2102,7 @@ function renderOsConcluidas() {
 
     const concluidas = _ordensCache.filter(os => os.status === 'Concluído');
     if (concluidas.length === 0) {
-        tabela.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Nenhuma OS concluída no período ainda.</td></tr>';
+        tabela.innerHTML = '<tr><td colspan="7" class="text-muted text-center" style="padding:1rem;">Nenhuma OS concluída no período ainda.</td></tr>';
         return;
     }
 
@@ -1952,60 +2111,172 @@ function renderOsConcluidas() {
         const equip = escapeHTML(os.equipamento || '—');
         const fat   = parseFloat(os.valor_total || 0);
         const des   = parseFloat(os.custo_deslocamento || 0);
-        const lucroBruto = fat - des;
+
+        let custoPecas = 0;
+        let itens = os.itens_detalhados;
+        if (!itens || itens.length === 0) {
+            try {
+                const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+                if (local) itens = JSON.parse(local);
+            } catch (_) {}
+        }
+        if (itens && Array.isArray(itens)) {
+            itens.forEach(it => {
+                if (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo') {
+                    const q = parseInt(it.qtd) || 1;
+                    const c = parseFloat(it.custo_unitario || 0);
+                    custoPecas += (q * c);
+                }
+            });
+        } else if (os.custo_pecas) {
+            custoPecas = parseFloat(os.custo_pecas || 0);
+        }
+
+        const lucroLiquidoOs = fat - (custoPecas + des);
+        const margemOs = fat > 0 ? ((lucroLiquidoOs / fat) * 100).toFixed(1) : '0';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${new Date(os.criado_em).toLocaleDateString('pt-BR')}</td>
             <td><strong>${nome}</strong> <br><span class="text-muted text-sm">${equip}</span></td>
-            <td>R$ ${des.toFixed(2)}</td>
             <td style="color:var(--color-cyan);font-weight:700">R$ ${fat.toFixed(2)}</td>
-            <td style="color:#22c55e;font-weight:700">R$ ${lucroBruto.toFixed(2)}</td>`;
+            <td style="color:#f87171;font-weight:600">R$ ${custoPecas.toFixed(2)}</td>
+            <td>R$ ${des.toFixed(2)}</td>
+            <td style="color:${lucroLiquidoOs >= 0 ? '#22c55e' : '#ef4444'};font-weight:700">R$ ${lucroLiquidoOs.toFixed(2)}</td>
+            <td><span class="lead-pill" style="font-weight:600;background:${lucroLiquidoOs >= 0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)'};color:${lucroLiquidoOs >= 0 ? '#22c55e' : '#ef4444'}">${margemOs}%</span></td>`;
         tabela.appendChild(tr);
     });
 }
 
 function renderCustosFixos() {
     tabelaCustosFixos.innerHTML = '';
-    _custosFixosCache.forEach(c => {
+    if (!_custosFixosCache || _custosFixosCache.length === 0) {
+        tabelaCustosFixos.innerHTML = '<tr><td colspan="5" class="text-muted text-center" style="padding:1rem;">Nenhum custo fixo cadastrado. Clique em "+ Novo Custo / Investimento" para adicionar!</td></tr>';
+        return;
+    }
+
+    _custosFixosCache.forEach((c, idx) => {
+        const idKey = c.id || ('idx_' + idx);
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${escapeHTML(c.descricao)}</strong></td>
             <td><span class="lead-pill">${escapeHTML(c.categoria)}</span></td>
             <td style="color:#ef4444;font-weight:700">R$ ${parseFloat(c.valor).toFixed(2)}</td>
-            <td>${new Date(c.data_custo || Date.now()).toLocaleDateString('pt-BR')}</td>`;
+            <td>${new Date(c.data_custo || Date.now()).toLocaleDateString('pt-BR')}</td>
+            <td style="text-align:center;">
+                <div style="display:flex;gap:0.3rem;justify-content:center;">
+                    <button type="button" class="btn btn-secondary text-sm" style="padding:0.2rem 0.45rem;font-size:0.75rem;" onclick="abrirModalEditarCusto('${escapeHTML(idKey)}')" title="Editar Custo">✏️</button>
+                    <button type="button" class="btn btn-outline text-sm" style="padding:0.2rem 0.45rem;font-size:0.75rem;border-color:#ef4444;color:#ef4444;" onclick="excluirCustoFixo('${escapeHTML(idKey)}')" title="Excluir Custo">🗑️</button>
+                </div>
+            </td>`;
         tabelaCustosFixos.appendChild(tr);
     });
 }
 
-btnAbrirModalCusto?.addEventListener('click', () => modalNovoCustoFixo.classList.remove('hidden'));
+window.abrirModalEditarCusto = function(custoId) {
+    const c = _custosFixosCache.find((item, idx) => (item.id === custoId || ('idx_' + idx) === custoId));
+    if (!c) return;
+
+    document.getElementById('custoEditId').value = c.id || custoId;
+    document.getElementById('custoDescricao').value = c.descricao || '';
+    document.getElementById('custoCategoria').value = c.categoria || 'Outro';
+    document.getElementById('custoValor').value = parseFloat(c.valor || 0).toFixed(2);
+    document.getElementById('modalCustoTitulo').textContent = '✏️ Editar Custo / Investimento';
+
+    modalNovoCustoFixo.classList.remove('hidden');
+};
+
+window.excluirCustoFixo = async function(custoId) {
+    if (!confirm('Deseja realmente excluir este custo/investimento do financeiro?')) return;
+
+    showLoading('Excluindo custo...');
+    try {
+        const idx = _custosFixosCache.findIndex((item, i) => (item.id === custoId || ('idx_' + i) === custoId));
+        if (idx !== -1) {
+            const item = _custosFixosCache[idx];
+            if (item.id && !item.id.toString().startsWith('temp_') && !item.id.toString().startsWith('c') && !item.id.toString().startsWith('idx_')) {
+                try { await db.from('custos_fixos').delete().eq('id', item.id); } catch (_) {}
+            }
+            _custosFixosCache.splice(idx, 1);
+            try { localStorage.setItem('wltec_custos_fixos', JSON.stringify(_custosFixosCache)); } catch (_) {}
+        }
+        await loadDreFinanceiro();
+    } catch (err) {
+        alert('Erro ao excluir: ' + (err.message || err));
+    } finally {
+        hideLoading();
+    }
+};
+
+btnAbrirModalCusto?.addEventListener('click', () => {
+    document.getElementById('custoEditId').value = '';
+    formNovoCustoFixo.reset();
+    document.getElementById('modalCustoTitulo').textContent = '📊 Cadastrar Custo Fixo / Investimento';
+    modalNovoCustoFixo.classList.remove('hidden');
+});
+
 btnCloseModalCusto?.addEventListener('click', () => modalNovoCustoFixo.classList.add('hidden'));
 
 formNovoCustoFixo?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    showLoading('Cadastrando custo...');
+    showLoading('Salvando custo...');
     try {
-        const novo = {
-            descricao: document.getElementById('custoDescricao').value.trim(),
-            categoria: document.getElementById('custoCategoria').value,
-            valor: parseFloat(document.getElementById('custoValor').value),
-            data_custo: new Date().toISOString().split('T')[0]
-        };
+        const editId = document.getElementById('custoEditId').value;
+        const desc = document.getElementById('custoDescricao').value.trim();
+        const cat = document.getElementById('custoCategoria').value;
+        const val = parseFloat(document.getElementById('custoValor').value) || 0;
 
-        const { data, error } = await db.from('custos_fixos').insert([novo]).select();
-        if (!error && data) {
-            _custosFixosCache.push(data[0]);
+        if (editId) {
+            // Edição
+            const idx = _custosFixosCache.findIndex((item, i) => (item.id === editId || ('idx_' + i) === editId));
+            if (idx !== -1) {
+                _custosFixosCache[idx].descricao = desc;
+                _custosFixosCache[idx].categoria = cat;
+                _custosFixosCache[idx].valor = val;
+
+                const item = _custosFixosCache[idx];
+                if (item.id && !item.id.toString().startsWith('temp_') && !item.id.toString().startsWith('c') && !item.id.toString().startsWith('idx_')) {
+                    try {
+                        await db.from('custos_fixos').update({
+                            descricao: desc,
+                            categoria: cat,
+                            valor: val
+                        }).eq('id', item.id);
+                    } catch (_) {}
+                }
+            }
         } else {
-            novo.id = 'temp_' + Date.now();
-            _custosFixosCache.push(novo);
+            // Criação
+            const novo = {
+                descricao: desc,
+                categoria: cat,
+                valor: val,
+                data_custo: new Date().toISOString().split('T')[0]
+            };
+
+            let salvoDb = false;
+            try {
+                const { data, error } = await db.from('custos_fixos').insert([novo]).select();
+                if (!error && data && data.length > 0) {
+                    _custosFixosCache.push(data[0]);
+                    salvoDb = true;
+                }
+            } catch (_) {}
+
+            if (!salvoDb) {
+                novo.id = 'temp_' + Date.now();
+                _custosFixosCache.push(novo);
+            }
         }
+
+        try { localStorage.setItem('wltec_custos_fixos', JSON.stringify(_custosFixosCache)); } catch (_) {}
 
         modalNovoCustoFixo.classList.add('hidden');
         formNovoCustoFixo.reset();
         await loadDreFinanceiro();
-        alert('Custo/Investimento cadastrado!');
+        alert('Custo/Investimento salvo com sucesso!');
     } catch (err) {
-        alert('Erro ao cadastrar: ' + err.message);
+        alert('Erro ao salvar: ' + err.message);
     } finally {
         hideLoading();
     }
@@ -2104,9 +2375,807 @@ txtBuscaClientes?.addEventListener('input', () => {
     renderClientes(txtBuscaClientes.value.trim());
 });
 
+// ── 📑 CENTRAL DE RELATÓRIOS INTELIGENTE & BI ───────────────────
+let _relatorioUltimoResultado = {
+    tipo: 'consolidado',
+    titulo: 'Relatório',
+    headers: [],
+    linhas: []
+};
+
+function inicializarModuloRelatorios() {
+    popularFiltroClientesRelatorio();
+    atualizarDatasPorPeriodo();
+    gerarRelatorio();
+}
+
+function popularFiltroClientesRelatorio() {
+    const sel = document.getElementById('relClienteFiltro');
+    if (!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = '<option value="todos">Todos os Clientes</option>';
+
+    const clientesSet = new Set();
+    (_ordensCache || []).forEach(os => {
+        const nome = os.clientes_os?.nome;
+        if (nome && !clientesSet.has(nome)) {
+            clientesSet.add(nome);
+            const opt = document.createElement('option');
+            opt.value = nome;
+            opt.textContent = nome;
+            sel.appendChild(opt);
+        }
+    });
+
+    if (atual && sel.querySelector(`option[value="${atual}"]`)) {
+        sel.value = atual;
+    }
+}
+
+function atualizarDatasPorPeriodo() {
+    const periodo = document.getElementById('relPeriodoSelect')?.value || 'este_mes';
+    const inputIni = document.getElementById('relDataInicio');
+    const inputFim = document.getElementById('relDataFim');
+    if (!inputIni || !inputFim) return;
+
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = hoje.getMonth();
+
+    let dataIni, dataFim;
+
+    if (periodo === 'este_mes') {
+        dataIni = new Date(ano, mes, 1);
+        dataFim = new Date(ano, mes + 1, 0);
+    } else if (periodo === 'mes_anterior') {
+        dataIni = new Date(ano, mes - 1, 1);
+        dataFim = new Date(ano, mes, 0);
+    } else if (periodo === 'ultimos_30') {
+        dataIni = new Date(hoje.getTime() - (30 * 24 * 60 * 60 * 1000));
+        dataFim = hoje;
+    } else if (periodo === 'ultimos_90') {
+        dataIni = new Date(hoje.getTime() - (90 * 24 * 60 * 60 * 1000));
+        dataFim = hoje;
+    } else if (periodo === 'este_ano') {
+        dataIni = new Date(ano, 0, 1);
+        dataFim = new Date(ano, 11, 31);
+    } else {
+        return;
+    }
+
+    inputIni.value = dataIni.toISOString().split('T')[0];
+    inputFim.value = dataFim.toISOString().split('T')[0];
+}
+
+document.getElementById('relPeriodoSelect')?.addEventListener('change', () => {
+    atualizarDatasPorPeriodo();
+});
+
+window.carregarPresetRelatorio = function(preset) {
+    const selPeriodo = document.getElementById('relPeriodoSelect');
+    const selModulo  = document.getElementById('relTipoModulo');
+    const selStatus  = document.getElementById('relStatusOs');
+    const selCliente = document.getElementById('relClienteFiltro');
+
+    if (preset === 'fechamento_mes') {
+        selPeriodo.value = 'este_mes';
+        selModulo.value = 'consolidado';
+        selStatus.value = 'Concluído';
+        if (selCliente) selCliente.value = 'todos';
+    } else if (preset === 'pecas_cartao') {
+        selPeriodo.value = 'este_ano';
+        selModulo.value = 'pecas_insumos';
+        selStatus.value = 'todos';
+        if (selCliente) selCliente.value = 'todos';
+    } else if (preset === 'servicos_lucro') {
+        selPeriodo.value = 'este_ano';
+        selModulo.value = 'servicos';
+        selStatus.value = 'Concluído';
+        if (selCliente) selCliente.value = 'todos';
+    } else if (preset === 'ranking_clientes') {
+        selPeriodo.value = 'este_ano';
+        selModulo.value = 'clientes';
+        selStatus.value = 'todos';
+        if (selCliente) selCliente.value = 'todos';
+    } else if (preset === 'gastos_fixos') {
+        selPeriodo.value = 'este_ano';
+        selModulo.value = 'custos_fixos';
+        selStatus.value = 'todos';
+        if (selCliente) selCliente.value = 'todos';
+    } else if (preset === 'preventivas_vencer') {
+        selPeriodo.value = 'este_ano';
+        selModulo.value = 'preventivas';
+        selStatus.value = 'todos';
+        if (selCliente) selCliente.value = 'todos';
+    }
+
+    atualizarDatasPorPeriodo();
+    gerarRelatorio();
+};
+
+document.getElementById('btnGerarRelatorio')?.addEventListener('click', () => {
+    gerarRelatorio();
+});
+
+function gerarRelatorio() {
+    const dataIniStr = document.getElementById('relDataInicio')?.value;
+    const dataFimStr = document.getElementById('relDataFim')?.value;
+    const modulo     = document.getElementById('relTipoModulo')?.value || 'consolidado';
+    const statusFiltro = document.getElementById('relStatusOs')?.value || 'todos';
+    const clienteFiltro = document.getElementById('relClienteFiltro')?.value || 'todos';
+
+    const dtIni = dataIniStr ? new Date(dataIniStr + 'T00:00:00') : new Date('2020-01-01');
+    const dtFim = dataFimStr ? new Date(dataFimStr + 'T23:59:59') : new Date('2030-12-31');
+
+    // Filtra ordens de serviço
+    const ordensFiltradas = (_ordensCache || []).filter(os => {
+        const dtOs = new Date(os.criado_em || Date.now());
+        if (dtOs < dtIni || dtOs > dtFim) return false;
+        if (statusFiltro !== 'todos' && os.status !== statusFiltro) return false;
+        if (clienteFiltro !== 'todos' && (os.clientes_os?.nome !== clienteFiltro)) return false;
+        return true;
+    });
+
+    // Filtra custos fixos
+    const custosFiltrados = (_custosFixosCache || []).filter(c => {
+        const dtCusto = new Date(c.data_custo || Date.now());
+        return (dtCusto >= dtIni && dtCusto <= dtFim);
+    });
+
+    const titElem = document.getElementById('relTituloGerado');
+    const subElem = document.getElementById('relSubtituloGerado');
+    const iniFormat = dtIni.toLocaleDateString('pt-BR');
+    const fimFormat = dtFim.toLocaleDateString('pt-BR');
+
+    subElem.textContent = `Período: ${iniFormat} até ${fimFormat} | Status: ${statusFiltro.toUpperCase()} | Cliente: ${clienteFiltro}`;
+
+    if (modulo === 'consolidado') {
+        titElem.textContent = '📊 Relatório: Fechamento Consolidado & DRE Executivo';
+        renderRelatorioConsolidado(ordensFiltradas, custosFiltrados);
+    } else if (modulo === 'pecas_insumos') {
+        titElem.textContent = '🤝 Relatório: Peças, Insumos, Fornecedores & Cartão Parcelado';
+        renderRelatorioPecasInsumos(ordensFiltradas);
+    } else if (modulo === 'servicos') {
+        titElem.textContent = '🔧 Relatório: Produtividade & Ranking por Tipo de Serviço';
+        renderRelatorioServicos(ordensFiltradas);
+    } else if (modulo === 'clientes') {
+        titElem.textContent = '👥 Relatório: Clientes, Faturamento Acumulado & LTV';
+        renderRelatorioClientes(ordensFiltradas);
+    } else if (modulo === 'custos_fixos') {
+        titElem.textContent = '💸 Relatório: Investimentos Comerciais, Marketing & Despesas Fixas';
+        renderRelatorioCustosFixos(custosFiltrados);
+    } else if (modulo === 'preventivas') {
+        titElem.textContent = '📅 Relatório: CRM de Manutenções Preventivas (Oportunidades de Contato)';
+        renderRelatorioPreventivas(ordensFiltradas);
+    }
+}
+
+function renderRelatorioConsolidado(ordens, custos) {
+    let faturamentoTot = 0;
+    let custoPecasTot  = 0;
+    let deslocamentoTot = 0;
+    let fixosTot = 0;
+
+    const thead = document.getElementById('theadRelatorio');
+    const tbody = document.getElementById('tbodyRelatorio');
+    thead.innerHTML = `
+        <tr>
+            <th>Data</th>
+            <th>OS / Identificador</th>
+            <th>Cliente / Equipamento</th>
+            <th>Faturamento (R$)</th>
+            <th style="color:#f87171">Custo Peças (R$)</th>
+            <th>Deslocamento (R$)</th>
+            <th style="color:#4ade80">Lucro OS (R$)</th>
+            <th>Margem %</th>
+        </tr>
+    `;
+    tbody.innerHTML = '';
+
+    const linhasCsv = [];
+
+    ordens.forEach(os => {
+        const fat = parseFloat(os.valor_total || 0);
+        const des = parseFloat(os.custo_deslocamento || 0);
+        let cPecas = 0;
+
+        let itens = os.itens_detalhados;
+        if (!itens || itens.length === 0) {
+            try {
+                const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+                if (local) itens = JSON.parse(local);
+            } catch (_) {}
+        }
+
+        if (itens && Array.isArray(itens)) {
+            itens.forEach(it => {
+                if (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo') {
+                    cPecas += (parseInt(it.qtd) || 1) * (parseFloat(it.custo_unitario) || 0);
+                }
+            });
+        } else if (os.custo_pecas) {
+            cPecas = parseFloat(os.custo_pecas || 0);
+        }
+
+        const lucroOs = fat - (cPecas + des);
+        const margemOs = fat > 0 ? ((lucroOs / fat) * 100).toFixed(1) : '0';
+
+        faturamentoTot += fat;
+        custoPecasTot  += cPecas;
+        deslocamentoTot += des;
+
+        const dataStr = new Date(os.criado_em || Date.now()).toLocaleDateString('pt-BR');
+        const osNum   = (os.numero_os || os.id.substring(0, 8)).toUpperCase();
+        const nomeCli = os.clientes_os?.nome || 'Cliente';
+        const equip   = os.equipamento || '—';
+
+        linhasCsv.push([
+            dataStr,
+            `#${osNum}`,
+            `${nomeCli} (${equip})`,
+            fat.toFixed(2),
+            cPecas.toFixed(2),
+            des.toFixed(2),
+            lucroOs.toFixed(2),
+            `${margemOs}%`
+        ]);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${dataStr}</td>
+            <td><strong>#${osNum}</strong> <br><span class="lead-pill" style="font-size:0.7rem">${os.status}</span></td>
+            <td><strong>${escapeHTML(nomeCli)}</strong> <br><span class="text-muted text-sm">${escapeHTML(equip)}</span></td>
+            <td style="color:var(--color-cyan);font-weight:700">R$ ${fat.toFixed(2)}</td>
+            <td style="color:#f87171;font-weight:600">R$ ${cPecas.toFixed(2)}</td>
+            <td>R$ ${des.toFixed(2)}</td>
+            <td style="color:${lucroOs >= 0 ? '#22c55e' : '#ef4444'};font-weight:700">R$ ${lucroOs.toFixed(2)}</td>
+            <td><span class="lead-pill" style="font-weight:600;color:${lucroOs >= 0 ? '#22c55e' : '#ef4444'}">${margemOs}%</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    custos.forEach(c => {
+        fixosTot += parseFloat(c.valor || 0);
+    });
+
+    if (ordens.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-muted text-center" style="padding:1.5rem;">Nenhuma ordem de serviço encontrada com os filtros selecionados.</td></tr>';
+    }
+
+    const outrosCustosTot = deslocamentoTot + fixosTot;
+    const lucroLiquidoTot = faturamentoTot - (custoPecasTot + outrosCustosTot);
+    const margemGeral     = faturamentoTot > 0 ? ((lucroLiquidoTot / faturamentoTot) * 100).toFixed(1) : '0';
+    const ticketMedio     = ordens.length > 0 ? (faturamentoTot / ordens.length).toFixed(2) : '0.00';
+
+    document.getElementById('relKpiFaturamento').textContent = `R$ ${faturamentoTot.toFixed(2)}`;
+    document.getElementById('relKpiTotalOs').textContent = `${ordens.length} OSs no período`;
+
+    document.getElementById('relKpiCustoPecas').textContent = `R$ ${custoPecasTot.toFixed(2)}`;
+    document.getElementById('relKpiParcelasMes').textContent = `COGS de peças/insumos`;
+
+    document.getElementById('relKpiOutrosCustos').textContent = `R$ ${outrosCustosTot.toFixed(2)}`;
+    document.getElementById('relKpiLucroLiquido').textContent = `R$ ${lucroLiquidoTot.toFixed(2)}`;
+    document.getElementById('relKpiLucroLiquido').style.color = lucroLiquidoTot >= 0 ? '#22c55e' : '#ef4444';
+    document.getElementById('relKpiMargem').textContent = `Margem Líquida: ${margemGeral}%`;
+
+    document.getElementById('relKpiTicketMedio').textContent = `R$ ${ticketMedio}`;
+
+    _relatorioUltimoResultado = {
+        tipo: 'consolidado',
+        titulo: 'Relatório Consolidado Executivo & DRE',
+        headers: ['Data', 'OS', 'Cliente / Equipamento', 'Faturamento (R$)', 'Custo Peças (R$)', 'Deslocamento (R$)', 'Lucro OS (R$)', 'Margem'],
+        linhas: linhasCsv
+    };
+}
+
+function renderRelatorioPecasInsumos(ordens) {
+    const thead = document.getElementById('theadRelatorio');
+    const tbody = document.getElementById('tbodyRelatorio');
+    thead.innerHTML = `
+        <tr>
+            <th>Data</th>
+            <th>Peça / Insumo</th>
+            <th>OS &amp; Cliente</th>
+            <th>Qtd</th>
+            <th style="color:#f87171">Custo Unit. (R$)</th>
+            <th style="color:#f87171">Custo Total (R$)</th>
+            <th>💳 Pagamento / Parcelas</th>
+            <th style="color:var(--color-cyan)">Venda Unit. (R$)</th>
+            <th style="color:#4ade80">Lucro Revenda (R$)</th>
+        </tr>
+    `;
+    tbody.innerHTML = '';
+
+    let totalGastoPecas = 0;
+    let totalVendaPecas = 0;
+    let totalQtdPecas   = 0;
+    let totalParcelado  = 0;
+    const linhasCsv = [];
+
+    ordens.forEach(os => {
+        let itens = os.itens_detalhados;
+        if (!itens || itens.length === 0) {
+            try {
+                const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+                if (local) itens = JSON.parse(local);
+            } catch (_) {}
+        }
+
+        if (itens && Array.isArray(itens)) {
+            itens.forEach(it => {
+                if (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo') {
+                    const qtd = parseInt(it.qtd) || 1;
+                    const cUnit = parseFloat(it.custo_unitario) || 0;
+                    const vUnit = parseFloat(it.valor_unitario) || 0;
+                    const parcelas = parseInt(it.parcelas) || 1;
+                    const cTotal = qtd * cUnit;
+                    const vTotal = qtd * vUnit;
+                    const lucroItem = vTotal - cTotal;
+
+                    totalGastoPecas += cTotal;
+                    totalVendaPecas += vTotal;
+                    totalQtdPecas   += qtd;
+                    if (parcelas > 1) totalParcelado += cTotal;
+
+                    const dataStr = new Date(os.criado_em || Date.now()).toLocaleDateString('pt-BR');
+                    const osNum = (os.numero_os || os.id.substring(0, 8)).toUpperCase();
+                    const nomeCli = os.clientes_os?.nome || 'Cliente';
+                    const parcStr = parcelas > 1 ? `${parcelas}x de R$ ${(cTotal / parcelas).toFixed(2)}/mês` : 'À Vista (1x)';
+
+                    linhasCsv.push([
+                        dataStr,
+                        it.descricao,
+                        `OS #${osNum} - ${nomeCli}`,
+                        String(qtd),
+                        cUnit.toFixed(2),
+                        cTotal.toFixed(2),
+                        parcStr,
+                        vUnit.toFixed(2),
+                        lucroItem.toFixed(2)
+                    ]);
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${dataStr}</td>
+                        <td><strong>${escapeHTML(it.descricao)}</strong> <br><span class="lead-pill" style="font-size:0.7rem">${it.tipo}</span></td>
+                        <td><strong>OS #${osNum}</strong> <br><span class="text-muted text-sm">${escapeHTML(nomeCli)}</span></td>
+                        <td style="text-align:center;">${qtd}</td>
+                        <td style="color:#f87171;font-weight:600">R$ ${cUnit.toFixed(2)}</td>
+                        <td style="color:#f87171;font-weight:700">R$ ${cTotal.toFixed(2)}</td>
+                        <td><span class="lead-pill" style="color:#fbbf24;background:rgba(251,191,36,0.15);font-weight:600">💳 ${parcStr}</span></td>
+                        <td style="color:var(--color-cyan);font-weight:700">R$ ${vUnit.toFixed(2)}</td>
+                        <td style="color:${lucroItem >= 0 ? '#22c55e' : '#ef4444'};font-weight:700">R$ ${lucroItem.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+            });
+        }
+    });
+
+    if (linhasCsv.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-muted text-center" style="padding:1.5rem;">Nenhuma peça ou insumo discriminado no período filtrado.</td></tr>';
+    }
+
+    const lucroBrutoPecas = totalVendaPecas - totalGastoPecas;
+    const margemPecas = totalVendaPecas > 0 ? ((lucroBrutoPecas / totalVendaPecas) * 100).toFixed(1) : '0';
+
+    document.getElementById('relKpiFaturamento').textContent = `R$ ${totalVendaPecas.toFixed(2)}`;
+    document.getElementById('relKpiTotalOs').textContent = `Revenda Total de Peças`;
+
+    document.getElementById('relKpiCustoPecas').textContent = `R$ ${totalGastoPecas.toFixed(2)}`;
+    document.getElementById('relKpiParcelasMes').textContent = `Total Custo de Aquisição`;
+
+    document.getElementById('relKpiOutrosCustos').textContent = `R$ ${totalParcelado.toFixed(2)}`;
+    document.getElementById('relKpiLucroLiquido').textContent = `R$ ${lucroBrutoPecas.toFixed(2)}`;
+    document.getElementById('relKpiLucroLiquido').style.color = lucroBrutoPecas >= 0 ? '#22c55e' : '#ef4444';
+    document.getElementById('relKpiMargem').textContent = `Margem de Revenda: ${margemPecas}%`;
+
+    document.getElementById('relKpiTicketMedio').textContent = `${totalQtdPecas} un`;
+
+    _relatorioUltimoResultado = {
+        tipo: 'pecas_insumos',
+        titulo: 'Relatório de Peças, Insumos e Cartão',
+        headers: ['Data', 'Peça / Insumo', 'OS / Cliente', 'Qtd', 'Custo Unit. (R$)', 'Custo Total (R$)', 'Pagamento / Parcelas', 'Venda Unit. (R$)', 'Lucro Revenda (R$)'],
+        linhas: linhasCsv
+    };
+}
+
+function renderRelatorioServicos(ordens) {
+    const thead = document.getElementById('theadRelatorio');
+    const tbody = document.getElementById('tbodyRelatorio');
+    thead.innerHTML = `
+        <tr>
+            <th>Tipo de Serviço / Mão de Obra</th>
+            <th style="text-align:center;">Qtd Realizada</th>
+            <th>Faturamento Gerado (R$)</th>
+            <th>Ticket Médio (R$)</th>
+            <th>% do Faturamento de Serviços</th>
+        </tr>
+    `;
+    tbody.innerHTML = '';
+
+    const servicosMap = new Map();
+    let totalFatServicos = 0;
+    let totalQtdServicos = 0;
+
+    ordens.forEach(os => {
+        let itens = os.itens_detalhados;
+        if (!itens || itens.length === 0) {
+            try {
+                const local = localStorage.getItem(`wltec_os_itens_${os.id}`);
+                if (local) itens = JSON.parse(local);
+            } catch (_) {}
+        }
+
+        if (itens && Array.isArray(itens)) {
+            itens.forEach(it => {
+                if (it.tipo === 'servico' || it.tipo === 'deslocamento') {
+                    const desc = it.descricao || 'Serviço Técnico Especializado';
+                    const qtd = parseInt(it.qtd) || 1;
+                    const sub = parseFloat(it.subtotal || (qtd * (parseFloat(it.valor_unitario) || 0)));
+
+                    totalFatServicos += sub;
+                    totalQtdServicos += qtd;
+
+                    if (!servicosMap.has(desc)) {
+                        servicosMap.set(desc, { desc: desc, qtd: 0, total: 0 });
+                    }
+                    const s = servicosMap.get(desc);
+                    s.qtd += qtd;
+                    s.total += sub;
+                }
+            });
+        }
+    });
+
+    const listaServicos = Array.from(servicosMap.values()).sort((a, b) => b.total - a.total);
+    const linhasCsv = [];
+
+    listaServicos.forEach(s => {
+        const ticket = s.qtd > 0 ? (s.total / s.qtd).toFixed(2) : '0.00';
+        const perc = totalFatServicos > 0 ? ((s.total / totalFatServicos) * 100).toFixed(1) : '0';
+
+        linhasCsv.push([
+            s.desc,
+            String(s.qtd),
+            s.total.toFixed(2),
+            ticket,
+            `${perc}%`
+        ]);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>🔧 ${escapeHTML(s.desc)}</strong></td>
+            <td style="text-align:center;font-weight:700">${s.qtd}</td>
+            <td style="color:var(--color-cyan);font-weight:700">R$ ${s.total.toFixed(2)}</td>
+            <td>R$ ${ticket}</td>
+            <td><span class="lead-pill" style="font-weight:600;color:var(--color-amber)">${perc}%</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (listaServicos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center" style="padding:1.5rem;">Nenhum serviço registrado nas OSs filtradas.</td></tr>';
+    }
+
+    document.getElementById('relKpiFaturamento').textContent = `R$ ${totalFatServicos.toFixed(2)}`;
+    document.getElementById('relKpiTotalOs').textContent = `${totalQtdServicos} serviços prestados`;
+
+    document.getElementById('relKpiCustoPecas').textContent = `R$ 0,00`;
+    document.getElementById('relKpiParcelasMes').textContent = `Mão de obra 100% líquida`;
+
+    document.getElementById('relKpiOutrosCustos').textContent = `${listaServicos.length} tipos`;
+    document.getElementById('relKpiLucroLiquido').textContent = `R$ ${totalFatServicos.toFixed(2)}`;
+    document.getElementById('relKpiLucroLiquido').style.color = '#22c55e';
+    document.getElementById('relKpiMargem').textContent = `Margem M.O.: 100%`;
+
+    const ticketGlobal = totalQtdServicos > 0 ? (totalFatServicos / totalQtdServicos).toFixed(2) : '0.00';
+    document.getElementById('relKpiTicketMedio').textContent = `R$ ${ticketGlobal}`;
+
+    _relatorioUltimoResultado = {
+        tipo: 'servicos',
+        titulo: 'Relatório de Produtividade por Serviço',
+        headers: ['Tipo de Serviço', 'Qtd Realizada', 'Faturamento Gerado (R$)', 'Ticket Médio (R$)', '% da Receita'],
+        linhas: linhasCsv
+    };
+}
+
+function renderRelatorioClientes(ordens) {
+    const thead = document.getElementById('theadRelatorio');
+    const tbody = document.getElementById('tbodyRelatorio');
+    thead.innerHTML = `
+        <tr>
+            <th>Nome do Cliente</th>
+            <th>Telefone / Contato</th>
+            <th style="text-align:center;">Total de OSs</th>
+            <th>Faturamento Acumulado (LTV)</th>
+            <th>Ticket Médio (R$)</th>
+            <th>Último Atendimento</th>
+        </tr>
+    `;
+    tbody.innerHTML = '';
+
+    const cliMap = new Map();
+    let faturamentoGlobal = 0;
+
+    ordens.forEach(os => {
+        const nome = os.clientes_os?.nome || 'Cliente';
+        const tel  = os.clientes_os?.telefone || '—';
+        const fat  = parseFloat(os.valor_total || 0);
+        const data = new Date(os.criado_em || Date.now());
+
+        faturamentoGlobal += fat;
+
+        if (!cliMap.has(nome)) {
+            cliMap.set(nome, {
+                nome: nome,
+                telefone: tel,
+                totalOs: 0,
+                faturamento: 0,
+                ultimaData: data
+            });
+        }
+
+        const c = cliMap.get(nome);
+        c.totalOs += 1;
+        c.faturamento += fat;
+        if (data > c.ultimaData) c.ultimaData = data;
+    });
+
+    const listaClientes = Array.from(cliMap.values()).sort((a, b) => b.faturamento - a.faturamento);
+    const linhasCsv = [];
+
+    listaClientes.forEach(c => {
+        const ticket = c.totalOs > 0 ? (c.faturamento / c.totalOs).toFixed(2) : '0.00';
+        const dtStr  = c.ultimaData.toLocaleDateString('pt-BR');
+
+        linhasCsv.push([
+            c.nome,
+            c.telefone,
+            String(c.totalOs),
+            c.faturamento.toFixed(2),
+            ticket,
+            dtStr
+        ]);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>👤 ${escapeHTML(c.nome)}</strong></td>
+            <td><span class="lead-pill">📱 ${escapeHTML(c.telefone)}</span></td>
+            <td style="text-align:center;font-weight:700">${c.totalOs}</td>
+            <td style="color:var(--color-cyan);font-weight:700">R$ ${c.faturamento.toFixed(2)}</td>
+            <td>R$ ${ticket}</td>
+            <td>${dtStr}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (listaClientes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center" style="padding:1.5rem;">Nenhum cliente com atendimentos no período.</td></tr>';
+    }
+
+    const ticketMedioGeral = listaClientes.length > 0 ? (faturamentoGlobal / listaClientes.length).toFixed(2) : '0.00';
+
+    document.getElementById('relKpiFaturamento').textContent = `R$ ${faturamentoGlobal.toFixed(2)}`;
+    document.getElementById('relKpiTotalOs').textContent = `${listaClientes.length} clientes ativos`;
+
+    document.getElementById('relKpiCustoPecas').textContent = listaClientes[0] ? listaClientes[0].nome : '—';
+    document.getElementById('relKpiParcelasMes').textContent = `Cliente TOP #1 em Vendas`;
+
+    document.getElementById('relKpiOutrosCustos').textContent = `${ordens.length} OSs`;
+    document.getElementById('relKpiLucroLiquido').textContent = `R$ ${ticketMedioGeral}`;
+    document.getElementById('relKpiLucroLiquido').style.color = 'var(--color-cyan)';
+    document.getElementById('relKpiMargem').textContent = `Média por Cliente (LTV)`;
+
+    document.getElementById('relKpiTicketMedio').textContent = `R$ ${ticketMedioGeral}`;
+
+    _relatorioUltimoResultado = {
+        tipo: 'clientes',
+        titulo: 'Relatório de Ranking de Clientes (LTV)',
+        headers: ['Nome do Cliente', 'Telefone', 'Total de OSs', 'Faturamento Acumulado (R$)', 'Ticket Médio (R$)', 'Último Atendimento'],
+        linhas: linhasCsv
+    };
+}
+
+function renderRelatorioCustosFixos(custos) {
+    const thead = document.getElementById('theadRelatorio');
+    const tbody = document.getElementById('tbodyRelatorio');
+    thead.innerHTML = `
+        <tr>
+            <th>Data</th>
+            <th>Descrição da Despesa / Investimento</th>
+            <th>Categoria</th>
+            <th>Valor (R$)</th>
+            <th>Proporção %</th>
+        </tr>
+    `;
+    tbody.innerHTML = '';
+
+    let totalFixos = 0;
+    custos.forEach(c => totalFixos += parseFloat(c.valor || 0));
+
+    const linhasCsv = [];
+
+    custos.forEach(c => {
+        const val = parseFloat(c.valor || 0);
+        const perc = totalFixos > 0 ? ((val / totalFixos) * 100).toFixed(1) : '0';
+        const dtStr = new Date(c.data_custo || Date.now()).toLocaleDateString('pt-BR');
+
+        linhasCsv.push([
+            dtStr,
+            c.descricao,
+            c.categoria,
+            val.toFixed(2),
+            `${perc}%`
+        ]);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${dtStr}</td>
+            <td><strong>${escapeHTML(c.descricao)}</strong></td>
+            <td><span class="lead-pill">${escapeHTML(c.categoria)}</span></td>
+            <td style="color:#ef4444;font-weight:700">R$ ${val.toFixed(2)}</td>
+            <td><span class="lead-pill" style="font-weight:600">${perc}%</span></td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (custos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center" style="padding:1.5rem;">Nenhum custo fixo registrado no período.</td></tr>';
+    }
+
+    document.getElementById('relKpiFaturamento').textContent = `R$ ${totalFixos.toFixed(2)}`;
+    document.getElementById('relKpiTotalOs').textContent = `${custos.length} lançamentos`;
+
+    document.getElementById('relKpiCustoPecas').textContent = `R$ ${totalFixos.toFixed(2)}`;
+    document.getElementById('relKpiParcelasMes').textContent = `Total Despesas & Investimentos`;
+
+    document.getElementById('relKpiOutrosCustos').textContent = `Bancada / Ads`;
+    document.getElementById('relKpiLucroLiquido').textContent = `- R$ ${totalFixos.toFixed(2)}`;
+    document.getElementById('relKpiLucroLiquido').style.color = '#ef4444';
+    document.getElementById('relKpiMargem').textContent = `Total Saídas`;
+
+    const mediaFixos = custos.length > 0 ? (totalFixos / custos.length).toFixed(2) : '0.00';
+    document.getElementById('relKpiTicketMedio').textContent = `R$ ${mediaFixos}`;
+
+    _relatorioUltimoResultado = {
+        tipo: 'custos_fixos',
+        titulo: 'Relatório de Custos Fixos e Marketing',
+        headers: ['Data', 'Descrição', 'Categoria', 'Valor (R$)', 'Proporção %'],
+        linhas: linhasCsv
+    };
+}
+
+function renderRelatorioPreventivas(ordens) {
+    const thead = document.getElementById('theadRelatorio');
+    const tbody = document.getElementById('tbodyRelatorio');
+    thead.innerHTML = `
+        <tr>
+            <th>Cliente</th>
+            <th>Telefone / WhatsApp</th>
+            <th>Equipamento</th>
+            <th>Data do Último Serviço</th>
+            <th>Tempo Decorrido</th>
+            <th>Status Sugerido</th>
+        </tr>
+    `;
+    tbody.innerHTML = '';
+
+    const agora = new Date();
+    const clientesProcessados = new Set();
+    const linhasCsv = [];
+    let prontasPreventiva = 0;
+
+    ordens.forEach(os => {
+        const nome = os.clientes_os?.nome || 'Cliente';
+        if (clientesProcessados.has(nome)) return;
+        clientesProcessados.add(nome);
+
+        const tel = os.clientes_os?.telefone || '—';
+        const equip = os.equipamento || 'Notebook / PC';
+        const dtOs = new Date(os.criado_em || Date.now());
+        const diffMeses = Math.floor((agora - dtOs) / (1000 * 60 * 60 * 24 * 30.43));
+
+        let statusBadge = '';
+        let statusCsv = '';
+        if (diffMeses >= 6) {
+            prontasPreventiva++;
+            statusBadge = '<span class="lead-pill" style="background:rgba(239,68,68,0.2);color:#ef4444;font-weight:700">🚨 6+ Meses (Revisão Urgente)</span>';
+            statusCsv = '6+ Meses (Urgente)';
+        } else if (diffMeses >= 5) {
+            prontasPreventiva++;
+            statusBadge = '<span class="lead-pill" style="background:rgba(251,191,36,0.2);color:#fbbf24;font-weight:700">⚠️ 5 Meses (Momento Ideal)</span>';
+            statusCsv = '5 Meses (Ideal)';
+        } else {
+            statusBadge = '<span class="lead-pill" style="background:rgba(34,197,94,0.15);color:#22c55e;font-weight:600">✅ Em dia (&lt; 5m)</span>';
+            statusCsv = 'Em dia';
+        }
+
+        const dtStr = dtOs.toLocaleDateString('pt-BR');
+
+        linhasCsv.push([
+            nome,
+            tel,
+            equip,
+            dtStr,
+            `${diffMeses} meses`,
+            statusCsv
+        ]);
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>👤 ${escapeHTML(nome)}</strong></td>
+            <td><span class="lead-pill">📱 ${escapeHTML(tel)}</span></td>
+            <td>${escapeHTML(equip)}</td>
+            <td>${dtStr}</td>
+            <td style="font-weight:700">${diffMeses} meses</td>
+            <td>${statusBadge}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    if (clientesProcessados.size === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center" style="padding:1.5rem;">Nenhum cliente disponível para análise preventiva.</td></tr>';
+    }
+
+    const potencialReceita = prontasPreventiva * 120; // R$ 120 por preventiva de limpeza + pasta térmica
+
+    document.getElementById('relKpiFaturamento').textContent = `R$ ${potencialReceita.toFixed(2)}`;
+    document.getElementById('relKpiTotalOs').textContent = `Potencial de Receita Estimado`;
+
+    document.getElementById('relKpiCustoPecas').textContent = `${prontasPreventiva} clientes`;
+    document.getElementById('relKpiParcelasMes').textContent = `Prontos para Contatar (5-6m)`;
+
+    document.getElementById('relKpiOutrosCustos').textContent = `${clientesProcessados.size} na Base`;
+    document.getElementById('relKpiLucroLiquido').textContent = `${prontasPreventiva}`;
+    document.getElementById('relKpiLucroLiquido').style.color = 'var(--color-amber)';
+    document.getElementById('relKpiMargem').textContent = `Leads Quentes de Retorno`;
+
+    document.getElementById('relKpiTicketMedio').textContent = `R$ 120,00`;
+
+    _relatorioUltimoResultado = {
+        tipo: 'preventivas',
+        titulo: 'Relatório de CRM de Manutenção Preventiva',
+        headers: ['Cliente', 'Telefone', 'Equipamento', 'Data Último Serviço', 'Tempo Decorrido', 'Status Sugerido'],
+        linhas: linhasCsv
+    };
+}
+
+// ── EXPORTAÇÃO CSV / EXCEL ────────────────────────────────────
+document.getElementById('btnExportarCsvRelatorio')?.addEventListener('click', () => {
+    if (!_relatorioUltimoResultado || !_relatorioUltimoResultado.linhas || _relatorioUltimoResultado.linhas.length === 0) {
+        alert('Gere um relatório primeiro para poder exportar!');
+        return;
+    }
+
+    let csvContent = '\uFEFF'; // UTF-8 BOM para Excel
+    csvContent += _relatorioUltimoResultado.headers.map(h => `"${h.replace(/"/g, '""')}"`).join(';') + '\r\n';
+
+    _relatorioUltimoResultado.linhas.forEach(row => {
+        csvContent += row.map(col => `"${String(col).replace(/"/g, '""')}"`).join(';') + '\r\n';
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dtHoje = new Date().toISOString().split('T')[0];
+    a.href = url;
+    a.download = `Relatorio_WLTEC_${_relatorioUltimoResultado.tipo}_${dtHoje}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
+
+// ── IMPRIMIR / SALVAR PDF ─────────────────────────────────────
+document.getElementById('btnImprimirRelatorio')?.addEventListener('click', () => {
+    window.print();
+});
+
 // Inicialização de dropdowns de estoque e terceiros ao carregar
 loadEstoque();
 loadTerceiros();
 
 // ── Inicialização: Verifica a sessão do usuário ao carregar ──
 checkAuthSession();
+

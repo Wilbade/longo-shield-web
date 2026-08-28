@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css?v=20260828c">
+    <link rel="stylesheet" href="style.css?v=20260828f">
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a0c10'/><rect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%2300FFFF' stroke-width='3'/><path d='M32 10 L50 20 V34 C50 46 32 54 32 54 C32 54 14 46 14 34 V20 Z' fill='none' stroke='%23FFB300' stroke-width='3'/><text x='32' y='38' font-family='sans-serif' font-weight='900' font-size='20' fill='%2300FFFF' text-anchor='middle'>OS</text></svg>">
 
@@ -78,6 +78,7 @@
                 <button id="btnTerceiros" class="btn btn-secondary">🤝 Terceiros</button>
                 <button id="btnCrmPreventiva" class="btn btn-secondary">📅 Preventivas (6m)</button>
                 <button id="btnDre" class="btn btn-secondary">📊 Financeiro &amp; DRE</button>
+                <button id="btnRelatorios" class="btn btn-secondary">📑 Relatórios</button>
                 <button id="btnLogout" class="btn btn-outline" style="margin-left:0.5rem">🚪 Sair</button>
             </nav>
         </div>
@@ -371,9 +372,11 @@
                         <tr>
                             <th>Data</th>
                             <th>Cliente / Equipamento</th>
-                            <th>Deslocamento (R$)</th>
                             <th>Faturamento (R$)</th>
-                            <th>Lucro OS (R$)</th>
+                            <th style="color:#f87171">Custos Peças (R$)</th>
+                            <th>Deslocamento (R$)</th>
+                            <th style="color:#4ade80">Lucro OS (R$)</th>
+                            <th>Margem</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaOsConcluidas">
@@ -391,12 +394,195 @@
                             <th>Categoria</th>
                             <th>Valor (R$)</th>
                             <th>Data</th>
+                            <th style="width:90px;text-align:center;">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="tabelaCustosFixos">
                         <!-- Linhas via JS -->
                     </tbody>
                 </table>
+            </div>
+
+            <h3 class="section-title mt-6" style="color:var(--color-amber)">💳 Parcelas Futuras a Vencer no Cartão (Controle Anti-Bola de Neve)</h3>
+            <p class="text-muted text-sm mb-2">Previsão das parcelas de peças compradas no cartão mês a mês para você planejar o fluxo de caixa com segurança.</p>
+            <div class="card-table mt-2">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Mês / Vencimento</th>
+                            <th>Origem / Peça &amp; OS</th>
+                            <th>Parcela Nº</th>
+                            <th>Valor do Mês (R$)</th>
+                            <th>Saldo Restante a Vencer</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaProjecaoParcelas">
+                        <!-- Linhas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: CENTRAL DE RELATÓRIOS INTELIGENTE -->
+        <section id="secRelatorios" class="hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+                <div>
+                    <h2 class="section-title" style="margin-bottom:0.2rem">📑 Central de Relatórios Inteligente &amp; BI</h2>
+                    <p class="text-muted text-sm">Gere relatórios customizados, fechamentos, controle de insumos e exporte para PDF ou Excel com 1 clique.</p>
+                </div>
+            </div>
+
+            <!-- ATALHOS RÁPIDOS DE 1 CLIQUE -->
+            <div class="quick-add-box mb-4" style="border-color:rgba(0,255,255,0.25);background:rgba(10,16,26,0.85)">
+                <label style="font-weight:700;font-size:0.85rem;color:var(--color-cyan);display:flex;align-items:center;gap:0.3rem;margin-bottom:0.6rem">
+                    ⚡ Relatórios Mais Utilizados (Atalhos Prontos de 1 Clique):
+                </label>
+                <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                    <button type="button" class="btn btn-secondary text-sm" onclick="carregarPresetRelatorio('fechamento_mes')">
+                        📊 Fechamento deste Mês
+                    </button>
+                    <button type="button" class="btn btn-secondary text-sm" onclick="carregarPresetRelatorio('pecas_cartao')">
+                        🤝 Peças &amp; Cartão Parcelado
+                    </button>
+                    <button type="button" class="btn btn-secondary text-sm" onclick="carregarPresetRelatorio('servicos_lucro')">
+                        🔧 Serviços Mais Lucrativos
+                    </button>
+                    <button type="button" class="btn btn-secondary text-sm" onclick="carregarPresetRelatorio('ranking_clientes')">
+                        👥 Ranking de Clientes (LTV)
+                    </button>
+                    <button type="button" class="btn btn-secondary text-sm" onclick="carregarPresetRelatorio('gastos_fixos')">
+                        💸 Custos Fixos &amp; Insumos
+                    </button>
+                    <button type="button" class="btn btn-secondary text-sm" onclick="carregarPresetRelatorio('preventivas_vencer')">
+                        📅 Preventivas a Contatar
+                    </button>
+                </div>
+            </div>
+
+            <!-- PAINEL DE FILTROS PERSONALIZADOS -->
+            <div class="card-form mb-6" style="padding:1.2rem;">
+                <h3 style="font-size:0.95rem;color:var(--color-amber);margin-bottom:0.8rem;">🔍 Filtros Personalizados do Relatório:</h3>
+                
+                <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:0.75rem;align-items:end;">
+                    <div>
+                        <label class="text-sm" style="font-weight:600">Período Rápido:</label>
+                        <select id="relPeriodoSelect" class="select-input text-sm">
+                            <option value="este_mes" selected>📅 Este Mês</option>
+                            <option value="mes_anterior">📅 Mês Anterior</option>
+                            <option value="ultimos_30">📅 Últimos 30 Dias</option>
+                            <option value="ultimos_90">📅 Últimos 90 Dias</option>
+                            <option value="este_ano">📅 Este Ano</option>
+                            <option value="personalizado">⚙️ Personalizado</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-sm" style="font-weight:600">Data Início:</label>
+                        <input type="date" id="relDataInicio" class="text-sm">
+                    </div>
+
+                    <div>
+                        <label class="text-sm" style="font-weight:600">Data Fim:</label>
+                        <input type="date" id="relDataFim" class="text-sm">
+                    </div>
+
+                    <div>
+                        <label class="text-sm" style="font-weight:600">Tipo de Relatório:</label>
+                        <select id="relTipoModulo" class="select-input text-sm">
+                            <option value="consolidado" selected>📊 Consolidado Geral (DRE &amp; Lucro)</option>
+                            <option value="pecas_insumos">🤝 Peças, Insumos &amp; Cartão</option>
+                            <option value="servicos">🔧 Serviços &amp; Mão de Obra</option>
+                            <option value="clientes">👥 Clientes &amp; Faturamento</option>
+                            <option value="custos_fixos">💸 Despesas Fixas &amp; Marketing</option>
+                            <option value="preventivas">📅 CRM Manutenção Preventiva</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-sm" style="font-weight:600">Status da OS:</label>
+                        <select id="relStatusOs" class="select-input text-sm">
+                            <option value="todos">Todos os Status</option>
+                            <option value="Concluído" selected>Apenas Concluídas</option>
+                            <option value="Em Andamento">Em Andamento</option>
+                            <option value="Aberto">Abertas / Orçamento</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-sm" style="font-weight:600">Filtrar Cliente:</label>
+                        <select id="relClienteFiltro" class="select-input text-sm">
+                            <option value="todos">Todos os Clientes</option>
+                        </select>
+                    </div>
+
+                    <div style="display:flex;gap:0.4rem;">
+                        <button type="button" id="btnGerarRelatorio" class="btn btn-primary btn-block" style="padding:0.6rem;font-weight:700;">
+                            🚀 Gerar Relatório
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CABEÇALHO DE RESULTADO E AÇÕES DE EXPORTAÇÃO -->
+            <div id="relatorioResultadoContainer">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:0.75rem;padding:0.75rem 1rem;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;">
+                    <div>
+                        <h3 id="relTituloGerado" style="font-size:1.1rem;color:var(--color-cyan);margin:0;">
+                            📊 Relatório Executivo Consolidado
+                        </h3>
+                        <span id="relSubtituloGerado" class="text-muted text-sm">Período Selecionado</span>
+                    </div>
+
+                    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                        <button type="button" id="btnImprimirRelatorio" class="btn btn-secondary text-sm" style="padding:0.35rem 0.75rem;">
+                            🖨️ Imprimir / Salvar PDF
+                        </button>
+                        <button type="button" id="btnExportarCsvRelatorio" class="btn btn-outline text-sm" style="padding:0.35rem 0.75rem;border-color:var(--color-cyan);color:var(--color-cyan);">
+                            📥 Exportar Excel (CSV)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CARDS DE KPIS DO RELATÓRIO -->
+                <div class="metrics-grid mb-6" id="relKpisGrid">
+                    <div class="metric-card cyan">
+                        <div class="metric-title">Faturamento Total</div>
+                        <div class="metric-value" id="relKpiFaturamento">R$ 0,00</div>
+                        <div class="metric-sub" id="relKpiTotalOs">0 OSs no período</div>
+                    </div>
+                    <div class="metric-card red">
+                        <div class="metric-title">Custos de Peças (COGS)</div>
+                        <div class="metric-value" id="relKpiCustoPecas">R$ 0,00</div>
+                        <div class="metric-sub" id="relKpiParcelasMes">Cartão + À Vista</div>
+                    </div>
+                    <div class="metric-card ambar">
+                        <div class="metric-title">Deslocamento &amp; Fixos</div>
+                        <div class="metric-value" id="relKpiOutrosCustos">R$ 0,00</div>
+                        <div class="metric-sub">Combustível + Fixos</div>
+                    </div>
+                    <div class="metric-card green highlight-card">
+                        <div class="metric-title">(=) LUCRO LÍQUIDO</div>
+                        <div class="metric-value" id="relKpiLucroLiquido">R$ 0,00</div>
+                        <div class="metric-sub" id="relKpiMargem">Margem: 0%</div>
+                    </div>
+                    <div class="metric-card purple">
+                        <div class="metric-title">Ticket Médio por OS</div>
+                        <div class="metric-value" id="relKpiTicketMedio">R$ 0,00</div>
+                        <div class="metric-sub">Média por atendimento</div>
+                    </div>
+                </div>
+
+                <!-- TABELA ANALÍTICA DO RELATÓRIO -->
+                <div class="card-table">
+                    <table class="table-custom" id="tabelaRelatorio">
+                        <thead id="theadRelatorio">
+                            <!-- Cabeçalho dinâmico via JS -->
+                        </thead>
+                        <tbody id="tbodyRelatorio">
+                            <!-- Linhas dinâmicas via JS -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </main>
@@ -489,11 +675,12 @@
                                 <table class="table-items-os" id="tabelaItensModal">
                                     <thead>
                                         <tr>
-                                            <th style="width:110px;">Tipo</th>
+                                            <th style="width:105px;">Tipo</th>
                                             <th>Descrição do Serviço / Peça</th>
-                                            <th style="width:55px;text-align:center;">Qtd</th>
-                                            <th style="width:90px;text-align:right;">Unit. (R$)</th>
-                                            <th style="width:95px;text-align:right;">Subtotal</th>
+                                            <th style="width:45px;text-align:center;">Qtd</th>
+                                            <th style="width:85px;text-align:right;color:#f87171">Custo Pago</th>
+                                            <th style="width:85px;text-align:right;color:var(--color-cyan)">Venda Unit.</th>
+                                            <th style="width:90px;text-align:right;">Subtotal Venda</th>
                                             <th style="width:40px;text-align:center;"></th>
                                         </tr>
                                     </thead>
@@ -504,14 +691,18 @@
                             </div>
 
                             <!-- Resumo dos Totais Decompostos -->
-                            <div class="items-summary-grid">
+                            <div class="items-summary-grid" style="grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:0.5rem;margin-top:0.6rem;">
                                 <div class="item-summary-card">
                                     <span class="lbl">🔧 Mão de Obra:</span>
                                     <span class="val" id="lblMoTotal">R$ 0,00</span>
                                 </div>
                                 <div class="item-summary-card">
-                                    <span class="lbl">📦 Peças / Terceiros:</span>
+                                    <span class="lbl">📦 Peças (Venda):</span>
                                     <span class="val" id="lblPecasTotal">R$ 0,00</span>
+                                </div>
+                                <div class="item-summary-card" style="border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.05)">
+                                    <span class="lbl" style="color:#f87171">📉 Custo Peças:</span>
+                                    <span class="val" style="color:#f87171" id="lblCustoPecasTotal">R$ 0,00</span>
                                 </div>
                                 <div class="item-summary-card">
                                     <span class="lbl">🚗 Deslocamento:</span>
@@ -521,11 +712,16 @@
                                     <span class="lbl" style="color:var(--color-cyan);font-weight:700">💰 TOTAL DA OS:</span>
                                     <span class="val" style="color:var(--color-cyan)" id="lblValorTotal">R$ 0,00</span>
                                 </div>
+                                <div class="item-summary-card" style="border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.05)">
+                                    <span class="lbl" style="color:#4ade80;font-weight:700">📈 LUCRO DA OS:</span>
+                                    <span class="val" style="color:#4ade80" id="lblLucroRealOs">R$ 0,00</span>
+                                </div>
                             </div>
 
                             <input type="hidden" id="editValor">
                             <input type="hidden" id="editMaoDeObra">
                             <input type="hidden" id="editValorPecas">
+                            <input type="hidden" id="editCustoPecas">
                             <input type="hidden" id="editDeslocamento">
                         </div>
 
@@ -535,19 +731,19 @@
                                 ⚡ Atalhos Rápidos de Serviços &amp; Peças (Clique para Inserir Direto na OS):
                             </label>
                             <div style="display:flex;gap:0.35rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Formatação e Instalação do Windows 11 + Ativação', 1, 100.00)">
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Formatação e Instalação do Windows 11 + Ativação', 1, 0, 100.00)">
                                     💻 Formatação Win 11 (R$ 100)
                                 </button>
-                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Mão de Obra: Desmontagem e Troca de Bateria', 1, 150.00)">
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Mão de Obra: Desmontagem e Troca de Bateria', 1, 0, 150.00)">
                                     🔋 Troca Bateria M.O. (R$ 150)
                                 </button>
-                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('peca_terceiro', 'Peça: Bateria Original/Compatível sob Encomenda', 1, 350.00)">
-                                    🤝 Bateria Nova Peça (R$ 350)
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('peca_terceiro', 'Peça: Bateria Original/Compatível sob Encomenda', 1, 289.06, 350.00)">
+                                    🤝 Bateria Nova Peça (Venda R$ 350 | Custo R$ 289)
                                 </button>
-                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Higienização Interna Completa & Troca de Pasta Térmica', 1, 100.00)">
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('servico', 'Higienização Interna Completa & Troca de Pasta Térmica', 1, 0, 100.00)">
                                     🧼 Limpeza &amp; Pasta (R$ 100)
                                 </button>
-                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('brinde', 'Higienização Interna Completa & Limpeza de Bancada', 1, 0.00)">
+                                <button type="button" class="btn btn-secondary text-sm" style="font-size:0.75rem;padding:0.25rem 0.55rem;" onclick="adicionarPresetItem('brinde', 'Higienização Interna Completa & Limpeza de Bancada', 1, 0, 0.00)">
                                     🎁 Higienização (BRINDE R$ 0)
                                 </button>
                             </div>
@@ -556,28 +752,49 @@
                                 ➕ Ou Adicione Item Personalizado:
                             </label>
 
-                            <!-- Linha 1: Serviço Personalizado / Mão de Obra -->
-                            <div style="display:grid;grid-template-columns:130px 1fr 60px 100px auto;gap:0.4rem;align-items:end;margin-bottom:0.6rem;" class="quick-add-row">
+                            <!-- Linha 1: Serviço Personalizado / Peça / Insumo -->
+                            <div style="display:grid;grid-template-columns:115px 1fr 45px 80px 105px 80px auto;gap:0.35rem;align-items:end;margin-bottom:0.6rem;" class="quick-add-row">
                                 <div>
                                     <label class="text-sm" style="font-size:0.75rem">Tipo:</label>
                                     <select id="novoItemTipo" class="select-input text-sm" style="padding:0.45rem">
                                         <option value="servico">🔧 Serviço</option>
-                                        <option value="peca_terceiro">🤝 Peça Terceiro</option>
+                                        <option value="peca_terceiro" selected>🤝 Peça Terceiro</option>
                                         <option value="insumo">🧪 Insumo</option>
                                         <option value="brinde">🎁 Brinde (R$0)</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label class="text-sm" style="font-size:0.75rem">Descrição:</label>
-                                    <input type="text" id="novoItemDesc" class="text-sm" style="padding:0.45rem" placeholder="Ex: Formatação Win 11 / Bateria Samsung">
+                                    <input type="text" id="novoItemDesc" class="text-sm" style="padding:0.45rem" placeholder="Ex: Bateria Samsung 550XED">
                                 </div>
                                 <div>
                                     <label class="text-sm" style="font-size:0.75rem">Qtd:</label>
                                     <input type="number" id="novoItemQtd" class="text-sm" style="padding:0.45rem" value="1" min="1">
                                 </div>
                                 <div>
-                                    <label class="text-sm" style="font-size:0.75rem">Valor Unit.:</label>
-                                    <input type="number" step="0.01" id="novoItemValor" class="text-sm" style="padding:0.45rem" placeholder="0.00">
+                                    <label class="text-sm" style="font-size:0.75rem;color:#f87171">Custo Pago:</label>
+                                    <input type="number" step="0.01" id="novoItemCusto" class="text-sm" style="padding:0.45rem" placeholder="Ex: 289.06">
+                                </div>
+                                <div>
+                                    <label class="text-sm" style="font-size:0.75rem;color:#fbbf24">💳 Pagamento:</label>
+                                    <select id="novoItemParcelas" class="select-input text-sm" style="padding:0.45rem">
+                                        <option value="1">1x (À Vista)</option>
+                                        <option value="2">2x s/ juros</option>
+                                        <option value="3">3x s/ juros</option>
+                                        <option value="4">4x s/ juros</option>
+                                        <option value="5">5x s/ juros</option>
+                                        <option value="6">6x s/ juros</option>
+                                        <option value="7">7x s/ juros</option>
+                                        <option value="8" selected>8x s/ juros</option>
+                                        <option value="9">9x s/ juros</option>
+                                        <option value="10">10x s/ juros</option>
+                                        <option value="11">11x s/ juros</option>
+                                        <option value="12">12x s/ juros</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-sm" style="font-size:0.75rem;color:var(--color-cyan)">Venda Unit.:</label>
+                                    <input type="number" step="0.01" id="novoItemValor" class="text-sm" style="padding:0.45rem" placeholder="Ex: 350.00">
                                 </div>
                                 <div>
                                     <button type="button" id="btnAdicionarItemManual" class="btn btn-primary text-sm" style="padding:0.45rem 0.8rem">
@@ -815,15 +1032,16 @@
         </div>
     </div>
 
-    <!-- Modal Novo Custo Fixo / Investimento -->
+    <!-- Modal Novo Custo Fixo / Investimento (Criar e Editar) -->
     <div id="modalNovoCustoFixo" class="modal hidden">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>📊 Cadastrar Custo Fixo / Investimento</h2>
+                <h2 id="modalCustoTitulo">📊 Cadastrar Custo Fixo / Investimento</h2>
                 <button id="btnCloseModalCusto" class="btn-close">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="formNovoCustoFixo">
+                    <input type="hidden" id="custoEditId">
                     <div class="form-group">
                         <label for="custoDescricao">Descrição do Custo *</label>
                         <input type="text" id="custoDescricao" required placeholder="Ex: Campanha Google Ads de Março">
@@ -843,14 +1061,14 @@
                         <input type="number" step="0.01" id="custoValor" required placeholder="Ex: 300.00">
                     </div>
                     <div class="form-actions mt-6">
-                        <button type="submit" class="btn btn-primary btn-block">💾 Cadastrar Custo</button>
+                        <button type="submit" id="btnSalvarCusto" class="btn btn-primary btn-block">💾 Salvar Custo</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <script src="app.js?v=20260828c"></script>
+    <script src="app.js?v=20260828f"></script>
 </body>
 
 </html>

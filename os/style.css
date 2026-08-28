@@ -837,3 +837,56 @@ nav {
     margin-top: 0.75rem;
 }
 
+/* ── 🖨️ ESTILOS DE IMPRESSÃO / PDF DE RELATÓRIOS ─────────────── */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+    }
+    #mainHeader,
+    .quick-add-box,
+    .card-form,
+    #modalFotos,
+    #modalNovoTerceiro,
+    #modalNovoCustoFixo,
+    #modalEditarOs,
+    #btnImprimirRelatorio,
+    #btnExportarCsvRelatorio {
+        display: none !important;
+    }
+    section:not(#secRelatorios) {
+        display: none !important;
+    }
+    #secRelatorios {
+        display: block !important;
+    }
+    .metric-card {
+        border: 1px solid #cbd5e1 !important;
+        background: #f8fafc !important;
+        color: #0f172a !important;
+    }
+    .metric-title {
+        color: #475569 !important;
+    }
+    .metric-value {
+        color: #0f172a !important;
+    }
+    .table-custom {
+        border: 1px solid #cbd5e1 !important;
+    }
+    .table-custom th {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
+    .table-custom td {
+        border-bottom: 1px solid #e2e8f0 !important;
+        color: #334155 !important;
+    }
+    .lead-pill {
+        border: 1px solid #cbd5e1 !important;
+        background: #f8fafc !important;
+        color: #0f172a !important;
+    }
+}
+

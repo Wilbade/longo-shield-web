@@ -217,8 +217,22 @@ As principais capacidades do sistema incluem:
   - **Diagnóstico do Cache Mobile e Sincronização**: Identificada a causa da divergência onde o PDF no celular gerava valores defasados (R$ 600) enquanto no PC estava correto. A causa raiz era o cache agressivo de arquivos JavaScript nos navegadores móveis (`app.js` sem parâmetro de versão) somado à persistência dos itens detalhados apenas em `localStorage` local.
   - **Cache Busting e Tags No-Cache (`os/index.html`)**: Inclusão de meta tags HTTP (`no-cache`, `no-store`, `must-revalidate`, `Pragma`, `Expires`) e versionamento nos arquivos carregados (`app.js?v=...` e `style.css?v=...`), forçando a atualização imediata no celular sem necessidade de limpeza manual de cache.
   - **Sincronização Segura de Itens e Totais (`os/app.js`)**: O gerador de PDF e a atualização de OS foram ajustados para calcular e exibir o valor total sincronizado com a soma dos itens discriminados (`totalGeralCalculado`) e persistir com segurança no Supabase.
-- **Abertura Direta da Câmera do Celular para Fotos de Evidências (/os/)**:
-  - **Suporte Nativo a Câmera Traseira (`capture="environment"`)**: Implementado botão destacado `📸 Tirar Foto (Câmera)` tanto no formulário de Nova OS quanto no modal de Edição/Visita (`modalEditarOs`).
-  - **Opção Dupla (Câmera Direta vs Galeria/Arquivos)**: O usuário agora conta com dois botões intuitivos: um para acionar diretamente o obturador da câmera do celular na bancada/visita e outro para selecionar múltiplos arquivos da galeria. Preview imediato e upload para o Supabase Storage mantidos.
+- **Controle de Custo de Aquisição de Peças & Lucro Real no DRE (/os/)**:
+  - **Separação entre Custo Pago e Preço de Venda**: O formulário e a tabela de itens da OS agora permitem registrar o **Custo Pago de Aquisição** (ex: R$ 289,06 no Mercado Livre) e o **Preço de Venda cobrado do Cliente** (ex: R$ 350,00).
+  - **Preservação de Sigilo no PDF**: O PDF e o comprovante continuam exibindo estritamente o valor de venda (R$ 350,00 da bateria, R$ 600,00 total), mantendo o sigilo comercial dos custos de compra.
+  - **Cálculo Preciso do DRE Financeiro (COGS Real)**: O DRE calcula automaticamente os Custos de Peças somando todos os insumos e peças de terceiros/estoque das OSs concluídas, apurando o lucro líquido real exato de cada OS (ex: Faturamento R$ 600 - Peça R$ 289,06 = Lucro Líquido Real de R$ 310,94).
+  - **Gestão Flexível de Custos Fixos & Investimentos**: A tabela de Custos Fixos agora conta com botões de **Editar (✏️)** e **Excluir (🗑️)**, permitindo que o usuário altere ou zere livremente os valores de exemplo (como os R$ 800) para qualquer valor (R$ 50, R$ 2.000, etc.) com persistência imediata no Supabase e localStorage.
+- **Central de Relatórios Inteligente & BI (/os/)**:
+  - **Navegação Dedicada (`#btnRelatorios` e `#secRelatorios`)**: Interface corporativa e rápida para geração e exportação de relatórios gerenciais e fiscais.
+  - **Atalhos Rápidos de 1 Clique**:
+    1. `📊 Fechamento deste Mês` (DRE & Lucro Consolidado).
+    2. `🤝 Peças & Cartão Parcelado` (COGS, Fornecedores, Parcelamentos).
+    3. `🔧 Serviços Mais Lucrativos` (Ranking de Mão de Obra e Receita).
+    4. `👥 Ranking de Clientes (LTV)` (Volume de compras e ticket médio por cliente).
+    5. `💸 Custos Fixos & Insumos` (Marketing, Google Ads, bancada).
+    6. `📅 Preventivas a Contatar` (Leads quentes com 5-6 meses da última visita).
+  - **Filtros Flexíveis Multi-Critério**: Período customizado (datas início e fim), status da OS e cliente específico.
+  - **Grade de KPIs Dinâmicos**: Faturamento total, custo de peças, despesas fixas, lucro líquido real, margem de lucro % e ticket médio.
+  - **Exportação para Excel (CSV com UTF-8 BOM)** e **Modo de Impressão / PDF Executivo** (`@media print`).
 
 
