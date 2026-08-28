@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css?v=20260828b">
+    <link rel="stylesheet" href="style.css?v=20260828c">
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a0c10'/><rect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%2300FFFF' stroke-width='3'/><path d='M32 10 L50 20 V34 C50 46 32 54 32 54 C32 54 14 46 14 34 V20 Z' fill='none' stroke='%23FFB300' stroke-width='3'/><text x='32' y='38' font-family='sans-serif' font-weight='900' font-size='20' fill='%2300FFFF' text-anchor='middle'>OS</text></svg>">
 
@@ -153,10 +153,16 @@
                     <!-- Fotos -->
                     <div class="form-group full-width mt-4">
                         <h3>3. Evidências / Fotos (Opcional)</h3>
-                        <div class="file-upload-wrapper">
-                            <input type="file" id="fotosUpload" multiple accept="image/*" class="file-input">
-                            <label for="fotosUpload" class="btn btn-secondary btn-block">Tirar Foto ou Anexar
-                                Imagem</label>
+                        <p class="text-muted text-sm mb-2">Tire fotos diretamente com a câmera do celular ou selecione fotos da galeria.</p>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:0.75rem;">
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="fotosCamera" accept="image/*" capture="environment" class="file-input">
+                                <label for="fotosCamera" class="btn btn-primary btn-block">📸 Tirar Foto (Câmera)</label>
+                            </div>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="fotosUpload" multiple accept="image/*" class="file-input">
+                                <label for="fotosUpload" class="btn btn-secondary btn-block">📁 Escolher da Galeria</label>
+                            </div>
                         </div>
                         <div id="fotosPreview" class="fotos-preview-grid"></div>
                     </div>
@@ -667,9 +673,15 @@
                             <span>📷</span> Evidências &amp; Fotos do Equipamento
                         </div>
                         <p class="text-muted text-sm">Tire fotos no local para registrar o estado físico do aparelho.</p>
-                        <div class="file-upload-wrapper mt-1">
-                            <input type="file" id="editFotosUpload" multiple accept="image/*" class="file-input">
-                            <label for="editFotosUpload" class="btn btn-secondary btn-block text-sm">📸 Tirar Foto / Anexar Imagens no Local</label>
+                        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:0.75rem;margin-top:0.5rem;">
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="editFotosCamera" accept="image/*" capture="environment" class="file-input">
+                                <label for="editFotosCamera" class="btn btn-primary btn-block text-sm">📸 Tirar Foto na Visita</label>
+                            </div>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="editFotosUpload" multiple accept="image/*" class="file-input">
+                                <label for="editFotosUpload" class="btn btn-secondary btn-block text-sm">📁 Galeria / Arquivos</label>
+                            </div>
                         </div>
                         <div id="editFotosPreview" class="fotos-preview-grid mt-2"></div>
                     </div>
@@ -838,7 +850,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260828b"></script>
+    <script src="app.js?v=20260828c"></script>
 </body>
 
 </html>

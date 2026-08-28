@@ -217,5 +217,8 @@ As principais capacidades do sistema incluem:
   - **Diagnóstico do Cache Mobile e Sincronização**: Identificada a causa da divergência onde o PDF no celular gerava valores defasados (R$ 600) enquanto no PC estava correto. A causa raiz era o cache agressivo de arquivos JavaScript nos navegadores móveis (`app.js` sem parâmetro de versão) somado à persistência dos itens detalhados apenas em `localStorage` local.
   - **Cache Busting e Tags No-Cache (`os/index.html`)**: Inclusão de meta tags HTTP (`no-cache`, `no-store`, `must-revalidate`, `Pragma`, `Expires`) e versionamento nos arquivos carregados (`app.js?v=...` e `style.css?v=...`), forçando a atualização imediata no celular sem necessidade de limpeza manual de cache.
   - **Sincronização Segura de Itens e Totais (`os/app.js`)**: O gerador de PDF e a atualização de OS foram ajustados para calcular e exibir o valor total sincronizado com a soma dos itens discriminados (`totalGeralCalculado`) e persistir com segurança no Supabase.
+- **Abertura Direta da Câmera do Celular para Fotos de Evidências (/os/)**:
+  - **Suporte Nativo a Câmera Traseira (`capture="environment"`)**: Implementado botão destacado `📸 Tirar Foto (Câmera)` tanto no formulário de Nova OS quanto no modal de Edição/Visita (`modalEditarOs`).
+  - **Opção Dupla (Câmera Direta vs Galeria/Arquivos)**: O usuário agora conta com dois botões intuitivos: um para acionar diretamente o obturador da câmera do celular na bancada/visita e outro para selecionar múltiplos arquivos da galeria. Preview imediato e upload para o Supabase Storage mantidos.
 
 

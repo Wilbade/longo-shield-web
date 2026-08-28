@@ -219,15 +219,16 @@ function escapeHTML(str) {
     }[match]));
 }
 
-// ── Upload de Fotos (Validação de Tipos) ──────────────────────
+// ── Upload de Fotos & Câmera Direta (Validação de Tipos) ──────
 const fotosUpload  = document.getElementById('fotosUpload');
+const fotosCamera  = document.getElementById('fotosCamera');
 const fotosPreview = document.getElementById('fotosPreview');
 let selectedFiles  = [];
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
-fotosUpload.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files);
+function handleNewPhotoFiles(filesList) {
+    const files = Array.from(filesList);
     for (const file of files) {
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
             alert(`O arquivo "${file.name}" não é uma imagem válida (apenas JPG, PNG ou WEBP).`);
@@ -243,7 +244,10 @@ fotosUpload.addEventListener('change', (e) => {
         };
         reader.readAsDataURL(file);
     }
-});
+}
+
+fotosUpload?.addEventListener('change', (e) => handleNewPhotoFiles(e.target.files));
+fotosCamera?.addEventListener('change', (e) => handleNewPhotoFiles(e.target.files));
 
 // ── Helpers ──────────────────────────────────────────────────
 function generateUUID() {
@@ -492,13 +496,14 @@ btnRefazerAssinatura?.addEventListener('click', () => {
     resizeEditCanvas();
 });
 
-// Upload de Fotos Adicionais na Visita Presencial
+// Upload de Fotos Adicionais na Visita Presencial (Câmera Direta + Galeria)
 const editFotosUpload  = document.getElementById('editFotosUpload');
+const editFotosCamera  = document.getElementById('editFotosCamera');
 const editFotosPreview = document.getElementById('editFotosPreview');
 let editSelectedFiles  = [];
 
-editFotosUpload?.addEventListener('change', (e) => {
-    const files = Array.from(e.target.files);
+function handleEditPhotoFiles(filesList) {
+    const files = Array.from(filesList);
     for (const file of files) {
         if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
             alert(`O arquivo "${file.name}" não é uma imagem válida (apenas JPG, PNG ou WEBP).`);
@@ -514,7 +519,10 @@ editFotosUpload?.addEventListener('change', (e) => {
         };
         reader.readAsDataURL(file);
     }
-});
+}
+
+editFotosUpload?.addEventListener('change', (e) => handleEditPhotoFiles(e.target.files));
+editFotosCamera?.addEventListener('change', (e) => handleEditPhotoFiles(e.target.files));
 
 // ── 🛠️ GERENCIADOR DE ITENS, PEÇAS & ORÇAMENTO DA OS ─────────
 const tabelaItensModal        = document.getElementById('tabelaItensModal');
