@@ -213,5 +213,9 @@ As principais capacidades do sistema incluem:
     - *Concluído*: `WL TEC — LAUDO TÉCNICO & CERTIFICADO DE GARANTIA` com termos de 90 dias do CDC.
     - *Aberto / Em Reparo*: `WL TEC — COMPROVANTE DE ENTRADA & ORDEM DE SERVIÇO`.
   - **Correção da Tabela do PDF (Quebra de Linha Dinâmica)**: Cálculo da altura da linha (`rowHeight`) baseado no número de linhas da descrição para evitar que textos longos fiquem sobrepostos ou jogados na mesma linha.
+- **Sincronização de Totais e Cache-Busting no Módulo de OS (/os/)**:
+  - **Diagnóstico do Cache Mobile e Sincronização**: Identificada a causa da divergência onde o PDF no celular gerava valores defasados (R$ 600) enquanto no PC estava correto. A causa raiz era o cache agressivo de arquivos JavaScript nos navegadores móveis (`app.js` sem parâmetro de versão) somado à persistência dos itens detalhados apenas em `localStorage` local.
+  - **Cache Busting e Tags No-Cache (`os/index.html`)**: Inclusão de meta tags HTTP (`no-cache`, `no-store`, `must-revalidate`, `Pragma`, `Expires`) e versionamento nos arquivos carregados (`app.js?v=...` e `style.css?v=...`), forçando a atualização imediata no celular sem necessidade de limpeza manual de cache.
+  - **Sincronização Segura de Itens e Totais (`os/app.js`)**: O gerador de PDF e a atualização de OS foram ajustados para calcular e exibir o valor total sincronizado com a soma dos itens discriminados (`totalGeralCalculado`) e persistir com segurança no Supabase.
 
 

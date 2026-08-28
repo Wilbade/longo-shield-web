@@ -979,7 +979,15 @@ formEditarOs.addEventListener('submit', async (e) => {
                 fotos_urls: fotosFinais
             };
 
-            await db.from('ordens_servico').update(updatePayload).eq('id', osId);
+            try {
+                const { error: errFull } = await db.from('ordens_servico').update({
+                    ...updatePayload,
+                    itens_detalhados: itensCopia
+                }).eq('id', osId);
+                if (errFull) throw errFull;
+            } catch (_) {
+                await db.from('ordens_servico').update(updatePayload).eq('id', osId);
+            }
 
             if (osObj?.cliente_id) {
                 await db.from('clientes_os').update({
@@ -1508,7 +1516,7 @@ window.gerarPDF = async function(osId) {
         });
 
         // Linha do Total Geral Destacado
-        const valorFinalExibicao = os.valor_total ? parseFloat(os.valor_total) : totalGeralCalculado;
+        const valorFinalExibicao = (totalGeralCalculado > 0) ? totalGeralCalculado : (os.valor_total ? parseFloat(os.valor_total) : 0);
         doc.setFillColor(236, 253, 245);
         doc.rect(12, y, 186, 6.5, 'F');
         doc.setDrawColor(16, 185, 129);
