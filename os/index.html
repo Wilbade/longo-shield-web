@@ -15,7 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="style.css?v=20260828f">
+    <link rel="stylesheet" href="style.css?v=20260902a">
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%230a0c10'/><rect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%2300FFFF' stroke-width='3'/><path d='M32 10 L50 20 V34 C50 46 32 54 32 54 C32 54 14 46 14 34 V20 Z' fill='none' stroke='%23FFB300' stroke-width='3'/><text x='32' y='38' font-family='sans-serif' font-weight='900' font-size='20' fill='%2300FFFF' text-anchor='middle'>OS</text></svg>">
 
@@ -753,31 +753,31 @@
                             </label>
 
                             <!-- Linha 1: Serviço Personalizado / Peça / Insumo -->
-                            <div style="display:grid;grid-template-columns:115px 1fr 45px 80px 105px 80px auto;gap:0.35rem;align-items:end;margin-bottom:0.6rem;" class="quick-add-row">
-                                <div>
+                            <div class="quick-add-custom-grid">
+                                <div class="field-tipo">
                                     <label class="text-sm" style="font-size:0.75rem">Tipo:</label>
-                                    <select id="novoItemTipo" class="select-input text-sm" style="padding:0.45rem">
+                                    <select id="novoItemTipo" class="select-input text-sm">
                                         <option value="servico">🔧 Serviço</option>
                                         <option value="peca_terceiro" selected>🤝 Peça Terceiro</option>
                                         <option value="insumo">🧪 Insumo</option>
                                         <option value="brinde">🎁 Brinde (R$0)</option>
                                     </select>
                                 </div>
-                                <div>
+                                <div class="field-desc">
                                     <label class="text-sm" style="font-size:0.75rem">Descrição:</label>
-                                    <input type="text" id="novoItemDesc" class="text-sm" style="padding:0.45rem" placeholder="Ex: Bateria Samsung 550XED">
+                                    <input type="text" id="novoItemDesc" class="text-sm" placeholder="Ex: Bateria Samsung 550XED">
                                 </div>
-                                <div>
+                                <div class="field-qtd">
                                     <label class="text-sm" style="font-size:0.75rem">Qtd:</label>
-                                    <input type="number" id="novoItemQtd" class="text-sm" style="padding:0.45rem" value="1" min="1">
+                                    <input type="number" id="novoItemQtd" class="text-sm" value="1" min="1">
                                 </div>
-                                <div>
+                                <div class="field-custo">
                                     <label class="text-sm" style="font-size:0.75rem;color:#f87171">Custo Pago:</label>
-                                    <input type="number" step="0.01" id="novoItemCusto" class="text-sm" style="padding:0.45rem" placeholder="Ex: 289.06">
+                                    <input type="number" step="0.01" id="novoItemCusto" class="text-sm" placeholder="Ex: 289.06">
                                 </div>
-                                <div>
+                                <div class="field-parcelas">
                                     <label class="text-sm" style="font-size:0.75rem;color:#fbbf24">💳 Pagamento:</label>
-                                    <select id="novoItemParcelas" class="select-input text-sm" style="padding:0.45rem">
+                                    <select id="novoItemParcelas" class="select-input text-sm">
                                         <option value="1">1x (À Vista)</option>
                                         <option value="2">2x s/ juros</option>
                                         <option value="3">3x s/ juros</option>
@@ -792,52 +792,52 @@
                                         <option value="12">12x s/ juros</option>
                                     </select>
                                 </div>
-                                <div>
+                                <div class="field-valor">
                                     <label class="text-sm" style="font-size:0.75rem;color:var(--color-cyan)">Venda Unit.:</label>
-                                    <input type="number" step="0.01" id="novoItemValor" class="text-sm" style="padding:0.45rem" placeholder="Ex: 350.00">
+                                    <input type="number" step="0.01" id="novoItemValor" class="text-sm" placeholder="Ex: 350.00">
                                 </div>
-                                <div>
-                                    <button type="button" id="btnAdicionarItemManual" class="btn btn-primary text-sm" style="padding:0.45rem 0.8rem">
-                                        + Adicionar
+                                <div class="field-btn">
+                                    <button type="button" id="btnAdicionarItemManual" class="btn btn-primary text-sm btn-quick-action">
+                                        + Adicionar Item
                                     </button>
                                 </div>
                             </div>
 
                             <!-- Linha 2: Puxar do Estoque -->
-                            <div style="display:grid;grid-template-columns:1fr 60px 100px auto;gap:0.4rem;align-items:end;margin-bottom:0.6rem;padding-top:0.5rem;border-top:1px dashed rgba(255,255,255,0.07)">
-                                <div>
+                            <div class="quick-add-stock-grid">
+                                <div class="field-estoque-select">
                                     <label class="text-sm" style="font-size:0.75rem;color:#10b981">📦 Puxar Peça do Estoque:</label>
-                                    <select id="editPecaEstoque" class="select-input text-sm" style="padding:0.45rem">
+                                    <select id="editPecaEstoque" class="select-input text-sm">
                                         <option value="">Selecione uma peça cadastrada no estoque...</option>
                                     </select>
                                 </div>
-                                <div>
+                                <div class="field-estoque-qtd">
                                     <label class="text-sm" style="font-size:0.75rem">Qtd:</label>
-                                    <input type="number" id="novoEstoqueQtd" class="text-sm" style="padding:0.45rem" value="1" min="1">
+                                    <input type="number" id="novoEstoqueQtd" class="text-sm" value="1" min="1">
                                 </div>
-                                <div>
-                                    <label class="text-sm" style="font-size:0.75rem">Valor (R$):</label>
-                                    <input type="number" step="0.01" id="novoEstoqueValor" class="text-sm" style="padding:0.45rem" placeholder="Venda Sug.">
+                                <div class="field-estoque-valor">
+                                    <label class="text-sm" style="font-size:0.75rem">Valor Venda Sug.:</label>
+                                    <input type="number" step="0.01" id="novoEstoqueValor" class="text-sm" placeholder="R$ 0,00">
                                 </div>
-                                <div>
-                                    <button type="button" id="btnAdicionarPecaEstoque" class="btn btn-success text-sm" style="padding:0.45rem 0.8rem">
+                                <div class="field-estoque-btn">
+                                    <button type="button" id="btnAdicionarPecaEstoque" class="btn btn-success text-sm btn-quick-action">
                                         + Usar Estoque
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Linha 3: Calculadora de Deslocamento Leva & Traz -->
-                            <div style="display:grid;grid-template-columns:110px 120px 80px 1fr auto;gap:0.4rem;align-items:end;padding-top:0.5rem;border-top:1px dashed rgba(255,255,255,0.07)">
-                                <div>
+                            <!-- Linha 3: Calculadora de Deslocamento Leva & Traz (100% Controle Interno) -->
+                            <div class="quick-add-deslocamento-grid">
+                                <div class="field-desloc-veiculo">
                                     <label class="text-sm" style="font-size:0.75rem;color:#fb923c">🚗 Veículo:</label>
-                                    <select id="calcVeiculo" class="select-input text-sm" style="padding:0.45rem">
+                                    <select id="calcVeiculo" class="select-input text-sm">
                                         <option value="carro" selected>Carro (R$1/km)</option>
                                         <option value="moto">Moto (R$0.5/km)</option>
                                     </select>
                                 </div>
-                                <div>
+                                <div class="field-desloc-regiao">
                                     <label class="text-sm" style="font-size:0.75rem">Região:</label>
-                                    <select id="calcRegiao" class="select-input text-sm" style="padding:0.45rem">
+                                    <select id="calcRegiao" class="select-input text-sm">
                                         <option value="4">Local (~4 km)</option>
                                         <option value="10" selected>Santo André (10km)</option>
                                         <option value="16">SBC (~16 km)</option>
@@ -845,17 +845,25 @@
                                         <option value="custom">Outro Km...</option>
                                     </select>
                                 </div>
-                                <div>
+                                <div class="field-desloc-km">
                                     <label class="text-sm" style="font-size:0.75rem">Km Total:</label>
-                                    <input type="number" id="calcKmTotal" class="text-sm" style="padding:0.45rem" value="10">
+                                    <input type="number" id="calcKmTotal" class="text-sm" value="10">
                                 </div>
-                                <div>
-                                    <label class="text-sm" style="font-size:0.75rem">Custo Calculado:</label>
-                                    <input type="text" id="calcCustoPrev" class="text-sm" style="padding:0.45rem" value="R$ 10.00" readonly>
+                                <div class="field-desloc-custo">
+                                    <label class="text-sm" style="font-size:0.75rem">Custo Interno:</label>
+                                    <input type="text" id="calcCustoPrev" class="text-sm" value="R$ 10.00" readonly>
                                 </div>
-                                <div>
-                                    <button type="button" id="btnAplicarDeslocamento" class="btn btn-outline text-sm" style="padding:0.45rem 0.8rem">
-                                        + Inserir Leva &amp; Traz
+                                <div class="field-desloc-destino">
+                                    <label class="text-sm" style="font-size:0.75rem;color:#2dd4bf">🔒 Destino no Cliente (Oculto):</label>
+                                    <select id="calcDestinoOrcamento" class="select-input text-sm">
+                                        <option value="mao_de_obra" selected>🔒 Embutir na Mão de Obra (Oculto do Cliente)</option>
+                                        <option value="insumo">🔒 Cobrar como Insumos / Materiais</option>
+                                        <option value="absorvido">🔒 Absorver Custo (Não repassar ao cliente)</option>
+                                    </select>
+                                </div>
+                                <div class="field-desloc-btn">
+                                    <button type="button" id="btnAplicarDeslocamento" class="btn btn-outline text-sm btn-quick-action">
+                                        + Inserir Custo Leva &amp; Traz
                                     </button>
                                 </div>
                             </div>
@@ -1068,7 +1076,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=20260828f"></script>
+    <script src="app.js?v=20260902a"></script>
 </body>
 
 </html>

@@ -803,6 +803,14 @@ nav {
     border: 1px solid rgba(20, 184, 166, 0.3);
 }
 
+.item-badge.badge-privado {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    font-size: 0.68rem;
+    margin-left: 0.3rem;
+}
+
 .items-summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -835,6 +843,167 @@ nav {
     border-radius: var(--radius);
     padding: 0.85rem;
     margin-top: 0.75rem;
+}
+
+/* ── 📱 Formulários de Adição Rápida (Desktop & Mobile Fluido) ── */
+.quick-add-custom-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr 50px 85px 110px 90px auto;
+    gap: 0.4rem;
+    align-items: end;
+    margin-bottom: 0.75rem;
+}
+
+.quick-add-stock-grid {
+    display: grid;
+    grid-template-columns: 1fr 65px 110px auto;
+    gap: 0.4rem;
+    align-items: end;
+    margin-bottom: 0.75rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.07);
+}
+
+.quick-add-deslocamento-grid {
+    display: grid;
+    grid-template-columns: 110px 130px 80px 100px 1fr auto;
+    gap: 0.4rem;
+    align-items: end;
+    padding-top: 0.6rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.07);
+}
+
+.btn-quick-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    padding: 0.5rem 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .modal {
+        padding: 0.35rem;
+    }
+    .modal-content {
+        max-height: 94vh;
+        border-radius: 8px;
+    }
+    .modal-header {
+        padding: 0.75rem 0.85rem;
+    }
+    .modal-body {
+        padding: 0.75rem 0.5rem;
+    }
+    .modal-section-card {
+        padding: 0.75rem 0.55rem;
+        margin-bottom: 0.75rem;
+    }
+    .quick-add-box {
+        padding: 0.65rem 0.45rem;
+    }
+    .items-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.45rem;
+    }
+
+    /* Grid Customizada no Mobile */
+    .quick-add-custom-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.015);
+        padding: 0.6rem;
+        border-radius: var(--radius);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .quick-add-custom-grid .field-tipo {
+        grid-column: 1 / 2;
+    }
+    .quick-add-custom-grid .field-desc {
+        grid-column: 1 / -1;
+    }
+    .quick-add-custom-grid .field-qtd {
+        grid-column: 1 / 2;
+    }
+    .quick-add-custom-grid .field-custo {
+        grid-column: 2 / 3;
+    }
+    .quick-add-custom-grid .field-parcelas {
+        grid-column: 1 / 2;
+    }
+    .quick-add-custom-grid .field-valor {
+        grid-column: 2 / 3;
+    }
+    .quick-add-custom-grid .field-btn {
+        grid-column: 1 / -1;
+        margin-top: 0.25rem;
+    }
+    .quick-add-custom-grid .btn-quick-action {
+        width: 100%;
+        min-height: 44px;
+        font-size: 0.9rem;
+    }
+
+    /* Grid Estoque no Mobile */
+    .quick-add-stock-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        padding-top: 0.6rem;
+    }
+    .quick-add-stock-grid .field-estoque-select {
+        grid-column: 1 / -1;
+    }
+    .quick-add-stock-grid .field-estoque-qtd {
+        grid-column: 1 / 2;
+    }
+    .quick-add-stock-grid .field-estoque-valor {
+        grid-column: 2 / 3;
+    }
+    .quick-add-stock-grid .field-estoque-btn {
+        grid-column: 1 / -1;
+        margin-top: 0.25rem;
+    }
+    .quick-add-stock-grid .btn-quick-action {
+        width: 100%;
+        min-height: 44px;
+        font-size: 0.9rem;
+    }
+
+    /* Grid Deslocamento no Mobile */
+    .quick-add-deslocamento-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        padding-top: 0.6rem;
+    }
+    .quick-add-deslocamento-grid .field-desloc-veiculo {
+        grid-column: 1 / 2;
+    }
+    .quick-add-deslocamento-grid .field-desloc-regiao {
+        grid-column: 2 / 3;
+    }
+    .quick-add-deslocamento-grid .field-desloc-km {
+        grid-column: 1 / 2;
+    }
+    .quick-add-deslocamento-grid .field-desloc-custo {
+        grid-column: 2 / 3;
+    }
+    .quick-add-deslocamento-grid .field-desloc-destino {
+        grid-column: 1 / -1;
+    }
+    .quick-add-deslocamento-grid .field-desloc-btn {
+        grid-column: 1 / -1;
+        margin-top: 0.25rem;
+    }
+    .quick-add-deslocamento-grid .btn-quick-action {
+        width: 100%;
+        min-height: 44px;
+        font-size: 0.9rem;
+    }
 }
 
 /* ── 🖨️ ESTILOS DE IMPRESSÃO / PDF DE RELATÓRIOS ─────────────── */

@@ -61,7 +61,7 @@ function switchSection(showSec, activeBtn) {
 // ── Autenticação de Sessão (Supabase Auth) ───────────────────
 async function checkAuthSession() {
     try {
-        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:';
         const localAuth = localStorage.getItem('wltec_os_logged_in');
 
         const { data, error } = await db.auth.getSession();
@@ -118,7 +118,7 @@ authForm?.addEventListener('submit', async (e) => {
 
     } catch (err) {
         console.warn('[WL TEC Auth]:', err.message);
-        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:';
         if (isLocal) {
             // Em ambiente local, permite login de desenvolvimento
             localStorage.setItem('wltec_os_logged_in', 'true');
@@ -584,7 +584,7 @@ function getTipoBadgeHtml(tipo) {
         case 'insumo':
             return '<span class="item-badge badge-insumo">🧪 Insumo</span>';
         case 'deslocamento':
-            return '<span class="item-badge badge-deslocamento">🚗 Leva&amp;Traz</span>';
+            return '<span class="item-badge badge-deslocamento">🚗 Deslocamento</span><span class="item-badge badge-privado" title="Controle Interno: Oculto do cliente no PDF e WhatsApp">🔒 Privado</span>';
         case 'brinde':
             return '<span class="item-badge badge-brinde">🎁 Brinde</span>';
         default:
@@ -619,7 +619,7 @@ function renderTabelaItensModal() {
         it.subtotal = sub;
         it.custo_unitario = custoUnit;
         it.parcelas = parcelas;
-        it.custo_total = (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo') ? custoTotalItem : 0;
+        it.custo_total = (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo' || it.tipo === 'deslocamento') ? custoTotalItem : 0;
         it.valor_parcela = parcelas > 1 ? (custoTotalItem / parcelas) : custoTotalItem;
 
         const isPecaOuInsumo = (it.tipo === 'peca_estoque' || it.tipo === 'peca_terceiro' || it.tipo === 'insumo');
@@ -636,11 +636,18 @@ function renderTabelaItensModal() {
             } else {
                 custoDisplay = '<span style="color:#64748b;font-size:0.8rem">R$ 0,00</span>';
             }
+        } else if (it.tipo === 'deslocamento') {
+        custoDisplay = `<div style="color:#fb923c;font-weight:600">R$ ${custoUnit.toFixed(2)}</div><div style="font-size:0.7rem;color:#94a3b8">Combustível/Km</div>`;
+        }
+
+        let descNote = '';
+        if (it.tipo === 'deslocamento') {
+            descNote = `<div style="font-size:0.72rem;color:#fca5a5;margin-top:3px;">🔒 <em>Controle Interno WL: Oculto do cliente (embutido na Mão de Obra/Insumos no PDF e WhatsApp).</em></div>`;
         }
 
         tr.innerHTML = `
             <td>${getTipoBadgeHtml(it.tipo)}</td>
-            <td><strong>${escapeHTML(it.descricao)}</strong></td>
+            <td><strong>${escapeHTML(it.descricao)}</strong>${descNote}</td>
             <td style="text-align:center;">${qtd}</td>
             <td style="text-align:right;color:#f87171;font-weight:600;">${custoDisplay}</td>
             <td style="text-align:right;">${it.tipo === 'brinde' ? 'R$ 0,00' : formatMoeda(unitVenda)}</td>
@@ -662,6 +669,7 @@ function recalcularTotaisItens() {
     let pecasVenda = 0;
     let pecasCusto = 0;
     let des = 0;
+    let desVendaRepassada = 0;
 
     _itensOsEditando.forEach(it => {
         const sub = parseFloat(it.subtotal || 0);
@@ -677,11 +685,12 @@ function recalcularTotaisItens() {
             pecasVenda += sub;
             pecasCusto += (qtd * custoUnit);
         } else if (it.tipo === 'deslocamento') {
-            des += sub;
+            des += (custoUnit > 0 ? (qtd * custoUnit) : sub);
+            desVendaRepassada += sub;
         }
     });
 
-    const tot = mo + pecasVenda + des;
+    const tot = mo + pecasVenda + desVendaRepassada;
     const lucroRealOs = tot - pecasCusto - des;
 
     if (lblMoTotal) lblMoTotal.textContent = formatMoeda(mo);
@@ -803,8 +812,8 @@ function atualizarCustoDeslocamentoPrev() {
     if (calcCustoPrev) calcCustoPrev.value = `R$ ${custo.toFixed(2)}`;
 }
 
-calcVeiculo?.addEventListener('change', atualizarCustoDeslocamentoPrev);
 calcKmTotal?.addEventListener('input', atualizarCustoDeslocamentoPrev);
+calcVeiculo?.addEventListener('change', atualizarCustoDeslocamentoPrev);
 calcRegiao?.addEventListener('change', () => {
     if (calcRegiao.value !== 'custom') {
         calcKmTotal.value = calcRegiao.value;
@@ -817,17 +826,29 @@ btnAplicarDeslocamento?.addEventListener('click', () => {
     const taxaKm = calcVeiculo?.value === 'carro' ? 1.00 : 0.50;
     const custo = km * taxaKm;
     const regiaoNome = calcRegiao?.options[calcRegiao.selectedIndex]?.text || `${km} km`;
+    const calcDestino = document.getElementById('calcDestinoOrcamento')?.value || 'mao_de_obra';
 
     // Remove deslocamento anterior se já existir na lista
     _itensOsEditando = _itensOsEditando.filter(i => i.tipo !== 'deslocamento');
 
+    let descExibicao = `Deslocamento Técnico (${regiaoNome} - ${calcVeiculo?.value.toUpperCase() || 'CARRO'})`;
+    if (calcDestino === 'mao_de_obra') {
+        descExibicao += ' [Embutido na Mão de Obra]';
+    } else if (calcDestino === 'insumo') {
+        descExibicao += ' [Cobrado como Insumos]';
+    } else {
+        descExibicao += ' [Absorvido Internamente]';
+    }
+
     _itensOsEditando.push({
         id: 'it_' + Date.now(),
         tipo: 'deslocamento',
-        descricao: `Serviço de Leva & Traz (${regiaoNome} - ${calcVeiculo?.value.toUpperCase() || 'CARRO'})`,
+        destino: calcDestino,
+        descricao: descExibicao,
         qtd: 1,
-        valor_unitario: custo,
-        subtotal: custo
+        custo_unitario: custo,
+        valor_unitario: calcDestino === 'absorvido' ? 0 : custo,
+        subtotal: calcDestino === 'absorvido' ? 0 : custo
     });
 
     renderTabelaItensModal();
@@ -1306,6 +1327,111 @@ window.verFotos = function(urls) {
 
 btnCloseModal.addEventListener('click', () => modalFotos.classList.add('hidden'));
 
+// ── Helper: Prepara Itens para Apresentação ao Cliente (Sigilo Total do Leva & Traz) ──
+function prepararItensParaCliente(itensOriginais, custoDeslocamentoFallback = 0) {
+    if (!itensOriginais || !Array.isArray(itensOriginais) || itensOriginais.length === 0) {
+        return [];
+    }
+
+    // Clona os itens para não afetar os originais
+    const copia = JSON.parse(JSON.stringify(itensOriginais));
+
+    // Encontra item de deslocamento se houver
+    const itemDesloc = copia.find(i => i.tipo === 'deslocamento');
+    const valorDesloc = itemDesloc ? parseFloat(itemDesloc.subtotal || itemDesloc.valor_unitario || 0) : parseFloat(custoDeslocamentoFallback || 0);
+    const destinoDesloc = itemDesloc?.destino || 'mao_de_obra';
+
+    // Remove o item de deslocamento da lista do cliente
+    const itensFiltrados = copia.filter(i => i.tipo !== 'deslocamento');
+
+    if (valorDesloc > 0 && destinoDesloc !== 'absorvido') {
+        if (destinoDesloc === 'mao_de_obra') {
+            // Procura o primeiro item de serviço (mão de obra)
+            const itemMo = itensFiltrados.find(i => i.tipo === 'servico');
+            if (itemMo) {
+                // Incorpora silenciosamente no valor do serviço sem discriminar frete
+                const qtd = parseInt(itemMo.qtd) || 1;
+                itemMo.subtotal = parseFloat(itemMo.subtotal || 0) + valorDesloc;
+                itemMo.valor_unitario = (itemMo.subtotal / qtd);
+            } else {
+                // Se não há item de serviço na OS, cria um item profissional de Mão de Obra
+                itensFiltrados.push({
+                    id: 'it_mo_embutida',
+                    tipo: 'servico',
+                    descricao: 'Mão de Obra e Atendimento Técnico Especializado',
+                    qtd: 1,
+                    valor_unitario: valorDesloc,
+                    subtotal: valorDesloc
+                });
+            }
+        } else if (destinoDesloc === 'insumo') {
+            // Apresenta discretamente como insumos/materiais operacionais
+            itensFiltrados.push({
+                id: 'it_insumo_embutido',
+                tipo: 'insumo',
+                descricao: 'Insumos Operacionais e Materiais Técnicos',
+                qtd: 1,
+                valor_unitario: valorDesloc,
+                subtotal: valorDesloc
+            });
+        }
+    }
+
+    return itensFiltrados;
+}
+
+// ── Helper: Carrega e Reduz Imagem no Canvas para PDF Leve ──
+function carregarImagemReduzida(url, maxDim = 640, quality = 0.70) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        const timer = setTimeout(() => {
+            console.warn('Timeout ao carregar foto para o PDF:', url);
+            resolve(null);
+        }, 6000);
+
+        img.onload = () => {
+            clearTimeout(timer);
+            try {
+                let w = img.naturalWidth || img.width;
+                let h = img.naturalHeight || img.height;
+                if (!w || !h) return resolve(null);
+
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                        h = Math.round((h * maxDim) / w);
+                        w = maxDim;
+                    } else {
+                        w = Math.round((w * maxDim) / h);
+                        h = maxDim;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve({
+                    dataUrl: canvas.toDataURL('image/jpeg', quality),
+                    width: w,
+                    height: h
+                });
+            } catch (e) {
+                console.warn('Erro ao processar imagem no canvas:', e);
+                resolve(null);
+            }
+        };
+
+        img.onerror = () => {
+            clearTimeout(timer);
+            console.warn('Erro ao carregar imagem para o PDF:', url);
+            resolve(null);
+        };
+
+        img.src = url;
+    });
+}
+
 // ── WhatsApp + PIX ───────────────────────────────────────────
 window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, diagnostico, servico, osId) {
     let num = formatWhatsAppNumber(telefone);
@@ -1326,7 +1452,7 @@ window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, d
     msg += isOrcamento ? `📋 *PROPOSTA DE ORÇAMENTO TÉCNICO*\n` : `📌 *Ordem de Serviço - Status:* ${statusText}\n`;
     msg += `💻 *Equipamento:* ${equip}\n\n`;
 
-    // Itens discriminados
+    // Itens discriminados (aplicando sigilo do Leva & Traz)
     let osObj = osId ? _ordensCache.find(o => o.id === osId) : null;
     let itens = osObj?.itens_detalhados;
     if (!itens && osId) {
@@ -1336,9 +1462,11 @@ window.enviarWhatsApp = function(telefone, cliente, equip, valor, pix, status, d
         } catch (_) {}
     }
 
-    if (itens && itens.length > 0) {
+    const itensParaCliente = prepararItensParaCliente(itens, osObj?.custo_deslocamento);
+
+    if (itensParaCliente && itensParaCliente.length > 0) {
         msg += `🧾 *Discriminação de Serviços & Peças:*\n`;
-        itens.forEach(it => {
+        itensParaCliente.forEach(it => {
             const sub = it.tipo === 'brinde' ? 'BRINDE' : `R$ ${parseFloat(it.subtotal || (it.qtd * it.valor_unitario)).toFixed(2)}`;
             msg += `• ${it.descricao} (x${it.qtd}) — ${sub}\n`;
         });
@@ -1532,15 +1660,6 @@ window.gerarPDF = async function(osId) {
                     subtotal: moTotal
                 });
             }
-            if (desVal > 0) {
-                itens.push({
-                    tipo: 'deslocamento',
-                    descricao: 'Serviço de Leva & Traz (Deslocamento Técnico Ida e Volta)',
-                    qtd: 1,
-                    valor_unitario: desVal,
-                    subtotal: desVal
-                });
-            }
             itens.push({
                 tipo: 'brinde',
                 descricao: 'Higienização Interna Completa & Limpeza de Bancada (BRINDE WL TEC)',
@@ -1550,18 +1669,21 @@ window.gerarPDF = async function(osId) {
             });
         }
 
+        // Aplica o filtro estrito para o cliente: Leva & Traz NUNCA aparece no PDF!
+        // O valor é somado na Mão de Obra ou como Insumos automaticamente.
+        const itensClientePdf = prepararItensParaCliente(itens, os.custo_deslocamento);
+
         // Renderiza cada linha com cálculo dinâmico de altura e quebra de texto perfeita
         doc.setFontSize(7.3); doc.setFont(undefined, 'normal'); doc.setTextColor(51, 65, 85);
 
         let totalGeralCalculado = 0;
 
-        itens.forEach((it, idx) => {
+        itensClientePdf.forEach((it, idx) => {
             let tipoPrefix = '';
             if (it.tipo === 'servico') tipoPrefix = '[Serviço] ';
             else if (it.tipo === 'peca_estoque') tipoPrefix = '[Peça/Estoque] ';
             else if (it.tipo === 'peca_terceiro') tipoPrefix = '[Peça/Terceiro] ';
             else if (it.tipo === 'insumo') tipoPrefix = '[Insumo] ';
-            else if (it.tipo === 'deslocamento') tipoPrefix = '[Leva & Traz] ';
             else if (it.tipo === 'brinde') tipoPrefix = '[Brinde] ';
 
             const fullDesc = `${idx + 1}. ${tipoPrefix}${it.descricao}`;
@@ -1640,9 +1762,75 @@ window.gerarPDF = async function(osId) {
         doc.text(labelAssinaturaDireita, 116, y + 13);
         doc.text(os.clientes_os?.nome || 'Cliente', 116, y + 17);
 
-        // Rodapé Fixo na Margem Inferior (286mm)
+        // Rodapé Fixo na Margem Inferior (286mm) da Página 1
         doc.setFontSize(7); doc.setTextColor(148, 163, 184);
         doc.text('WL TEC — Manutenção de Notebooks & Consultoria em TI | WhatsApp: (11) 91465-4157 | Santo André/SP | www.wl.tec.br', 12, 286);
+
+        // ── 📸 ANEXO DE EVIDÊNCIAS FOTOGRÁFICAS (ANTES & DEPOIS - PÁGINA 2+) ──
+        if (os.fotos_urls && Array.isArray(os.fotos_urls) && os.fotos_urls.length > 0) {
+            showLoading('Processando evidências fotográficas (Antes & Depois)...');
+            doc.addPage();
+
+            // Cabeçalho Oficial do Anexo
+            doc.setFillColor(10, 12, 16);
+            doc.rect(0, 0, 210, 22, 'F');
+
+            doc.setTextColor(0, 255, 255);
+            doc.setFontSize(11.5); doc.setFont(undefined, 'bold');
+            doc.text('WL TEC — ANEXO DE EVIDÊNCIAS FOTOGRÁFICAS (ANTES & DEPOIS)', 12, 11);
+
+            doc.setTextColor(148, 163, 184);
+            doc.setFontSize(7.5); doc.setFont(undefined, 'normal');
+            doc.text(`Equipamento: ${os.equipamento || 'Notebook'} | OS #${osNumDisplay} | Cliente: ${os.clientes_os?.nome || 'Cliente'}`, 12, 18);
+
+            // Grade de fotos compactas (2 colunas x até 3 linhas por página = 6 fotos por página)
+            const colWidth = 88;
+            const colHeight = 58;
+            const startX = 13;
+            const gapX = 8;
+            let currentY = 28;
+            const gapY = 16;
+
+            for (let i = 0; i < os.fotos_urls.length; i++) {
+                const fotoUrl = os.fotos_urls[i];
+                const colIdx = i % 2;
+                const posX = startX + (colIdx * (colWidth + gapX));
+
+                // Se passar de 6 fotos na mesma página, cria nova página de anexo
+                if (i > 0 && i % 6 === 0) {
+                    doc.addPage();
+                    currentY = 28;
+                } else if (i > 0 && colIdx === 0) {
+                    currentY += (colHeight + gapY);
+                }
+
+                try {
+                    const imgObj = await carregarImagemReduzida(fotoUrl, 640, 0.70);
+                    if (imgObj && imgObj.dataUrl) {
+                        // Caixa de fundo
+                        doc.setFillColor(248, 250, 252);
+                        doc.rect(posX, currentY, colWidth, colHeight, 'F');
+                        
+                        // Borda suave
+                        doc.setDrawColor(203, 213, 225);
+                        doc.rect(posX, currentY, colWidth, colHeight, 'S');
+
+                        // Desenha imagem comprimida
+                        doc.addImage(imgObj.dataUrl, 'JPEG', posX + 1, currentY + 1, colWidth - 2, colHeight - 2);
+
+                        // Legenda da Foto
+                        doc.setFontSize(7); doc.setFont(undefined, 'bold'); doc.setTextColor(51, 65, 85);
+                        doc.text(`Registro Fotográfico #${i + 1} — Vistoria / Laudo Técnico de Bancada`, posX, currentY + colHeight + 4.5);
+                    }
+                } catch (ePhoto) {
+                    console.warn(`Erro ao inserir foto ${i + 1} no PDF:`, ePhoto);
+                }
+            }
+
+            // Rodapé do Anexo
+            doc.setFontSize(7); doc.setTextColor(148, 163, 184);
+            doc.text('WL TEC — Registro Fotográfico Oficial de Bancada | WhatsApp: (11) 91465-4157 | www.wl.tec.br', 12, 286);
+        }
 
         const nomeClienteClean = (os.clientes_os?.nome || 'cliente')
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')

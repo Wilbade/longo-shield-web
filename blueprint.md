@@ -235,4 +235,22 @@ As principais capacidades do sistema incluem:
   - **Grade de KPIs Dinâmicos**: Faturamento total, custo de peças, despesas fixas, lucro líquido real, margem de lucro % e ticket médio.
   - **Exportação para Excel (CSV com UTF-8 BOM)** e **Modo de Impressão / PDF Executivo** (`@media print`).
 
+## Mudança Atual: Responsividade Mobile do Modal de OS e Sigilo/Privacidade do Leva & Traz
+
+### 1. Diagnóstico do Problema
+1. **Layout Quebrado no Smartphone**: No modal `modalEditarOs`, os blocos de adicionar itens (personalizados, estoque e calculadora de deslocamento) utilizam propriedades inline de grid (`grid-template-columns: 115px 1fr 45px 80px 105px 80px auto;`), que forçam largura superior a 500px em telas de 360-400px. Isso empurra os campos de parcelamento, venda unitária e o botão "+ Adicionar" para fora da tela, impedindo a inserção de itens no celular.
+2. **Exposição Indevida do Leva & Traz**: O serviço de deslocamento/leva e traz está aparecendo de forma discriminada no PDF e nas mensagens de WhatsApp para o cliente. O serviço deve ser restrito ao controle interno de despesas do técnico (Wiliam), devendo ser automaticamente absorvido/embutido na Mão de Obra ou em Insumos nos documentos do cliente.
+
+### 2. Plano de Ação
+1. **Responsividade Mobile (`os/index.html` e `os/style.css`)**:
+   - Eliminar os estilos inline rígidos e adotar classes responsivas (`.quick-add-custom-grid`, `.quick-add-stock-grid`, `.quick-add-deslocamento-grid`).
+   - Em telas móveis (`<= 768px`), organizar os campos em linhas bem espaçadas com campos confortáveis e botão de ação em largura total (100%), garantindo usabilidade total no celular.
+   - Ajustar paddings do modal no mobile para evitar overflow horizontal.
+2. **Sigilo e Automação do Leva & Traz (`os/app.js`)**:
+   - Manter o registro de `custo_deslocamento` internamente para apuração de lucro real no DRE e controle da média de gastos de combustível.
+   - No modal interno, marcar o item com badge `[🔒 Controle Interno WL - Oculto do Cliente]`.
+   - Na geração de mensagens de WhatsApp (`enviarWhatsApp`) e no documento PDF (`gerarPDF`), aplicar o filtro `prepararItensParaCliente`:
+     - Ocultar totalmente o termo "Leva & Traz" / "Deslocamento".
+     - Embutir o valor calculado automaticamente na Mão de Obra (ou como Insumos Operacionais), mantendo o total idêntico sem discriminar frete para o cliente.
+
 
