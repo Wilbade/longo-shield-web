@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WL TEC | Redirecionando...</title>
+  <script>
+    (function() {
+      var path = window.location.pathname;
+      // Trata páginas de ofertas adicionadas dinamicamente
+      if (path.indexOf('/ofertas/') !== -1) {
+        var slug = path.split('/').pop().replace('.html', '');
+        if (slug && slug !== 'produto' && slug !== 'index' && slug !== 'afiliados') {
+          var search = window.location.search || '';
+          window.location.replace('/ofertas/produto.html?slug=' + encodeURIComponent(slug) + (search ? '&' + search.replace(/^\?/, '') : ''));
+          return;
+        }
+      }
+      // Fallback para home se for rota inexistente geral
+      window.location.replace('/');
+    })();
+  </script>
+</head>
+<body style="background: #06080d; color: #00ffff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+  <div style="text-align: center;">
+    <div style="font-size: 2.5rem; margin-bottom: 1rem;">🛡️</div>
+    <h2 style="font-size: 1.2rem; font-weight: 700;">Carregando página de oferta...</h2>
+  </div>
+</body>
+</html>

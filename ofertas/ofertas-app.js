@@ -10,6 +10,20 @@
   const STORAGE_KEY_CUPONS = 'wltec_afiliados_cupons_v1';
   const STORAGE_KEY_METRICAS = 'wltec_afiliados_metricas_v1';
   const STORAGE_KEY_CONFIG = 'wltec_afiliados_config_v1';
+  const STORAGE_KEY_EXCLUIDOS = 'wltec_afiliados_excluidos_v1';
+
+  // Supabase Client (Nuvem em Tempo Real - Zero Git Commit)
+  const { createClient } = window.supabase || {};
+  const db = (createClient && typeof createClient === 'function')
+    ? createClient('https://giikoiqpnzgmhcqiuvhs.supabase.co', 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB')
+    : null;
+
+  function getExcluidos() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_EXCLUIDOS);
+      return saved ? JSON.parse(saved) : [];
+    } catch(e) { return []; }
+  }
 
   function getConfig() {
     try {
@@ -41,27 +55,17 @@
     }
   }
 
-  // 1. Obter Produtos (LocalStorage com Fallback e Atualização Automática de Preços e Fotos)
+  // 1. Obter Produtos (Respeitando Exclusões Definidas pelo Administrador)
   function getProdutos() {
     const defaultProds = window.PRODUTOS_INICIAIS || [];
+    const excluidos = getExcluidos();
     try {
       const saved = localStorage.getItem(STORAGE_KEY_PRODUTOS);
       if (saved) {
         let parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Garante que os produtos oficiais recebam os dados calibrados reais (preços, títulos, links e fotos)
-          parsed = parsed.map(p => {
-            const def = defaultProds.find(d => (d.id && d.id === p.id) || d.slug === p.slug);
-            if (def && !p.custom_edited) {
-              return {
-                ...def,
-                total_visitas: p.total_visitas || 0,
-                total_cliques: p.total_cliques || 0
-              };
-            }
-            return p;
-          });
-          localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(parsed));
+          // Filtra produtos excluídos
+          parsed = parsed.filter(p => !excluidos.includes(p.slug));
           return parsed;
         }
       }
@@ -69,11 +73,12 @@
       console.warn("Erro ao ler produtos do localStorage:", e);
     }
     
-    // Fallback para os dados pré-carregados
+    // Fallback para os dados pré-carregados filtrados
+    const base = defaultProds.filter(p => !excluidos.includes(p.slug));
     try {
-      localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(defaultProds));
+      localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(base));
     } catch(e) {}
-    return defaultProds;
+    return base;
   }
 
   // 2. Obter Cupons
@@ -190,7 +195,7 @@
     let categoriaAtual = 'todas';
     let termoBusca = '';
 
-    const produtos = getProdutos();
+    let produtos = getProdutos();
     const cupons = getCupons();
 
     function renderizarCards() {
@@ -268,7 +273,7 @@
               </div>
 
               <div class="card-actions">
-                <a href="${p.slug}.html" class="btn-card-review">
+                <a href="produto.html?slug=${encodeURIComponent(p.slug)}" class="btn-card-review">
                   <span>🔍</span> Ver Review & Comparar Lojas
                 </a>
               </div>
@@ -350,43 +355,43 @@
       if (!slug) return;
       const link = e.target.closest('a');
       if (!link) {
-        window.location.href = `${slug}.html`;
+        window.location.href = `produto.html?slug=${encodeURIComponent(slug)}`;
       }
     });
 
-    // Inicialização
+    // Inicialização síncrona imediata
     renderizarCards();
+
+    // Sincronização em segundo plano com o Supabase (Nuvem em Tempo Real)
+    if (db) {
+      db.from('afiliados_produtos')
+        .select('*')
+        .eq('status', 'publicado')
+        .order('atualizado_em', { ascending: false })
+        .then(({ data, error }) => {
+          if (!error && Array.isArray(data)) {
+            const excluidos = getExcluidos();
+            const nuvemFiltrada = data.filter(p => !excluidos.includes(p.slug));
+            const locais = getProdutos();
+            const mapa = new Map();
+            locais.forEach(p => mapa.set(p.slug, p));
+            nuvemFiltrada.forEach(p => mapa.set(p.slug, { ...mapa.get(p.slug), ...p }));
+
+            const mesclados = Array.from(mapa.values()).filter(p => !excluidos.includes(p.slug));
+            try { localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(mesclados)); } catch(e){}
+            produtos = mesclados;
+            renderizarCards();
+          }
+        })
+        .catch(err => console.warn("Supabase vitrine sync:", err));
+    }
   }
 
   // ==============================================================================
   // PÁGINA: DETALHES DO PRODUTO & REVIEW (PRODUTO.HTML)
   // ==============================================================================
-  function initProduto() {
-    const conteudoReview = document.getElementById('conteudoReview');
-    if (!conteudoReview) return;
-
-    registrarTelemetria('visita');
-
-    const params = new URLSearchParams(window.location.search);
-    const pathSlug = window.location.pathname.split('/').pop().replace('.html', '');
-    const slug = window.FORCED_SLUG || params.get('slug') || (pathSlug && pathSlug !== 'produto' && pathSlug !== 'index' ? pathSlug : null);
-    const produtos = getProdutos();
-
-    // Encontrar produto pelo slug ou pegar o primeiro como fallback
-    let produto = produtos.find(p => p.slug === slug);
-    if (!produto && produtos.length > 0) {
-      produto = produtos[0];
-    }
-
-    if (!produto) {
-      conteudoReview.innerHTML = `
-        <div style="text-align: center; padding: 4rem 1rem;">
-          <h2>Produto não encontrado</h2>
-          <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1rem;">Voltar para as Ofertas</a>
-        </div>
-      `;
-      return;
-    }
+  function renderizarDetalhesProduto(produto) {
+    if (!produto) return;
 
     // Metatags e Títulos
     document.title = `${produto.titulo} | Review, Prós, Contras e Menor Preço - WL TEC Ofertas`;
@@ -407,6 +412,7 @@
     if (badgeProduto) {
       badgeProduto.textContent = produto.badge || 'WL TEC Verificado';
       if (produto.is_aposta_alta) badgeProduto.classList.add('badge-aposta');
+      else badgeProduto.classList.remove('badge-aposta');
     }
 
     const lblEstrelas = document.getElementById('lblEstrelas');
@@ -419,6 +425,7 @@
     if (imgProdutoHero) {
       imgProdutoHero.src = produto.imagem_url;
       imgProdutoHero.alt = produto.titulo;
+      imgProdutoHero.onerror = () => { imgProdutoHero.src = 'img/suporte_moto.jpg'; };
     }
 
     // Renderizar Galeria Interativa com Múltiplas Fotos Reais
@@ -430,7 +437,7 @@
 
       galeriaThumbs.innerHTML = fotos.map((f, idx) => `
         <div class="thumb-item ${idx === 0 ? 'active' : ''}" data-src="${f}" title="Ver foto ${idx + 1}">
-          <img src="${f}" alt="${produto.titulo} - Foto ${idx + 1}" loading="lazy">
+          <img src="${f}" alt="${produto.titulo} - Foto ${idx + 1}" loading="lazy" onerror="this.src='img/suporte_moto.jpg'">
         </div>
       `).join('');
 
@@ -465,12 +472,15 @@
     // Especificações Técnicas
     const tabelaEspecificacoes = document.getElementById('tabelaEspecificacoes');
     if (tabelaEspecificacoes && Array.isArray(produto.especificacoes_tecnicas)) {
-      tabelaEspecificacoes.querySelector('tbody').innerHTML = produto.especificacoes_tecnicas.map(spec => `
-        <tr>
-          <th>${spec.chave}</th>
-          <td>${spec.valor}</td>
-        </tr>
-      `).join('');
+      const tbody = tabelaEspecificacoes.querySelector('tbody');
+      if (tbody) {
+        tbody.innerHTML = produto.especificacoes_tecnicas.map(spec => `
+          <tr>
+            <th>${spec.chave}</th>
+            <td>${spec.valor}</td>
+          </tr>
+        `).join('');
+      }
     }
 
     // FAQ Accordion
@@ -550,8 +560,10 @@
       });
 
       listaLojas.innerHTML = lojasConfig.map(loja => {
-        const hasPreco = loja.preco && loja.link;
-        const precoStr = hasPreco ? Number(loja.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Indisponível';
+        const hasPreco = loja.preco && Number(loja.preco) > 0 && loja.link;
+        const precoStr = hasPreco 
+          ? Number(loja.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) 
+          : (loja.link ? '<span style="font-size: 0.82rem; color: var(--text-dim); font-weight: 500;">Ver no site</span>' : 'Indisponível');
         const isMenor = hasPreco && loja.preco === menorPreco;
 
         return `
@@ -577,9 +589,13 @@
                 <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" onclick="window.trackClique('${loja.id}', '${produto.slug}', ${loja.preco})">
                   Ver Oferta ➜
                 </a>
+              ` : (loja.link ? `
+                <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.85; filter: saturate(0.8);" onclick="window.trackClique('${loja.id}', '${produto.slug}', 0)">
+                  Consultar ➜
+                </a>
               ` : `
-                <span style="font-size: 0.78rem; color: var(--text-dim);">Esgotado</span>
-              `}
+                <span style="font-size: 0.78rem; color: var(--text-dim);">Indisponível</span>
+              `)}
             </div>
           </div>
         `;
@@ -596,11 +612,6 @@
         btnMelhorLoja.onclick = () => window.trackClique(melhorLoja.id, produto.slug, menorPreco);
       }
     }
-
-    // Telemetria de Clique
-    window.trackClique = function(loja, prodSlug, preco) {
-      registrarTelemetria('clique_loja', { loja: loja, slug: prodSlug, preco: preco });
-    };
 
     // Injeção de Schema JSON-LD Dinâmico (SEO Rich Snippets)
     const schemaScript = document.getElementById('schemaProductJson');
@@ -630,6 +641,74 @@
       };
       schemaScript.textContent = JSON.stringify(schemaData);
     }
+  }
+
+  function initProduto() {
+    const conteudoReview = document.getElementById('conteudoReview');
+    if (!conteudoReview) return;
+
+    registrarTelemetria('visita');
+
+    const params = new URLSearchParams(window.location.search);
+    const pathSlug = window.location.pathname.split('/').pop().replace('.html', '');
+    const slug = window.FORCED_SLUG || params.get('slug') || (pathSlug && pathSlug !== 'produto' && pathSlug !== 'index' ? pathSlug : null);
+    const produtos = getProdutos();
+
+    // Encontrar produto no cache local inicialmente para renderização instantânea
+    let produto = slug ? produtos.find(p => p.slug === slug) : (produtos[0] || null);
+
+    if (produto) {
+      renderizarDetalhesProduto(produto);
+    }
+
+    // Sincronização e Busca Direta na Nuvem Supabase (Zero Git Commit)
+    if (db && slug) {
+      db.from('afiliados_produtos')
+        .select('*')
+        .eq('slug', slug)
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data) {
+            produto = data;
+            const prods = getProdutos().filter(p => p.slug !== slug);
+            prods.unshift(data);
+            try { localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(prods)); } catch(e){}
+            renderizarDetalhesProduto(produto);
+          } else if (!produto) {
+            conteudoReview.innerHTML = `
+              <div style="text-align: center; padding: 4rem 1rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</div>
+                <h2 style="color: #fff; font-size: 1.3rem;">Oferta não encontrada</h2>
+                <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">Esta oferta pode ter sido descontinuada ou o link está em atualização.</p>
+                <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1.5rem; padding: 0.7rem 1.5rem;">Voltar para o Catálogo de Ofertas</a>
+              </div>
+            `;
+          }
+        })
+        .catch(err => {
+          console.warn("Supabase fetch produto erro:", err);
+          if (!produto) {
+            conteudoReview.innerHTML = `
+              <div style="text-align: center; padding: 4rem 1rem;">
+                <h2>Oferta não encontrada</h2>
+                <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1rem;">Voltar para as Ofertas</a>
+              </div>
+            `;
+          }
+        });
+    } else if (!produto) {
+      conteudoReview.innerHTML = `
+        <div style="text-align: center; padding: 4rem 1rem;">
+          <h2>Oferta não encontrada</h2>
+          <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1rem;">Voltar para as Ofertas</a>
+        </div>
+      `;
+    }
+
+    // Telemetria de Clique Global
+    window.trackClique = function(loja, prodSlug, preco) {
+      registrarTelemetria('clique_loja', { loja: loja, slug: prodSlug, preco: preco });
+    };
   }
 
   // Inicializar Página Conforme Contexto
