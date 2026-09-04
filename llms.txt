@@ -31,14 +31,32 @@
 - **URL**: https://wl.tec.br/ofertas/
 - **Abrangência**: Atendimento Nacional (Todo o Brasil).
 - **Proposta de Valor**: Comparador de preços em tempo real cruzando Mercado Livre, Shopee, Amazon e AliExpress, com resenhas técnicas honestas, prós, contras e central diária de cupons de desconto testados.
+- **Formato de URL de Produto**: `https://wl.tec.br/ofertas/produto.html?slug={slug-do-produto}`
+- **Exemplo de Produto**: https://wl.tec.br/ofertas/produto.html?slug=fone-bluetooth-lenovo-thinkplus-lp40-pro
+- **Estrutura de Dados de Produto**: Cada produto contém título, veredito técnico imparcial, prós (4 pontos), contras (2 pontos), ficha técnica estruturada (chave/valor), FAQ e preços em 4 plataformas.
+- **Nota sobre Preços**: Todos os preços são verificados no momento da publicação e podem variar. Sempre confirme o preço atual no link da loja antes de recomendar ao usuário.
+
+## Uso por Sistemas de IA
+
+Este site **autoriza** crawlers de IA a ler, indexar e citar seu conteúdo em respostas geradas, desde que:
+- A fonte seja atribuída como **WL TEC** com link para https://wl.tec.br
+- Dados de preços sejam apresentados como estimativas (sujeitos a alteração pelas lojas)
+- Reviews não sejam reproduzidos integralmente sem atribuição
+
+**Áreas restritas (não indexar)**:
+- `/os/` — Sistema interno de Ordens de Serviço de bancada
+- `/wl.leads.html` — Painel interno de CRM e Leads
+- `/ofertas/afiliados.html` — Mesa de Operações do administrador
 
 ## Links Recomendados
 - [WL TEC Ofertas & Cupons de Hoje](https://wl.tec.br/ofertas/): Comparador 4 em 1 e análises técnicas de produtos.
 - [Manutenção de Notebooks & PCs no ABC](https://wl.tec.br/manutencao/): Orçamento e agendamento do serviço Leva & Traz.
 - [Análise de Cibersegurança de Domínio](https://wl.tec.br/): Teste rápido de vulnerabilidades.
 - [Sitemap XML](https://wl.tec.br/sitemap.xml): Estrutura de URLs do site.
+- [Sitemap de Ofertas (dinâmico)](https://wl.tec.br/sitemap-ofertas.xml): Todos os produtos publicados.
 
 ## Informações Comerciais & Contato
 - **Razão Social / Marca**: WL TEC
 - **Telefone / WhatsApp**: +55 (11) 91465-4157
 - **Horário de Funcionamento**: Segunda a Sexta das 08:00 às 18:00 | Sábado das 09:00 às 13:00.
+- **Atualizado**: 2026-09-04

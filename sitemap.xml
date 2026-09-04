@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://wl.tec.br/</loc>
-    <lastmod>2024-05-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>https://wl.tec.br/manutencao/</loc>
-    <lastmod>2026-07-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://wl.tec.br/ofertas/</loc>
-    <lastmod>2026-09-03</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-</urlset>
+<!-- Sitemap Índice — WL TEC (wl.tec.br) -->
+<!-- Atualizado: 2026-09-04 -->
+<!-- O sitemap de ofertas é gerado dinamicamente via Cloudflare Worker -->
+<!-- para garantir que novos produtos apareçam no Google sem Git commit. -->
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Sitemap estático: páginas institucionais e módulos principais -->
+  <sitemap>
+    <loc>https://wl.tec.br/sitemap-static.xml</loc>
+    <lastmod>2026-09-04</lastmod>
+  </sitemap>
+
+  <!-- Sitemap dinâmico: produtos de afiliados (gerado pelo Worker Supabase) -->
+  <!-- Configurar no Cloudflare: Workers → wltec-sitemap → Rota: wl.tec.br/sitemap-ofertas.xml -->
+  <sitemap>
+    <loc>https://wl.tec.br/sitemap-ofertas.xml</loc>
+    <lastmod>2026-09-04</lastmod>
+  </sitemap>
+
+</sitemapindex>

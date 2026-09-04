@@ -428,10 +428,25 @@
   function renderizarDetalhesProduto(produto) {
     if (!produto) return;
 
-    // Metatags e Títulos
+    // ── Canonical URL + og:url: sempre aponta para a URL limpa sem parâmetros de rastreamento
+    const canonicalUrl  = document.getElementById('canonicalUrl');
+    const ogUrlMeta     = document.getElementById('ogUrl');
+    const cleanUrl      = `https://wl.tec.br/ofertas/produto.html?slug=${encodeURIComponent(produto.slug)}`;
+    if (canonicalUrl) canonicalUrl.href = cleanUrl;
+    if (ogUrlMeta)    ogUrlMeta.setAttribute('content', cleanUrl);
+
+    // Metatags e Títulos dinâmicos
     document.title = `${produto.titulo} | Review, Prós, Contras e Menor Preço - WL TEC Ofertas`;
     const metaDesc = document.getElementById('metaDesc');
     if (metaDesc) metaDesc.setAttribute('content', produto.veredito_rapido || produto.subtitulo || '');
+    const ogTitle = document.getElementById('ogTitle');
+    if (ogTitle) ogTitle.setAttribute('content', `${produto.titulo} | WL TEC Ofertas`);
+    const ogDesc = document.getElementById('ogDesc');
+    if (ogDesc) ogDesc.setAttribute('content', produto.subtitulo || produto.veredito_rapido || '');
+    if (produto.imagem_url) {
+      const ogImage = document.getElementById('ogImage');
+      if (ogImage) ogImage.setAttribute('content', produto.imagem_url.startsWith('http') ? produto.imagem_url : `https://wl.tec.br/ofertas/${produto.imagem_url}`);
+    }
 
     // Preencher Elementos do DOM
     const lblTituloHero = document.getElementById('lblTituloHero');
@@ -658,32 +673,73 @@
       }
     }
 
-    // Injeção de Schema JSON-LD Dinâmico (SEO Rich Snippets)
+    // ── Schema.org Product (completo para Google Rich Results) ──
+    // Inclui offers.availability + offers.url + BreadcrumbList
+    // Valide em: https://search.google.com/test/rich-results
     const schemaScript = document.getElementById('schemaProductJson');
     if (schemaScript) {
-      const schemaData = {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": produto.titulo,
-        "image": [produto.imagem_url],
-        "description": produto.veredito_rapido || produto.subtitulo,
-        "brand": {
-          "@type": "Brand",
-          "name": "WL TEC Ofertas"
-        },
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": produto.avaliacao_estrelas || "4.8",
-          "reviewCount": produto.total_avaliacoes || 120
-        },
-        "offers": {
-          "@type": "AggregateOffer",
-          "priceCurrency": "BRL",
-          "lowPrice": produto.preco_estimado,
-          "highPrice": produto.preco_antigo || produto.preco_estimado * 1.3,
-          "offerCount": "4"
+      const cleanUrl = `https://wl.tec.br/ofertas/produto.html?slug=${encodeURIComponent(produto.slug)}`;
+      const imgUrl   = produto.imagem_url
+        ? (produto.imagem_url.startsWith('http') ? produto.imagem_url : `https://wl.tec.br/ofertas/${produto.imagem_url}`)
+        : 'https://wl.tec.br/img/escudo_shiel.png';
+
+      // Constrói array de ofertas por loja com availability e url individuais
+      const ofertasLojas = [];
+      const lojaMap = [
+        { preco: produto.preco_mercadolivre, link: produto.link_mercadolivre, nome: 'Mercado Livre' },
+        { preco: produto.preco_shopee,       link: produto.link_shopee,       nome: 'Shopee' },
+        { preco: produto.preco_amazon,       link: produto.link_amazon,       nome: 'Amazon Brasil' },
+        { preco: produto.preco_aliexpress,   link: produto.link_aliexpress,   nome: 'AliExpress' }
+      ];
+      lojaMap.forEach(l => {
+        if (l.preco && Number(l.preco) > 0 && l.link) {
+          ofertasLojas.push({
+            "@type": "Offer",
+            "priceCurrency": "BRL",
+            "price": Number(l.preco).toFixed(2),
+            "availability": "https://schema.org/InStock",
+            "url": l.link,
+            "seller": { "@type": "Organization", "name": l.nome },
+            "priceValidUntil": new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
+          });
         }
-      };
+      });
+
+      const schemaData = [
+        {
+          "@context": "https://schema.org/",
+          "@type": "Product",
+          "name": produto.titulo,
+          "sku": produto.slug,
+          "image": [imgUrl],
+          "description": produto.veredito_rapido || produto.subtitulo || '',
+          "brand": { "@type": "Brand", "name": "WL TEC Ofertas" },
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": String(produto.avaliacao_estrelas || "4.8"),
+            "reviewCount": String(produto.total_avaliacoes || 120),
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "offers": ofertasLojas.length > 0 ? {
+            "@type": "AggregateOffer",
+            "priceCurrency": "BRL",
+            "lowPrice": String(produto.preco_estimado),
+            "highPrice": String(produto.preco_antigo || produto.preco_estimado),
+            "offerCount": String(ofertasLojas.length),
+            "offers": ofertasLojas
+          } : undefined
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "WL TEC Ofertas", "item": "https://wl.tec.br/ofertas/" },
+            { "@type": "ListItem", "position": 2, "name": produto.categoria || "Produtos", "item": `https://wl.tec.br/ofertas/?cat=${produto.categoria || 'todas'}` },
+            { "@type": "ListItem", "position": 3, "name": produto.titulo, "item": cleanUrl }
+          ]
+        }
+      ];
       schemaScript.textContent = JSON.stringify(schemaData);
     }
   }

@@ -269,3 +269,29 @@ ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
 - `ofertas/admin-app.js` — botões WhatsApp e Telegram agora geram `produto.html?slug=` (correto)
 - Supabase Dashboard — política RLS `afiliados_produtos` atualizada
 - Cloudflare Dashboard — Worker ativo + Rota `wl.tec.br/ofertas/*` configurada
+
+---
+
+## ARQUITETURA DE SEO & GEO (Generative Engine Optimization) (2026-09-04)
+
+### 1. Sitemap Index Dinâmico
+- `sitemap.xml`: transformado em **Sitemap Index** referenciando:
+  - `https://wl.tec.br/sitemap-static.xml`: páginas fixas (institucionais, manutenção, vitrine).
+  - `https://wl.tec.br/sitemap-ofertas.xml`: gerado dinamicamente via Cloudflare Worker (`supabase/cloudflare-worker-sitemap.js`), lendo o Supabase em tempo real.
+- **Benefício**: Novos produtos publicados no painel admin aparecem no sitemap do Google instantaneamente sem novo deploy ou commit no GitHub.
+
+### 2. Canonical URLs Dinâmicas & Deduplicação
+- `ofertas/produto.html` e `ofertas/ofertas-app.js`:
+  - `<link rel="canonical">` atualizado via JS para sempre apontar para `https://wl.tec.br/ofertas/produto.html?slug=X`.
+  - Remove parâmetros de campanha/rastreamento (`?src=zap`, `?src=tg`) para evitar penalidade de conteúdo duplicado nos indexadores.
+
+### 3. Schema.org (JSON-LD) de Alta Densidade
+- Marcação `Product` enriquecida dinamicamente com:
+  - `offers`: Preço, moeda (`BRL`), disponibilidade (`InStock`), seller e URL direta.
+  - `sku` e `identifier`.
+  - `BreadcrumbList`: Início > Ofertas > Nome do Produto (garante rich breadcrumbs nos snippets do Google).
+
+### 4. GEO (Generative Engine Optimization) & llms.txt
+- `llms.txt` na raiz padronizado segundo as diretrizes de IAs generativas (ChatGPT Search, Perplexity, Gemini, Claude).
+- Define para as IAs como citar ofertas, atributos de preço, comparador de marketplaces e links canônicos.
+- `robots.txt` mapeado com permissões explícitas para rastreadores de busca generativa (`OAI-SearchBot`, `PerplexityBot`, `Google-Extended`, `Claude-Web`, etc.).
