@@ -1,14 +1,18 @@
 // ==============================================================================
 // WL TEC OFERTAS - MESA DE OPERAÇÕES DO ADMINISTRADOR (ADMIN-APP.JS)
+// Escopo: afiliados.html (painel privado do admin)
+// Dependências: Supabase JS v2, produtos-data.js
+// Cloudflare Worker: wltec-og-injector (rota wl.tec.br/ofertas/*)
 // ==============================================================================
 
 (function() {
   'use strict';
 
-  const STORAGE_KEY_PRODUTOS = 'wltec_afiliados_produtos_v6';
-  const STORAGE_KEY_CUPONS = 'wltec_afiliados_cupons_v1';
-  const STORAGE_KEY_METRICAS = 'wltec_afiliados_metricas_v1';
-  const STORAGE_KEY_CONFIG = 'wltec_afiliados_config_v1';
+  // ── Chaves de Armazenamento Local (espelham as do ofertas-app.js) ──
+  const STORAGE_KEY_PRODUTOS  = 'wltec_afiliados_produtos_v6';
+  const STORAGE_KEY_CUPONS    = 'wltec_afiliados_cupons_v1';
+  const STORAGE_KEY_METRICAS  = 'wltec_afiliados_metricas_v1';
+  const STORAGE_KEY_CONFIG    = 'wltec_afiliados_config_v1';
   const STORAGE_KEY_EXCLUIDOS = 'wltec_afiliados_excluidos_v1';
 
   // ── Supabase Client (Mesma instância do painel de OS e Leads) ──
@@ -25,6 +29,11 @@
     } catch(e) { return []; }
   }
 
+  /**
+   * Adiciona um slug à lista local de excluídos.
+   * Essa lista é a barreira definitiva: nenhum produto com slug aqui
+   * pode ressuscitar após sync com o Supabase ou recarga de página.
+   */
   function adicionarAosExcluidos(slug) {
     try {
       const excluidos = getExcluidos();
@@ -35,6 +44,7 @@
     } catch(e) {}
   }
 
+  /** Remove um slug da lista de excluídos (usado ao republicar um produto). */
   function removerDosExcluidos(slug) {
     try {
       let excluidos = getExcluidos();
@@ -75,7 +85,12 @@
     }
   }
 
-  // Sincronização Autônoma com a Nuvem Supabase
+  /**
+   * Sincroniza o catálogo admin com o Supabase:
+   * 1. Deleta da nuvem qualquer produto que esteja na lista local de excluídos.
+   * 2. Mescla os produtos da nuvem com o localStorage, com filtro duplo de excluídos.
+   * Executada automaticamente após autenticação do admin.
+   */
   async function sincronizarComNuvem() {
     if (!db) return;
     try {
@@ -86,7 +101,7 @@
       if (!error && Array.isArray(data)) {
         const excluidos = getExcluidos();
 
-        // 1. Limpa na nuvem qualquer produto que esteja na lista de excluídos
+        // 1. Propaga as exclusões locais para a nuvem (consistência bidirecional)
         const paraDeletar = data.filter(p => excluidos.includes(p.slug));
         for (const item of paraDeletar) {
           await db.from('afiliados_produtos').delete().eq('slug', item.slug);
@@ -103,7 +118,7 @@
         atualizarMesaMetricas();
       }
     } catch(err) {
-      console.warn("Erro ao sincronizar catálogo com Supabase:", err);
+      console.warn('[WL TEC] Erro ao sincronizar catálogo com Supabase:', err);
     }
   }
 
@@ -1425,12 +1440,14 @@ Regras:
               atualizado_em: new Date().toISOString()
             };
 
+            // Upsert na nuvem: status='publicado' garante visibilidade na vitrine pública
+            // e activa a captura pelo Cloudflare Worker (OG Injector) nos compartilhamentos
             const { error: supaErr } = await db.from('afiliados_produtos').upsert(payload, { onConflict: 'slug' });
             if (supaErr) {
-              console.warn("Supabase upsert:", supaErr.message);
-              showToast("Salvo localmente! (Nuvem: " + supaErr.message + ")", "⚠️");
+              console.warn('[WL TEC] Supabase upsert error:', supaErr.message);
+              showToast('Salvo localmente! (Nuvem: ' + supaErr.message + ')', '⚠️');
             } else {
-              showToast("🚀 Publicado na nuvem! Página no ar instantaneamente sem Git!", "🎉");
+              showToast('🚀 Publicado na nuvem! Página no ar instantaneamente sem Git!', '🎉');
               return;
             }
           } catch (errDb) {

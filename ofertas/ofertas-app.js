@@ -1,23 +1,43 @@
 // ==============================================================================
 // WL TEC OFERTAS - APLICAÇÃO PÚBLICA (VITRINE, BUSCA, CUPONS E TELEMETRIA)
+// Escopo: index.html (vitrine) e produto.html (review e comparador 4 em 1)
+// Dependências: produtos-data.js, Supabase JS v2
 // ==============================================================================
 
 (function() {
   'use strict';
 
-  // Chaves de Armazenamento Local
-  const STORAGE_KEY_PRODUTOS = 'wltec_afiliados_produtos_v6';
-  const STORAGE_KEY_CUPONS = 'wltec_afiliados_cupons_v1';
-  const STORAGE_KEY_METRICAS = 'wltec_afiliados_metricas_v1';
-  const STORAGE_KEY_CONFIG = 'wltec_afiliados_config_v1';
+  // ── Chaves de Armazenamento Local (espelham as do admin-app.js) ──
+  const STORAGE_KEY_PRODUTOS  = 'wltec_afiliados_produtos_v6';
+  const STORAGE_KEY_CUPONS    = 'wltec_afiliados_cupons_v1';
+  const STORAGE_KEY_METRICAS  = 'wltec_afiliados_metricas_v1';
+  const STORAGE_KEY_CONFIG    = 'wltec_afiliados_config_v1';
   const STORAGE_KEY_EXCLUIDOS = 'wltec_afiliados_excluidos_v1';
 
-  // Supabase Client (Nuvem em Tempo Real - Zero Git Commit)
+  // ── Supabase Client (BaaS - Nuvem em Tempo Real, Zero Git Commit) ──
   const { createClient } = window.supabase || {};
   const db = (createClient && typeof createClient === 'function')
     ? createClient('https://giikoiqpnzgmhcqiuvhs.supabase.co', 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB')
     : null;
 
+  /**
+   * Utilitário de escape para evitar XSS em conteúdo injetado via innerHTML.
+   * Use sempre que inserir strings vindas de fontes externas (Supabase, URL params).
+   */
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+
+  /**
+   * Retorna a lista de slugs que o admin excluiu permanentemente.
+   * Atua como barreira dupla: filtro local + filtro na sincronização da nuvem.
+   */
   function getExcluidos() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_EXCLUIDOS);
@@ -55,7 +75,10 @@
     }
   }
 
-  // 1. Obter Produtos (Respeitando Exclusões Definidas pelo Administrador)
+  /**
+   * Retorna o catálogo de produtos do localStorage, sempre filtrando os excluídos.
+   * Fallback: usa PRODUTOS_INICIAIS do produtos-data.js se o storage estiver vazio.
+   */
   function getProdutos() {
     const defaultProds = window.PRODUTOS_INICIAIS || [];
     const excluidos = getExcluidos();
@@ -64,20 +87,17 @@
       if (saved) {
         let parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Filtra produtos excluídos
-          parsed = parsed.filter(p => !excluidos.includes(p.slug));
-          return parsed;
+          // Barreira local: garante que nenhum produto excluído "ressuscite" após sync
+          return parsed.filter(p => !excluidos.includes(p.slug));
         }
       }
     } catch (e) {
-      console.warn("Erro ao ler produtos do localStorage:", e);
+      console.warn('[WL TEC] Erro ao ler produtos do localStorage:', e);
     }
-    
-    // Fallback para os dados pré-carregados filtrados
+
+    // Inicializa o storage com o catálogo base já filtrado
     const base = defaultProds.filter(p => !excluidos.includes(p.slug));
-    try {
-      localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(base));
-    } catch(e) {}
+    try { localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(base)); } catch(e) {}
     return base;
   }
 
@@ -97,7 +117,11 @@
     return defaultCupons;
   }
 
-  // 3. Registrar Telemetria de Acesso ou Clique
+  /**
+   * Registra métricas de visita e cliques de afiliado no localStorage + Google Analytics 4.
+   * @param {'visita'|'clique_loja'} tipo - Tipo do evento a registrar
+   * @param {Object} [detalhes] - Para 'clique_loja': { loja, slug, preco }
+   */
   function registrarTelemetria(tipo, detalhes) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_METRICAS);
@@ -119,6 +143,7 @@
         const src = params.get('src') || '';
         const ref = document.referrer.toLowerCase();
 
+        // Classifica a origem da visita pelo parâmetro ?src= ou pelo Referrer HTTP
         if (src.includes('zap') || src.includes('whatsapp') || ref.includes('whatsapp')) {
           metricas.visitas_whatsapp++;
         } else if (ref.includes('google')) {
@@ -129,10 +154,11 @@
       } else if (tipo === 'clique_loja') {
         const loja = detalhes.loja;
         if (loja === 'mercadolivre') metricas.cliques_loja_ml++;
-        if (loja === 'shopee') metricas.cliques_loja_shopee++;
-        if (loja === 'amazon') metricas.cliques_loja_amazon++;
-        if (loja === 'aliexpress') metricas.cliques_loja_ali++;
+        if (loja === 'shopee')       metricas.cliques_loja_shopee++;
+        if (loja === 'amazon')       metricas.cliques_loja_amazon++;
+        if (loja === 'aliexpress')   metricas.cliques_loja_ali++;
 
+        // Mantém log rotativo dos últimos 50 cliques para auditoria
         metricas.logs.unshift({
           data: new Date().toISOString(),
           loja: loja,
@@ -141,7 +167,7 @@
         });
         if (metricas.logs.length > 50) metricas.logs.pop();
 
-        // Envia evento de conversão para o Google Analytics 4
+        // Dispara evento de conversão para o Google Analytics 4
         if (typeof window.gtag === 'function') {
           window.gtag('event', 'click_afiliado', {
             loja: loja,
@@ -155,7 +181,7 @@
 
       localStorage.setItem(STORAGE_KEY_METRICAS, JSON.stringify(metricas));
     } catch(e) {
-      console.warn("Erro ao registrar telemetria:", e);
+      console.warn('[WL TEC] Erro ao registrar telemetria:', e);
     }
   }
 
@@ -362,7 +388,11 @@
     // Inicialização síncrona imediata
     renderizarCards();
 
-    // Sincronização em segundo plano com o Supabase (Nuvem em Tempo Real)
+    /**
+     * Sincroniza o catálogo com o Supabase em segundo plano.
+     * Mescla a nuvem com os dados locais, sempre respeitando a lista de excluídos.
+     * Não bloqueia a renderização inicial — o localStorage é a fonte rápida.
+     */
     if (db) {
       db.from('afiliados_produtos')
         .select('*')
@@ -371,19 +401,24 @@
         .then(({ data, error }) => {
           if (!error && Array.isArray(data)) {
             const excluidos = getExcluidos();
+
+            // Dupla barreira: filtra excluídos vindos da nuvem antes de mesclar
             const nuvemFiltrada = data.filter(p => !excluidos.includes(p.slug));
             const locais = getProdutos();
+
+            // Mescla: dados locais têm prioridade para campos customizados;
+            // dados da nuvem prevalecem para campos atualizados pelo admin
             const mapa = new Map();
             locais.forEach(p => mapa.set(p.slug, p));
             nuvemFiltrada.forEach(p => mapa.set(p.slug, { ...mapa.get(p.slug), ...p }));
 
             const mesclados = Array.from(mapa.values()).filter(p => !excluidos.includes(p.slug));
-            try { localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(mesclados)); } catch(e){}
+            try { localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(mesclados)); } catch(e) {}
             produtos = mesclados;
             renderizarCards();
           }
         })
-        .catch(err => console.warn("Supabase vitrine sync:", err));
+        .catch(err => console.warn('[WL TEC] Supabase vitrine sync error:', err));
     }
   }
 
@@ -421,11 +456,15 @@
     const lblTotalAvaliacoes = document.getElementById('lblTotalAvaliacoes');
     if (lblTotalAvaliacoes) lblTotalAvaliacoes.textContent = `(${Number(produto.total_avaliacoes || 120).toLocaleString('pt-BR')} avaliações reais)`;
 
+    // Fallback de imagem: usa escudo institucional se a URL da imagem falhar
     const imgProdutoHero = document.getElementById('imgProdutoHero');
     if (imgProdutoHero) {
       imgProdutoHero.src = produto.imagem_url;
-      imgProdutoHero.alt = produto.titulo;
-      imgProdutoHero.onerror = () => { imgProdutoHero.src = 'img/suporte_moto.jpg'; };
+      imgProdutoHero.alt = escapeHtml(produto.titulo);
+      imgProdutoHero.onerror = () => {
+        imgProdutoHero.onerror = null; // Evita loop infinito se o fallback também falhar
+        imgProdutoHero.src = 'https://wl.tec.br/img/escudo_shiel.png';
+      };
     }
 
     // Renderizar Galeria Interativa com Múltiplas Fotos Reais
@@ -548,14 +587,20 @@
         }
       ];
 
-      // Encontrar o menor preço para destacar
+      /**
+       * Comparador de Preços 4 em 1: detecta o menor preço entre as lojas disponíveis.
+       * Lojas sem link ou sem preço são exibidas como "Indispónível" sem suprimir as demais.
+       */
       let menorPreco = Infinity;
       let melhorLoja = null;
 
       lojasConfig.forEach(loja => {
-        if (loja.preco && loja.preco < menorPreco) {
-          menorPreco = loja.preco;
-          melhorLoja = loja;
+        // Considera apenas lojas com preço positivo para o cálculo do menor preço
+        if (loja.preco && Number(loja.preco) > 0) {
+          if (loja.preco < menorPreco) {
+            menorPreco = loja.preco;
+            melhorLoja = loja;
+          }
         }
       });
 
@@ -643,6 +688,11 @@
     }
   }
 
+  /**
+   * Inicializa a página de detalhes do produto (produto.html).
+   * Fluxo: renderização instantânea via localStorage → atualização assíncrona via Supabase.
+   * O slug é extraído de: window.FORCED_SLUG (páginas estáticas) > ?slug= (URL) > pathname.
+   */
   function initProduto() {
     const conteudoReview = document.getElementById('conteudoReview');
     if (!conteudoReview) return;
@@ -651,17 +701,30 @@
 
     const params = new URLSearchParams(window.location.search);
     const pathSlug = window.location.pathname.split('/').pop().replace('.html', '');
-    const slug = window.FORCED_SLUG || params.get('slug') || (pathSlug && pathSlug !== 'produto' && pathSlug !== 'index' ? pathSlug : null);
+    const slug = window.FORCED_SLUG
+      || params.get('slug')
+      || (pathSlug && pathSlug !== 'produto' && pathSlug !== 'index' ? pathSlug : null);
+
     const produtos = getProdutos();
 
-    // Encontrar produto no cache local inicialmente para renderização instantânea
-    let produto = slug ? produtos.find(p => p.slug === slug) : (produtos[0] || null);
+    // Renderização instantânea via cache local (sem aguardar a nuvem)
+    // ⚠️ BUG FIX: não renderiza produtos[0] quando não há slug — exibiria produto errado
+    let produto = slug ? produtos.find(p => p.slug === slug) : null;
 
     if (produto) {
       renderizarDetalhesProduto(produto);
     }
 
-    // Sincronização e Busca Direta na Nuvem Supabase (Zero Git Commit)
+    /** HTML padrão de "Oferta não encontrada" reutilizado nos dois tratamentos de erro. */
+    const htmlNaoEncontrado = `
+      <div style="text-align: center; padding: 4rem 1rem;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</div>
+        <h2 style="color: #fff; font-size: 1.3rem;">Oferta não encontrada</h2>
+        <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">Esta oferta pode ter sido descontinuada ou o link está em atualização.</p>
+        <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1.5rem; padding: 0.7rem 1.5rem;">Voltar para o Catálogo de Ofertas</a>
+      </div>`;
+
+    // Busca assíncrona no Supabase para obter a versão mais atualizada do produto
     if (db && slug) {
       db.from('afiliados_produtos')
         .select('*')
@@ -670,44 +733,26 @@
         .then(({ data, error }) => {
           if (!error && data) {
             produto = data;
+            // Atualiza o cache local com os dados frescos da nuvem
             const prods = getProdutos().filter(p => p.slug !== slug);
             prods.unshift(data);
-            try { localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(prods)); } catch(e){}
+            try { localStorage.setItem(STORAGE_KEY_PRODUTOS, JSON.stringify(prods)); } catch(e) {}
             renderizarDetalhesProduto(produto);
           } else if (!produto) {
-            conteudoReview.innerHTML = `
-              <div style="text-align: center; padding: 4rem 1rem;">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔍</div>
-                <h2 style="color: #fff; font-size: 1.3rem;">Oferta não encontrada</h2>
-                <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">Esta oferta pode ter sido descontinuada ou o link está em atualização.</p>
-                <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1.5rem; padding: 0.7rem 1.5rem;">Voltar para o Catálogo de Ofertas</a>
-              </div>
-            `;
+            conteudoReview.innerHTML = htmlNaoEncontrado;
           }
         })
         .catch(err => {
-          console.warn("Supabase fetch produto erro:", err);
-          if (!produto) {
-            conteudoReview.innerHTML = `
-              <div style="text-align: center; padding: 4rem 1rem;">
-                <h2>Oferta não encontrada</h2>
-                <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1rem;">Voltar para as Ofertas</a>
-              </div>
-            `;
-          }
+          console.warn('[WL TEC] Supabase fetch produto error:', err);
+          if (!produto) conteudoReview.innerHTML = htmlNaoEncontrado;
         });
     } else if (!produto) {
-      conteudoReview.innerHTML = `
-        <div style="text-align: center; padding: 4rem 1rem;">
-          <h2>Oferta não encontrada</h2>
-          <a href="index.html" class="btn-card-review" style="display: inline-block; margin-top: 1rem;">Voltar para as Ofertas</a>
-        </div>
-      `;
+      conteudoReview.innerHTML = htmlNaoEncontrado;
     }
 
-    // Telemetria de Clique Global
+    // Exposta globalmente para uso nos atributos onclick dos botões de compra
     window.trackClique = function(loja, prodSlug, preco) {
-      registrarTelemetria('clique_loja', { loja: loja, slug: prodSlug, preco: preco });
+      registrarTelemetria('clique_loja', { loja, slug: prodSlug, preco });
     };
   }
 

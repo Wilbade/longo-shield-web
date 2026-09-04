@@ -1,7 +1,23 @@
 // ==============================================================================
-// WL TEC OFERTAS - CATÁLOGO OFICIAL DE 10 PRODUTOS REAIS
+// WL TEC OFERTAS - CATÁLOGO OFICIAL DE PRODUTOS (PRODUTOS-DATA.JS)
 // Preços calibrados rigorosamente com a realidade de mercado do Brasil (2026)
 // ==============================================================================
+//
+// GUIA DE MANUTENÇÃO:
+// Este arquivo é o catálogo base (fallback estático). Novos produtos devem ser
+// adicionados preferencialmente via Mesa de Operações (afiliados.html), que faz
+// o upsert direto no Supabase. Este catálogo é usado apenas quando o localStorage
+// e o Supabase estão indisponíveis (primeira visita ou navegador em modo privado).
+//
+// CONVENÇÃO DE SLUG:
+// - Apenas letras minúsculas, números e hífens (sem espaços, acentos ou underscores)
+// - Deve ser único e imutável: alterar o slug quebra links existentes e o cache do Cloudflare Worker
+// - Exemplo: "fone-bluetooth-lenovo-thinkplus-lp40-pro"
+//
+// CAMPOS OBRIGATÓRIOS: slug, titulo, categoria, imagem_url, preco_estimado
+// CAMPOS PARA OG INJECTOR: imagem_url (URL absoluta ou relativa a /ofertas/img/)
+// ==============================================================================
+
 
 const PRODUTOS_INICIAIS = [
   {
