@@ -221,7 +221,51 @@ d:\LongoShield\SITE\longo-shield-web\
     ├── afiliados.html           # Mesa de Operações restrita do administrador
     ├── admin-app.js             # Lógica da Mesa, IA Gemini, Supabase e exclusões
     ├── produto.html             # Template dinâmico universal
-    ├── o-boticario-insensatez...html # Página estática com Open Graph do perfume
-    ├── suporte-celular-moto...html   # Página estática com Open Graph do suporte
     └── img/                     # Fotografias oficiais autênticas de produtos
+
+supabase/
+    └── cloudflare-worker-og-injector.js  # Código do Worker (referência de versão)
 ```
+
+---
+
+## INFRAESTRUTURA DE BORDA — Cloudflare Worker: OG Injector (2026-09-04)
+
+### Problema Resolvido
+Bots de redes sociais (WhatsApp, Telegram, Facebook) não executam JavaScript, portanto as tags `og:image` dinâmicas injetadas via JS são invisíveis para eles. O resultado era: ao compartilhar qualquer link de produto no WhatsApp, aparecia o escudo genérico da WL TEC em vez da foto real do produto.
+
+### Solução Implementada
+**Cloudflare Worker** (`wltec-og-injector`) ativo na rota `wl.tec.br/ofertas/*`.
+
+**Fluxo de execução:**
+1. Bot do WhatsApp/Telegram/Facebook acessa URL do produto
+2. Worker detecta o User-Agent do bot
+3. Extrai o `slug` da URL (`?slug=VALOR` ou `/ofertas/nome.html`)
+4. Consulta tabela `afiliados_produtos` no Supabase REST API
+5. Injeta tags `og:title`, `og:description`, `og:image`, `og:url` corretas no `<head>`
+6. Entrega HTML modificado ao bot → prévia com imagem real aparece no WhatsApp ✅
+7. Usuários normais (Chrome, Safari, etc.) passam transparentemente sem overhead
+
+**Zero commits necessários:** Quando um novo produto é publicado pelo admin na Mesa de Operações e salvo no Supabase, o Worker automaticamente encontra e injeta os dados corretos — sem geração de arquivos físicos.
+
+### Formato de URL Compartilhada (Padrão Obrigatório)
+```
+https://wl.tec.br/ofertas/produto.html?slug=SLUG-DO-PRODUTO&src=zap
+```
+- O `src=zap` permite rastreamento de origem (WhatsApp)
+- O `src=tg` identifica origem Telegram
+- Os botões "Copiar para WhatsApp" e "Disparar no Telegram" do admin já geram este formato
+
+### Supabase RLS — Política Atualizada
+```sql
+-- Permite que o Worker (anon key) leia qualquer produto, não apenas publicados
+DROP POLICY "Leitura pública de produtos publicados" ON afiliados_produtos;
+CREATE POLICY "Leitura pública de todos os produtos"
+ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
+```
+
+### Arquivos Modificados
+- `cloudflare-worker-og-injector.js` (Supabase/) — código do Worker deployado no Cloudflare
+- `ofertas/admin-app.js` — botões WhatsApp e Telegram agora geram `produto.html?slug=` (correto)
+- Supabase Dashboard — política RLS `afiliados_produtos` atualizada
+- Cloudflare Dashboard — Worker ativo + Rota `wl.tec.br/ofertas/*` configurada

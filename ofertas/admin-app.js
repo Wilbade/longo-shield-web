@@ -1505,7 +1505,9 @@ Regras:
 
         const precoAtual = Number(rascunhoAtual.preco_estimado).toFixed(2).replace('.', ',');
         const precoDe = rascunhoAtual.preco_antigo ? Number(rascunhoAtual.preco_antigo).toFixed(2).replace('.', ',') : '';
-        const linkRastreado = `https://wl.tec.br/ofertas/${encodeURIComponent(rascunhoAtual.slug)}.html?src=zap`;
+
+        // ✅ URL com ?slug= para o Cloudflare Worker injetar og:image corretamente
+        const linkRastreado = `https://wl.tec.br/ofertas/produto.html?slug=${encodeURIComponent(rascunhoAtual.slug)}&src=zap`;
 
         const textoWhatsApp = 
 `🔥 [MENOR PREÇO HISTÓRICO VERIFICADO]
@@ -1528,20 +1530,42 @@ ${precoDe ? `💥 De: ~R$ ${precoDe}~ ➡️ *Por: R$ ${precoAtual}*` : `💥 *P
     // Botão Disparar no Telegram
     const btnDispararTelegram = document.getElementById('btnDispararTelegram');
     if (btnDispararTelegram) {
-      btnDispararTelegram.addEventListener('click', () => {
+      btnDispararTelegram.addEventListener('click', async () => {
         if (!rascunhoAtual) return;
-        
+
+        // ✅ URL com ?slug= para o Worker injetar og:image corretamente
+        const linkTg = `https://wl.tec.br/ofertas/produto.html?slug=${encodeURIComponent(rascunhoAtual.slug)}&src=tg`;
+        const precoAtual = Number(rascunhoAtual.preco_estimado).toFixed(2).replace('.', ',');
+        const precoDe = rascunhoAtual.preco_antigo ? Number(rascunhoAtual.preco_antigo).toFixed(2).replace('.', ',') : '';
+
         if (config.tg_token && config.tg_chat_id) {
           showToast("Disparando oferta oficial via Telegram Bot API...", "✈️");
-          // Em ambiente de produção dispararia o fetch real
-          setTimeout(() => {
-            showToast("Oferta enviada com sucesso no Telegram!", "🚀");
-          }, 900);
+          try {
+            const msgTg = `🔥 *MENOR PREÇO HISTÓRICO VERIFICADO*\n📦 *${rascunhoAtual.titulo}*\n${precoDe ? `💥 De: ~R$ ${precoDe}~ ➡️ *Por: R$ ${precoAtual}*` : `💥 *Por apenas: R$ ${precoAtual}*`}\n\n🛒 Pegue o seu com desconto:\n👉 ${linkTg}\n\n⚠️ _Estoque promocional limitado!_`;
+            const tgResp = await fetch(`https://api.telegram.org/bot${config.tg_token}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: config.tg_chat_id,
+                text: msgTg,
+                parse_mode: 'Markdown',
+                disable_web_page_preview: false
+              })
+            });
+            if (tgResp.ok) {
+              showToast("Oferta enviada com sucesso no Telegram! 🚀", "✈️");
+            } else {
+              const errData = await tgResp.json();
+              showToast("Erro Telegram: " + (errData.description || tgResp.status), "⚠️");
+            }
+          } catch(eTg) {
+            showToast("Erro ao conectar ao Telegram. Verifique o token.", "⚠️");
+          }
         } else {
-          // Simulação amigável com orientação
-          const msg = `✈️ Prévia Telegram:\n\n🔥 ${rascunhoAtual.titulo}\nPor: R$ ${Number(rascunhoAtual.preco_estimado).toFixed(2)}\nLink: https://wl.tec.br/ofertas/${rascunhoAtual.slug}.html?src=tg`;
+          // Copia prévia formatada se não tiver bot configurado
+          const msg = `🔥 ${rascunhoAtual.titulo}\nPor: R$ ${precoAtual}\nLink: ${linkTg}`;
           navigator.clipboard.writeText(msg).then(() => {
-            showToast("Prévia copiada! (Configure seu Bot Token na aba IDs para envio 100% automático)", "✈️");
+            showToast("Prévia copiada! Configure o Bot Token na aba IDs para disparo automático.", "✈️");
           });
         }
       });
