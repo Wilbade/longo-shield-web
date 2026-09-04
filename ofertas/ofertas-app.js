@@ -342,6 +342,18 @@
       });
     }
 
+    // Clique em qualquer ponto do card para abrir a página do produto
+    gridProdutos.addEventListener('click', (e) => {
+      const card = e.target.closest('.product-card');
+      if (!card) return;
+      const slug = card.getAttribute('data-slug');
+      if (!slug) return;
+      const link = e.target.closest('a');
+      if (!link) {
+        window.location.href = `${slug}.html`;
+      }
+    });
+
     // Inicialização
     renderizarCards();
   }

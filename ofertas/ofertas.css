@@ -242,83 +242,111 @@ body {
    SEARCH & FILTERS BAR
    ============================================================================== */
 .filter-bar-container {
-  margin-bottom: 2rem;
+  max-width: 900px;
+  margin: 0 auto 2.5rem auto;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  background: rgba(16, 21, 31, 0.85);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 0.4rem 1rem;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  background: rgba(13, 18, 28, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 9999px;
+  padding: 0.5rem 1.25rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
   margin-bottom: 1.2rem;
-  transition: var(--transition-fast);
+  transition: all 0.3s ease;
 }
 
 .search-box:focus-within {
   border-color: var(--primary-cyan);
-  box-shadow: var(--primary-cyan-glow);
+  background: rgba(15, 23, 38, 0.95);
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .search-box input {
   width: 100%;
-  background: transparent;
-  border: none;
-  color: var(--text-main);
-  font-size: 0.95rem;
-  padding: 0.5rem 0.5rem;
-  outline: none;
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 0.95rem !important;
+  font-weight: 500 !important;
+  font-family: inherit !important;
+  padding: 0.4rem 0.5rem !important;
+  outline: none !important;
+  letter-spacing: normal !important;
+  box-shadow: none !important;
 }
 
 .search-box input::placeholder {
-  color: var(--text-dim);
+  color: #64748b;
+  font-weight: 400;
 }
 
+/* Category Chips: Alinhamento limpo no desktop e swipe touch invisível no mobile */
 .category-chips {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-  scrollbar-width: thin;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0.25rem 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-chips::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .chip-btn {
-  background: rgba(16, 21, 31, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--text-muted);
+  background: rgba(15, 23, 38, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
   font-size: 0.85rem;
   font-weight: 600;
   padding: 0.45rem 1rem;
   border-radius: var(--radius-full);
   cursor: pointer;
   white-space: nowrap;
-  transition: var(--transition-fast);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .chip-btn:hover {
-  background: rgba(22, 29, 44, 0.9);
-  color: var(--text-main);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(22, 33, 54, 0.95);
+  color: #ffffff;
+  border-color: rgba(0, 255, 255, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .chip-btn.active {
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 255, 255, 0.05));
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.25), rgba(0, 255, 255, 0.08));
   border-color: var(--primary-cyan);
-  color: var(--primary-cyan);
-  box-shadow: var(--primary-cyan-glow);
+  color: #00ffff;
+  font-weight: 700;
+  box-shadow: 0 0 16px rgba(0, 255, 255, 0.35);
+  transform: translateY(-1px);
 }
 
 .chip-btn.chip-cupons {
-  background: rgba(255, 179, 0, 0.15);
-  border-color: var(--primary-amber);
-  color: var(--primary-amber);
+  background: rgba(255, 179, 0, 0.12);
+  border-color: rgba(255, 179, 0, 0.35);
+  color: #ffb300;
 }
 
 .chip-btn.chip-cupons.active {
-  box-shadow: var(--primary-amber-glow);
+  background: linear-gradient(135deg, rgba(255, 179, 0, 0.25), rgba(255, 179, 0, 0.1));
+  box-shadow: 0 0 16px rgba(255, 179, 0, 0.35);
 }
 
 /* ==============================================================================
@@ -338,15 +366,21 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: var(--transition-smooth);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  cursor: pointer;
+  user-select: none;
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
   background: var(--bg-card-hover);
   border-color: var(--primary-cyan);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), var(--primary-cyan-glow);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 22px rgba(0, 255, 255, 0.28);
+}
+
+.product-card:active {
+  transform: translateY(-2px) scale(0.995);
 }
 
 .card-media {
@@ -1369,18 +1403,102 @@ body {
 }
 
 @media (max-width: 600px) {
+  .site-header {
+    padding: 0.65rem 0;
+  }
+
   .header-inner {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .brand-shield {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .brand-text-title {
+    font-size: 1rem;
+  }
+
+  .brand-badge {
+    display: none;
   }
 
   .nav-actions {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    gap: 0.4rem;
+  }
+
+  .btn-vip-zap {
+    padding: 0.42rem 0.8rem;
+    font-size: 0.78rem;
+  }
+
+  .btn-vip-telegram {
+    display: none; /* No mobile estreito, preserva espaço para foco total no WhatsApp VIP */
+  }
+
+  .hero-section {
+    padding: 1.5rem 0 0.8rem 0;
+  }
+
+  .hero-pill {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.65rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .hero-title {
+    font-size: 1.5rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .filter-bar-container {
+    margin-bottom: 1.5rem;
+  }
+
+  .search-box {
+    padding: 0.45rem 1rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .category-chips {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding: 0.25rem 0.25rem 0.5rem 0.25rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .category-chips::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .chip-btn {
+    font-size: 0.78rem;
+    padding: 0.38rem 0.85rem;
   }
 
   .products-grid {
     grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .card-media {
+    height: 220px;
   }
 }
 
@@ -1567,7 +1685,7 @@ body {
 /* ==============================================================================
    ESTILOS DE ALTO CONTRASTE PARA INPUTS ADMINISTRATIVOS & ABA DE IDS
    ============================================================================== */
-.search-box,
+#secConfig .search-box,
 #formConfig input,
 .admin-input,
 .chat-input-box {
@@ -1586,8 +1704,9 @@ body {
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
 }
 
-.search-box:focus,
-#formConfig input:focus {
+#secConfig .search-box:focus,
+#formConfig input:focus,
+.admin-input:focus {
   border-color: var(--primary-cyan) !important;
   background: #162033 !important;
   box-shadow: 0 0 14px rgba(0, 255, 255, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.6) !important;
