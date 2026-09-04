@@ -143,7 +143,7 @@ As principais capacidades do sistema incluem:
 - **3. Revisão do Módulo de Ofertas (Fotos Reais de Anúncios e Autenticação Supabase)**:
   - **Correção Crítica das Imagens de Catálogo**: Substituição de fotos genéricas conceituais por fotos reais e limpas de produto (ex: camiseta dobrada em estúdio e balança digital com display LED e eletrodos metálicos de bioimpedância).
   - **Galeria Interativa Multi-Fotos (`produto.html`)**: Incorporação de carrossel/miniaturas (`.product-gallery-thumbnails`) permitindo visualizar fotos reais do produto, embalagem e detalhes de acabamento.
-  - **Autenticação Restrita de Segurança (`admin.html`)**: Implementação do overlay de login (`#loginOverlay`) integrado ao Supabase Auth (`db.auth.signInWithPassword`), seguindo a mesma arquitetura do módulo de OS (`/os/`) e CRM de Leads (`wl.leads.html`), com suporte a logout e persistência segura de sessão.
+  - **Autenticação Restrita & Segurança por Obscuridade (`afiliados.html`)**: Migração da rota de `admin.html` para `afiliados.html` com o objetivo de mitigar varreduras automatizadas de bots e scripts maliciosos. Overlay de login (`#loginOverlay`) integrado ao Supabase Auth (`db.auth.signInWithPassword`), unificado com as sessões ativas da OS (`/os/`) e Leads, com cache-busting dinâmico (`admin-app.js?v=2.1`).
 - **Tratamento de Rate Limit (HTTP 429) & Resiliência na API Gemini (Detalhado)**:
   - **`wl.leads.html`**:
     - **Nova função `chamarGeminiComRetry(prompt, apiKey, maxRetries = 3)`**: Implementada no escopo principal do script. Realiza loop nos modelos `['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']` com retentativa (*exponential backoff*: 2000ms, 4000ms, 8000ms) ao detectar `res.status === 429`. Valida `res.ok` antes de invocar `.json()`.

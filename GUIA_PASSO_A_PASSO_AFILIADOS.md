@@ -83,7 +83,7 @@ O Cloudflare garante velocidade instantânea para o usuário (carregamento em me
 
 ### 4.3. Proteção e Bypass de Cache para o Painel Admin
 1. Crie uma regra prioritária para o painel não prender em cache de borda:
-   - URL: `*wl.tec.br/ofertas/admin.html*`
+   - URL: `*wl.tec.br/ofertas/afiliados.html*`
    - Configurações:
      - **Cache Level:** `Bypass`
      - **Security Level:** `High`
@@ -149,7 +149,7 @@ O sistema já possui telemetria local e no Supabase, mas integrar o GA4 permite 
 3. Ao gerar um link direto para qualquer produto novo da Shopee:
    - Cole o link original do produto.
    - No campo **Sub_id 1**, preencha: `site_wltec`.
-   - Copie o link encurtado gerado e cole na Mesa de Operações (`admin.html`).
+   - Copie o link encurtado gerado e cole na Mesa de Operações (`afiliados.html`).
 
 ### 7.2. Amazon Associados Brasil
 1. Acesse **[associados.amazon.com.br](https://associados.amazon.com.br)**.
@@ -183,7 +183,7 @@ O tráfego de redes sociais e de grupos de mensagens é o que gera conversões i
    - Em "Editar dados do grupo:" Selecione **Apenas administradores**.
    *(Isso impede correntes, piadas ou discussões e mantém o canal 100% focado em ofertas limpas).*
 4. Copie o link de convite do grupo (`https://chat.whatsapp.com/...`).
-5. Acesse seu painel: `wl.tec.br/ofertas/admin.html` ➜ Aba **⚙️ IDs de Afiliado & Bots**.
+5. Acesse seu painel: `wl.tec.br/ofertas/afiliados.html` ➜ Aba **⚙️ IDs de Afiliado & Bots**.
 6. Cole o link no campo **Link do Grupo VIP de WhatsApp** e clique em **Salvar Configurações Globais**.
 7. O sistema propagará esse link automaticamente para todos os botões do site.
 
@@ -200,7 +200,7 @@ Para quem tem a rotina cheia na assistência técnica e na rua, esta esteira foi
 
 ```mermaid
 flowchart TD
-    A["☀️ 1. Pela Manhã (3 min)"] --> B["Acessar admin.html"]
+    A["☀️ 1. Pela Manhã (3 min)"] --> B["Acessar afiliados.html"]
     B --> C["Clicar em 'Rastrear Tendências 48h' ou colar link"]
     C --> D["Conferir os preços nas 4 lojas"]
     D --> E["Clicar em 'Aprovar e Publicar'"]

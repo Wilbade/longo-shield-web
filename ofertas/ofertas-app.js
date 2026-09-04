@@ -135,6 +135,17 @@
           preco: detalhes.preco || 0
         });
         if (metricas.logs.length > 50) metricas.logs.pop();
+
+        // Envia evento de conversão para o Google Analytics 4
+        if (typeof window.gtag === 'function') {
+          window.gtag('event', 'click_afiliado', {
+            loja: loja,
+            produto: detalhes.slug || 'geral',
+            preco: detalhes.preco || 0,
+            value: detalhes.preco || 0,
+            currency: 'BRL'
+          });
+        }
       }
 
       localStorage.setItem(STORAGE_KEY_METRICAS, JSON.stringify(metricas));
