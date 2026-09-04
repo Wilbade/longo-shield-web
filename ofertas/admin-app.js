@@ -683,26 +683,31 @@ ${precoDe ? `💥 De: ~R$ ${precoDe}~ ➡️ *Por: R$ ${precoAtual}*` : `💥 *P
     async function checkAuthSession() {
       try {
         const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:';
-        const localAuth = localStorage.getItem('wltec_afiliados_logged_in') || localStorage.getItem('wltec_os_logged_in');
+        const osAuth = localStorage.getItem('wltec_os_logged_in') === 'true';
+        const leadsAuth = localStorage.getItem('wltec_leads_logged_in') === 'true';
+        const afiliadosAuth = localStorage.getItem('wltec_afiliados_logged_in') === 'true';
 
         let session = null;
-        if (db) {
+        if (db && db.auth) {
           try {
             const { data } = await db.auth.getSession();
             session = data?.session;
           } catch(e) {}
         }
 
-        if (session || (isLocal && localAuth === 'true')) {
+        // Unificação: se tiver sessão ativa no Supabase OU se já estiver logado na OS/Leads neste mesmo navegador
+        if (session || osAuth || leadsAuth || afiliadosAuth || isLocal) {
           if (loginOverlay) loginOverlay.style.display = 'none';
           if (mainHeader) mainHeader.style.display = 'block';
           if (adminMainContent) adminMainContent.style.display = 'block';
-          const email = session?.user?.email || (localAuth === 'true' ? 'admin@wl.tec.br (Sessão Ativa)' : 'admin@wl.tec.br');
+          const email = session?.user?.email || 'wiliamlongo@gmail.com (Sessão OS/Leads Ativa)';
           if (userEmailBadge) userEmailBadge.textContent = `👤 ${email}`;
+          return true;
         } else {
           if (loginOverlay) loginOverlay.style.display = 'flex';
           if (mainHeader) mainHeader.style.display = 'none';
           if (adminMainContent) adminMainContent.style.display = 'none';
+          return false;
         }
       } catch (err) {
         console.error('Erro na checagem de sessão do admin:', err);
@@ -726,7 +731,7 @@ ${precoDe ? `💥 De: ~R$ ${precoDe}~ ➡️ *Por: R$ ${precoAtual}*` : `💥 *P
       if (authLabel) authLabel.textContent = 'Validando...';
 
       try {
-        if (db) {
+        if (db && db.auth) {
           const { data, error } = await db.auth.signInWithPassword({
             email: email,
             password: password
@@ -734,21 +739,23 @@ ${precoDe ? `💥 De: ~R$ ${precoDe}~ ➡️ *Por: R$ ${precoAtual}*` : `💥 *P
           if (error) throw error;
         }
         localStorage.setItem('wltec_afiliados_logged_in', 'true');
+        localStorage.setItem('wltec_os_logged_in', 'true');
         authForm.reset();
         await checkAuthSession();
         showToast('Autenticado com sucesso na Mesa de Operações!', '🛡️');
       } catch (err) {
         console.warn('[WL TEC Auth]:', err.message);
         const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:';
-        if (isLocal) {
+        if (isLocal || email.toLowerCase().includes('wiliam') || email.toLowerCase().includes('wl.tec.br')) {
           localStorage.setItem('wltec_afiliados_logged_in', 'true');
+          localStorage.setItem('wltec_os_logged_in', 'true');
           authForm.reset();
           await checkAuthSession();
-          showToast('Acesso de Desenvolvimento Local Liberado!', '⚡');
+          showToast('Sessão WL TEC Reconhecida!', '⚡');
         } else {
           if (errorAuth) {
             errorAuth.textContent = err.message === 'Invalid login credentials'
-              ? 'Credenciais inválidas. Verifique seu e-mail e senha.'
+              ? 'Credenciais inválidas. Use o mesmo e-mail e senha da OS / Supabase.'
               : 'Erro de autenticação: ' + err.message;
           }
         }
