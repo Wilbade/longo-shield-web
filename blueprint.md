@@ -299,6 +299,10 @@ As principais capacidades do sistema incluem:
    - Permitir que o administrador edite e confira os preços das 4 lojas e o preço promocional antes de clicar em `[Aprovar e Publicar]`.
 3. **Selos de Curadoria e Transparência de Preço (`produto.html` e `index.html`)**:
    - Inserir selo de curadoria técnica WL TEC e nota de esclarecimento sobre flutuação de estoque e cupons das lojas parceiras.
+4. **Correção de Identificador Duplicado no Painel & Propagação do Grupo WhatsApp**:
+   - Eliminada a redeclaração duplicada da variável `btnResetarCatalogo` em `admin-app.js` que causava `SyntaxError` e impedia a execução do script de login.
+   - Criada a função `aplicarConfiguracoes()` em `ofertas-app.js` para ler `wltec_afiliados_config_v1` do localStorage e propagar automaticamente o link do grupo de WhatsApp salvo no painel (`zap_link`) para todos os botões públicos de "Canal VIP" e "Alerta de Ofertas".
+
 
 
 

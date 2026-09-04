@@ -9,6 +9,37 @@
   const STORAGE_KEY_PRODUTOS = 'wltec_afiliados_produtos_v6';
   const STORAGE_KEY_CUPONS = 'wltec_afiliados_cupons_v1';
   const STORAGE_KEY_METRICAS = 'wltec_afiliados_metricas_v1';
+  const STORAGE_KEY_CONFIG = 'wltec_afiliados_config_v1';
+
+  function getConfig() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return null;
+  }
+
+  function aplicarConfiguracoes() {
+    const cfg = getConfig();
+    if (!cfg) return;
+
+    // Atualiza links de Canal VIP / Grupo de WhatsApp em toda a página
+    if (cfg.zap_link) {
+      document.querySelectorAll('.btn-vip-zap, .btn-sub-alert-zap, a[href*="chat.whatsapp.com"]').forEach(el => {
+        el.href = cfg.zap_link;
+      });
+    }
+
+    // Atualiza links do Telegram
+    if (cfg.tg_link || cfg.tg_chat_id) {
+      const tgUrl = cfg.tg_link || (cfg.tg_chat_id ? (cfg.tg_chat_id.startsWith('@') ? `https://t.me/${cfg.tg_chat_id.replace('@', '')}` : `https://t.me/${cfg.tg_chat_id}`) : null);
+      if (tgUrl) {
+        document.querySelectorAll('.btn-vip-telegram, a[href*="t.me"]').forEach(el => {
+          el.href = tgUrl;
+        });
+      }
+    }
+  }
 
   // 1. Obter Produtos (LocalStorage com Fallback e Atualização Automática de Preços e Fotos)
   function getProdutos() {
@@ -579,9 +610,15 @@
   }
 
   // Inicializar Página Conforme Contexto
-  document.addEventListener('DOMContentLoaded', () => {
+  function initAll() {
     initVitrine();
     initProduto();
-  });
+    aplicarConfiguracoes();
+  }
 
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
+  }
 })();

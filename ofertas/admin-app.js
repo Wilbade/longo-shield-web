@@ -654,22 +654,6 @@ ${precoDe ? `💥 De: ~R$ ${precoDe}~ ➡️ *Por: R$ ${precoAtual}*` : `💥 *P
       });
     }
 
-    // Resetar Catálogo Padrão
-    const btnResetarCatalogo = document.getElementById('btnResetarCatalogo');
-    if (btnResetarCatalogo) {
-      btnResetarCatalogo.addEventListener('click', () => {
-        if (confirm("Deseja recarregar o catálogo oficial dos 10 produtos de alta rotatividade com as fotos corrigidas?")) {
-          produtos = JSON.parse(JSON.stringify(window.PRODUTOS_INICIAIS || []));
-          salvarProdutos(produtos);
-          rascunhoAtual = produtos[0];
-          renderizarRascunho();
-          renderizarTabelaProdutos();
-          atualizarMesaMetricas();
-          showToast("Catálogo inicial restaurado com fotos reais!", "🔄");
-        }
-      });
-    }
-
     // Limpar / Zerar Métricas de Teste
     const btnLimparMetricas = document.getElementById('btnLimparMetricas');
     if (btnLimparMetricas) {
