@@ -9,6 +9,8 @@
 User-agent: *
 Allow: /
 Allow: /manutencao/
+Allow: /ofertas/
+Disallow: /ofertas/admin.html
 Disallow: /os/
 Disallow: /wl.leads.html
 
@@ -18,18 +20,21 @@ User-agent: GPTBot
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # OAI-SearchBot: motor de busca em tempo real do ChatGPT Search
 User-agent: OAI-SearchBot
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # ChatGPT-User: busca ao vivo disparada pelo usuário no ChatGPT
 User-agent: ChatGPT-User
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # ── GOOGLE ──────────────────────────────────────────────────
 # Googlebot: indexador principal do Google Search
@@ -37,12 +42,14 @@ User-agent: Googlebot
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # Google-Extended: alimenta Gemini, Search Generative Experience (SGE) e AI Overviews
 User-agent: Google-Extended
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # Googlebot-Image: indexador de imagens
 User-agent: Googlebot-Image
@@ -55,18 +62,21 @@ User-agent: ClaudeBot
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # Claude-Web (antigamente anthropic-ai): busca em tempo real do Claude
 User-agent: Claude-Web
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # Compatibilidade com nome legado
 User-agent: anthropic-ai
 Allow: /
 Disallow: /os/
 Disallow: /wl.leads.html
+Disallow: /ofertas/admin.html
 
 # ── PERPLEXITY ───────────────────────────────────────────────
 # PerplexityBot: indexador principal do Perplexity AI

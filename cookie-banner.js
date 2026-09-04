@@ -144,8 +144,14 @@
 
     // Determina contextualmente qual página de política exibir
     const isManutencao = window.location.pathname.includes('/manutencao');
-    const policyUrl = isManutencao ? 'privacidade.html' : '/politica-de-privacidade.html';
-    const origemNome = isManutencao ? 'Manutenção (/manutencao/)' : 'Cibersegurança (/)';
+    const isOfertas = window.location.pathname.includes('/ofertas');
+    let policyUrl = '/politica-de-privacidade.html';
+    if (isManutencao) policyUrl = 'privacidade.html';
+    else if (isOfertas) policyUrl = '../politica-de-privacidade.html';
+
+    let origemNome = 'Cibersegurança (/)';
+    if (isManutencao) origemNome = 'Manutenção (/manutencao/)';
+    else if (isOfertas) origemNome = 'WL TEC Ofertas (/ofertas/)';
 
     // Cria os elementos do DOM
     const banner = document.createElement('div');

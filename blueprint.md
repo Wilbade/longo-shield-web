@@ -140,6 +140,10 @@ As principais capacidades do sistema incluem:
 - **Auto-Geolocalização (Raio 20km)**: Detecção automática da UF e Cidade do usuário ao abrir o painel via GeoIP/IBGE (`servicodados.ibge.gov.br`), definindo o raio de 20km padrão sem exigir seleção manual inicial. Permite alteração manual a qualquer momento.
 - **Sanitização de Sigla de Estado no IBGE**: Mapeamento rigoroso para extração da sigla de 2 letras (ex: `SP`), impedindo o envio de nomes extensos que causavam erro HTTP 500 na API de municípios do IBGE.
 - **Camada de Resiliência de Prospecção por Nicho**: Garantia de varredura contínua e sem falhas mesmo quando os proxies de busca sofrem instabilidade temporária de CORS.
+- **3. Revisão do Módulo de Ofertas (Fotos Reais de Anúncios e Autenticação Supabase)**:
+  - **Correção Crítica das Imagens de Catálogo**: Substituição de fotos genéricas conceituais por fotos reais e limpas de produto (ex: camiseta dobrada em estúdio e balança digital com display LED e eletrodos metálicos de bioimpedância).
+  - **Galeria Interativa Multi-Fotos (`produto.html`)**: Incorporação de carrossel/miniaturas (`.product-gallery-thumbnails`) permitindo visualizar fotos reais do produto, embalagem e detalhes de acabamento.
+  - **Autenticação Restrita de Segurança (`admin.html`)**: Implementação do overlay de login (`#loginOverlay`) integrado ao Supabase Auth (`db.auth.signInWithPassword`), seguindo a mesma arquitetura do módulo de OS (`/os/`) e CRM de Leads (`wl.leads.html`), com suporte a logout e persistência segura de sessão.
 - **Tratamento de Rate Limit (HTTP 429) & Resiliência na API Gemini (Detalhado)**:
   - **`wl.leads.html`**:
     - **Nova função `chamarGeminiComRetry(prompt, apiKey, maxRetries = 3)`**: Implementada no escopo principal do script. Realiza loop nos modelos `['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash']` com retentativa (*exponential backoff*: 2000ms, 4000ms, 8000ms) ao detectar `res.status === 429`. Valida `res.ok` antes de invocar `.json()`.
@@ -235,22 +239,66 @@ As principais capacidades do sistema incluem:
   - **Grade de KPIs Dinâmicos**: Faturamento total, custo de peças, despesas fixas, lucro líquido real, margem de lucro % e ticket médio.
   - **Exportação para Excel (CSV com UTF-8 BOM)** e **Modo de Impressão / PDF Executivo** (`@media print`).
 
-## Mudança Atual: Responsividade Mobile do Modal de OS e Sigilo/Privacidade do Leva & Traz
+## Novo Módulo: Plataforma de Afiliados Multi-Lojas (Mercado Livre, Amazon, Shopee, AliExpress)
+
+### 1. Visão Geral e Objetivo
+- Construir um sistema inteligente de afiliação e reviews automatizados em subdomínio dedicado (ex: `ofertas.wl.tec.br` ou similar) com custo operacional R$ 0,00, integrando os 4 maiores marketplaces do Brasil (Mercado Livre, Amazon, Shopee e AliExpress).
+- Foco em alta rotatividade (achadinhos, utilidades, vestuário/moda) e produtos de ticket médio/alto com SEO de alta intenção de compra ("X é bom? Vale a pena? Teste e prós/contras").
+- Conformidade rígida com os termos de afiliação (evitando cookie stuffing) através de comparador transparente de 4 lojas que incentiva cliques múltiplos legítimos do usuário.
+
+### 2. Arquitetura e Componentes
+1. **Ingestor de Produtos & Radar de Tendências (48h e Apostas de Alta)**:
+   - Entrada manual de links via painel ou disparo do radar de "Mais Vendidos" e "Apostas de Alta" (lançamentos com selo de homologação Inmetro/Anatel e baixa concorrência).
+   - Extração automática de fotos em alta resolução, preço, especificações técnicas e avaliações reais de clientes.
+2. **Protocolo Rígido de Fontes & E-E-A-T (Filtro Anti-Alucinação)**:
+   - Resenhas estruturadas com base em manuais técnicos, fichas do fabricante e agregação real de avaliações de compradores (prós e contras reais).
+   - Trava de qualidade: se o item não possuir dados técnicos comprovados e avaliações mínimas, o sistema barra a automação e sinaliza como pendente de curadoria manual.
+   - Citações explícitas de fontes no rodapé de cada review.
+3. **Comparador 4 em 1 e Injeção Automática de IDs**:
+   - Armazenamento global dos IDs de afiliado (Amazon Tag, Shopee Sub-ID/App, ML Tracking, AliExpress Portals).
+   - Busca cruzada simultânea do produto em todas as 4 plataformas com tabela de comparação de preços e opções de frete (Full, Prime, Frete Grátis).
+4. **Motor Gráfico de Identidade Visual WL TEC**:
+   - Recorte transparente do produto e aplicação em card Dark Tech com iluminação glow (Ciano/Âmbar) e selo de produto verificado WL TEC.
+5. **Mesa de Operações do Administrador & Disparo Multicanal**:
+   - Interface rápida com botão verde `[Aprovar e Publicar]` em 1 clique.
+   - Disparo 100% automático para o Canal Oficial do Telegram via Bot API oficial (@WLTecOfertasBot).
+   - Botão `[📲 Disparar no WhatsApp]` com 1 toque rápido e seguro para Canal/Comunidade oficial WL TEC.
+   - Chat interativo para sugestões ou refinamentos rápidos à IA antes de publicar.
+   - Painel de telemetria interna de acessos: visitas, origem (Google, WhatsApp, direto), dispositivo e cliques por loja.
+6. **Hub Central de Cupons Ativos (`/cupons`)**:
+   - Página perene para captação de tráfego orgânico de alta intenção com cupons diários de ML, Shopee e Amazon com rastreamento ativo.
+7. **Sentinela de Links & Poda Algorítmica (Content Pruning)**:
+   - Verificação diária de status e preço.
+   - Desativação/arquivamento automático de produtos sem visitas ou cliques em 30-45 dias para preservar a autoridade do domínio no Google.
+8. **Infraestrutura & Tráfego**:
+   - Supabase: Tabelas estruturais com RLS e bucket `afiliados-imagens`.
+   - Cloudflare: CNAME do subdomínio, SSL Full e cache edge de 30 dias para imagens.
+   - Google Search Console: Envio de sitemap dinâmico e validação de Rich Snippets.
+   - Google Analytics 4 (GA4): Tag de medição com rastreamento do evento `click_afiliado`.
+   - Estratégia de Tráfego: Foco 100% orgânico no início; patrocínio estritamente voltado para entrada de membros no grupo de WhatsApp (LTV), nunca para produtos avulsos.
+
+## Mudança Atual: Calibração de Preços Reais, Quebra de Cache LocalStorage (v6) e Edição Direta na Mesa Administrativa
 
 ### 1. Diagnóstico do Problema
-1. **Layout Quebrado no Smartphone**: No modal `modalEditarOs`, os blocos de adicionar itens (personalizados, estoque e calculadora de deslocamento) utilizam propriedades inline de grid (`grid-template-columns: 115px 1fr 45px 80px 105px 80px auto;`), que forçam largura superior a 500px em telas de 360-400px. Isso empurra os campos de parcelamento, venda unitária e o botão "+ Adicionar" para fora da tela, impedindo a inserção de itens no celular.
-2. **Exposição Indevida do Leva & Traz**: O serviço de deslocamento/leva e traz está aparecendo de forma discriminada no PDF e nas mensagens de WhatsApp para o cliente. O serviço deve ser restrito ao controle interno de despesas do técnico (Wiliam), devendo ser automaticamente absorvido/embutido na Mão de Obra ou em Insumos nos documentos do cliente.
+1. **Aprisionamento de Cache Local no Navegador (`wltec_afiliados_produtos_v5`)**:
+   - Mesmo após a inserção dos dados reais no arquivo `produtos-data.js`, o navegador continuava priorizando o payload em cache da versão anterior (`v5`), onde a função `getProdutos()` sincronizava apenas as URLs de imagens e mantinha os preços e títulos antigos.
+   - Isso fez com que o SSD continuasse aparecendo como "SSD NVMe M.2 1TB PCIe 3.0/4.0 Alta Velocidade (Até 5000MB/s) por R$ 219,00" e a Creatina continuasse em "R$ 99,00", gerando discrepância com a pesquisa real no Mercado Livre.
+2. **Inconsistência de Mercado & Risco de Reputação**:
+   - SSD de 1TB NVMe PCIe 4.0 por R$ 219 no Brasil é inviável e sinaliza produtos falsificados/chips reciclados sem garantia. Para uma empresa técnica de TI e bancada (WL TEC), a recomendação precisa ser fundamentada em marcas de renome (Kingston NV2 1TB) na faixa real de mercado (R$ 419 a R$ 449 com 3 anos de garantia).
+   - A Creatina Soldiers Nutrition de 1kg precisa refletir fielmente o anúncio oficial do Mercado Livre: **R$ 68,90** com 71% OFF de R$ 239,90.
+3. **Falta de Edição Dinâmica de Preços na Mesa do Admin**:
+   - O painel exibia preços em texto estático nos rascunhos, forçando intervenção em código para qualquer oscilação de mercado dos lojistas.
 
 ### 2. Plano de Ação
-1. **Responsividade Mobile (`os/index.html` e `os/style.css`)**:
-   - Eliminar os estilos inline rígidos e adotar classes responsivas (`.quick-add-custom-grid`, `.quick-add-stock-grid`, `.quick-add-deslocamento-grid`).
-   - Em telas móveis (`<= 768px`), organizar os campos em linhas bem espaçadas com campos confortáveis e botão de ação em largura total (100%), garantindo usabilidade total no celular.
-   - Ajustar paddings do modal no mobile para evitar overflow horizontal.
-2. **Sigilo e Automação do Leva & Traz (`os/app.js`)**:
-   - Manter o registro de `custo_deslocamento` internamente para apuração de lucro real no DRE e controle da média de gastos de combustível.
-   - No modal interno, marcar o item com badge `[🔒 Controle Interno WL - Oculto do Cliente]`.
-   - Na geração de mensagens de WhatsApp (`enviarWhatsApp`) e no documento PDF (`gerarPDF`), aplicar o filtro `prepararItensParaCliente`:
-     - Ocultar totalmente o termo "Leva & Traz" / "Deslocamento".
-     - Embutir o valor calculado automaticamente na Mão de Obra (ou como Insumos Operacionais), mantendo o total idêntico sem discriminar frete para o cliente.
+1. **Quebra de Cache & Sincronização Automática (`ofertas-app.js` e `admin-app.js`)**:
+   - Elevar chave de cache para `wltec_afiliados_produtos_v6`.
+   - Implementar algoritmo de merge prioritário para os produtos oficiais base (`prod-`), garantindo que alterações no catálogo oficial reflitam imediatamente no navegador sem prender no cache local.
+   - Adicionar botão de emergência `[🔄 Sincronizar Preços Calibrados]` no cabeçalho do painel de administração.
+2. **Edição Direta de Valores na Mesa de Operações (`admin.html` e `admin-app.js`)**:
+   - Transformar os blocos de preços das 4 lojas em inputs interativos de valor (`<input type="number" step="0.01">`).
+   - Permitir que o administrador edite e confira os preços das 4 lojas e o preço promocional antes de clicar em `[Aprovar e Publicar]`.
+3. **Selos de Curadoria e Transparência de Preço (`produto.html` e `index.html`)**:
+   - Inserir selo de curadoria técnica WL TEC e nota de esclarecimento sobre flutuação de estoque e cupons das lojas parceiras.
+
 
 

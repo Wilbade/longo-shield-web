@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mesa de Operações | WL TEC Ofertas (Admin)</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+  <link rel="stylesheet" href="ofertas.css">
+
+  <!-- Supabase JS v2 Oficial (Mesma versão do painel de OS e Leads) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body style="background-color: #06080d;">
+
+  <!-- OVERLAY DE LOGIN / AUTENTICAÇÃO RESTREITA (PADRÃO OS & LEADS) -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="shield-icon">🛡️</div>
+        <h2><span style="color: var(--primary-cyan);">WL</span> <span style="color: var(--primary-amber);">TEC</span> | Acesso Restrito</h2>
+        <p>Mesa de Operações & Gestão de Afiliados</p>
+      </div>
+
+      <form id="auth-form" novalidate>
+        <div class="login-form-group">
+          <label for="email">Conta de Acesso (E-mail)</label>
+          <input type="email" id="email" placeholder="usuario@wl.tec.br" autocomplete="email" required>
+        </div>
+        <div class="login-form-group">
+          <label for="password">Senha de Segurança</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn-login-auth" id="btn-auth">
+          <div class="btn-spinner" id="authSpinner" style="display: none;"></div>
+          <span id="authLabel">Validar Credenciais</span>
+        </button>
+
+        <div id="error-auth" class="error-auth-msg" role="alert" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Header Admin -->
+  <header class="site-header" id="mainHeader">
+    <div class="container">
+      <div class="header-inner">
+        <div class="brand-logo">
+          <div class="brand-shield" style="border-color: var(--primary-amber);">⚙️</div>
+          <div>
+            <div class="brand-text-title" style="background: linear-gradient(90deg, #ffffff, var(--primary-amber)); -webkit-background-clip: text;">
+              MESA DE OPERAÇÕES <span style="font-weight: 400; color: #94a3b8;">WL TEC</span>
+            </div>
+          </div>
+          <span class="brand-badge" style="color: var(--primary-green); border-color: var(--primary-green);">Online</span>
+        </div>
+
+        <div class="nav-actions">
+          <span id="userEmailBadge" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;"></span>
+          <a href="index.html" class="btn-admin-link">
+            <span>🌐</span> Ver Vitrine
+          </a>
+          <button class="btn-admin-link" id="btnResetarCatalogo" style="color: var(--primary-amber); border-color: rgba(255, 179, 0, 0.3);" title="Recarregar catálogo padrão com 10 produtos">
+            <span>🔄</span> Restaurar 10
+          </button>
+          <button class="btn-admin-link" id="btnLogout" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" title="Encerrar sessão de segurança">
+            <span>🚪</span> Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="admin-container" id="adminMainContent">
+
+    <!-- KPI Metrics Dashboard -->
+    <section class="kpi-grid">
+      <div class="kpi-card highlight-cyan">
+        <div class="kpi-title">Visitas Totais</div>
+        <div class="kpi-value" id="kpiVisitasTotais">0</div>
+        <div class="kpi-sub" id="kpiVisitasDetalhadas">Google: 0 | WhatsApp: 0</div>
+      </div>
+
+      <div class="kpi-card highlight-amber">
+        <div class="kpi-title">Cliques em Lojas (Leads)</div>
+        <div class="kpi-value" id="kpiCliquesTotais">0</div>
+        <div class="kpi-sub">Comissões em potencial</div>
+      </div>
+
+      <div class="kpi-card highlight-green">
+        <div class="kpi-title">Loja Campeã de Cliques</div>
+        <div class="kpi-value" id="kpiLojaMaisClicada" style="font-size: 1.4rem;">Shopee</div>
+        <div class="kpi-sub" id="kpiLojaDetalhadas">ML: 0 | Shopee: 0 | Amz: 0</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-title">Catálogo Ativo</div>
+        <div class="kpi-value" id="kpiProdutosAtivos">10</div>
+        <div class="kpi-sub">Produtos com SEO ativo</div>
+      </div>
+    </section>
+
+    <!-- Navegação em Abas do Painel -->
+    <div class="admin-tabs">
+      <button class="tab-btn active" data-tab="tabMesa">⚡ Mesa de Operações (Criar & Rascunhos)</button>
+      <button class="tab-btn" data-tab="tabProdutos">📦 Catálogo de Produtos (<span id="countProdutosTab">10</span>)</button>
+      <button class="tab-btn" data-tab="tabMetricas">📊 Telemetria & Tráfego</button>
+      <button class="tab-btn" data-tab="tabConfig">⚙️ IDs de Afiliado & Bots</button>
+    </div>
+
+    <!-- ==============================================================================
+         ABA 1: MESA DE OPERAÇÕES (INGESTÃO, IA E RASCUNHOS)
+         ============================================================================== -->
+    <section id="tabMesa" class="tab-content">
+      
+      <!-- Gatilhos de Mineração Rápida -->
+      <div class="ingest-box">
+        <div class="radar-trigger-row">
+          <button class="btn-radar" id="btnRadar48h">
+            <span>🔥</span> Rastrear Tendências 48h (Mais Vendidos)
+          </button>
+          
+          <button class="btn-aposta-trigger" id="btnRadarApostas">
+            <span>🚀</span> Minerar Apostas de Lançamento (Anatel/Inmetro)
+          </button>
+
+          <span style="font-size: 0.8rem; color: var(--text-dim); margin-left: auto;">
+            ⚡ Mineração automática de fotos, preços, ficha técnica e fontes
+          </span>
+        </div>
+
+        <!-- Entrada de Link Manual -->
+        <div>
+          <label style="display: block; font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.4rem;">
+            Ou Cole Qualquer Link do Mercado Livre, Shopee, Amazon ou AliExpress:
+          </label>
+          <div style="display: flex; gap: 0.6rem;">
+            <input type="url" id="txtLinkManual" placeholder="Ex: https://produto.mercadolivre.com.br/MLB-... ou https://shopee.com.br/..." style="flex-grow: 1; background: rgba(7, 9, 14, 0.9); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: #fff; padding: 0.7rem 1rem; font-size: 0.9rem; outline: none;">
+            <button class="btn-buy-store btn-ml" id="btnProcessarLink" style="padding: 0.7rem 1.5rem; font-size: 0.9rem; border: none; cursor: pointer;">
+              <span>🤖</span> Processar com IA
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Área do Rascunho Gerado / Em Edição -->
+      <div id="containerRascunho" class="draft-card-container">
+        
+        <div class="draft-header">
+          <div>
+            <span class="badge-floating" id="draftBadge" style="position: static; margin-bottom: 0.5rem; display: inline-block;">
+              ⚡ Rascunho Gerado por IA
+            </span>
+            <h2 id="draftTitulo" style="font-size: 1.4rem; font-weight: 800; color: #ffffff;">
+              Fone Bluetooth Lenovo Thinkplus LP40 Pro Original
+            </h2>
+            <div id="draftSubtitulo" style="font-size: 0.88rem; color: var(--text-muted);">
+              O fone TWS mais vendido do Brasil com bateria de 20 horas
+            </div>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="font-size: 0.75rem; color: var(--text-dim);">Preço Médio Estimado</div>
+            <div id="draftPrecoEstimado" style="font-size: 1.6rem; font-weight: 900; color: var(--primary-green);">
+              R$ 48,90
+            </div>
+          </div>
+        </div>
+
+        <!-- Prévia das 4 Lojas Cruzadas -->
+        <div style="background: rgba(7, 9, 14, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="font-size: 0.82rem; font-weight: 800; color: var(--primary-cyan); margin-bottom: 0.5rem;">
+            🛒 Cruzamento de Preços nas 4 Lojas:
+          </div>
+          <div id="draftLojasGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; font-size: 0.85rem;">
+            <!-- Renderizado dinamicamente via JS -->
+          </div>
+        </div>
+
+        <!-- Resumo do Veredito e Prós/Contras -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+          <div style="background: rgba(16, 21, 31, 0.6); border-radius: var(--radius-sm); padding: 0.85rem; border: 1px solid rgba(16, 185, 129, 0.2);">
+            <div style="font-size: 0.82rem; font-weight: 800; color: var(--primary-green); margin-bottom: 0.35rem;">✅ Pontos Fortes</div>
+            <div id="draftProsPreview" style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;"></div>
+          </div>
+
+          <div style="background: rgba(16, 21, 31, 0.6); border-radius: var(--radius-sm); padding: 0.85rem; border: 1px solid rgba(239, 68, 68, 0.2);">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #ef4444; margin-bottom: 0.35rem;">⚠️ Pontos de Atenção</div>
+            <div id="draftContrasPreview" style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;"></div>
+          </div>
+        </div>
+
+        <!-- Chat Interativo de Refinamento com IA -->
+        <div class="ai-refine-box">
+          <label>💬 Sugira ou Refine a Resenha com IA antes de Publicar:</label>
+          <div class="refine-input-group">
+            <input type="text" id="txtRefinamentoIA" placeholder="Ex: 'Destaque que é muito bom para usar no capacete de moto', 'Foque no custo-benefício', 'Adicione que a entrega é rápida'...">
+            <button class="btn-refine-submit" id="btnRefinarIA">
+              Refinar IA
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de Ações: Aprovar, WhatsApp e Telegram -->
+        <div class="draft-actions-bar">
+          <button class="btn-approve-publish" id="btnAprovarPublicar">
+            <span>✅</span> Aprovar e Publicar no Site
+          </button>
+
+          <button class="btn-copy-zap" id="btnCopiarZap">
+            <span>📋</span> Copiar Oferta p/ WhatsApp
+          </button>
+
+          <button class="btn-send-tg" id="btnDispararTelegram">
+            <span>✈️</span> Disparar no Telegram
+          </button>
+
+          <button class="btn-admin-link" id="btnDescartarRascunho" style="color: var(--text-dim); margin-left: auto;">
+            <span>🗑️</span> Descartar
+          </button>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ==============================================================================
+         ABA 2: CATÁLOGO DE PRODUTOS PUBLICADOS
+         ============================================================================== -->
+    <section id="tabProdutos" class="tab-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 style="font-size: 1.2rem; font-weight: 800;">Produtos Publicados no Subdomínio</h3>
+        <span style="font-size: 0.82rem; color: var(--text-muted);">Poda algorítmica ativa: produtos sem cliques em 45 dias são arquivados automaticamente.</span>
+      </div>
+
+      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+          <thead>
+            <tr style="background: rgba(7, 9, 14, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+              <th style="padding: 1rem;">Produto</th>
+              <th style="padding: 1rem;">Categoria</th>
+              <th style="padding: 1rem;">Preço</th>
+              <th style="padding: 1rem;">Visitas</th>
+              <th style="padding: 1rem;">Cliques</th>
+              <th style="padding: 1rem; text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaCorpoProdutos">
+            <!-- Renderizado dinamicamente via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ==============================================================================
+         ABA 3: TELEMETRIA & TRÁFEGO
+         ============================================================================== -->
+    <section id="tabMetricas" class="tab-content" style="display: none;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- Origem das Visitas -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem;">
+          <h4 style="font-size: 1rem; font-weight: 800; color: var(--primary-cyan); margin-bottom: 1rem;">
+            🌐 Origem do Tráfego (De onde vêm as visitas)
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>🔍 Google (Busca Orgânica SEO)</span>
+              <strong id="valOrigemGoogle" style="color: #ffffff;">0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>💬 WhatsApp (Grupos & Status)</span>
+              <strong id="valOrigemZap" style="color: var(--primary-green);">0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>✈️ Telegram (Canal Oficial)</span>
+              <strong id="valOrigemTg" style="color: #38bdf8;">0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem;">
+              <span>🔗 Direto / Outros</span>
+              <strong id="valOrigemDireto" style="color: var(--text-muted);">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cliques por Loja -->
+        <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem;">
+          <h4 style="font-size: 1rem; font-weight: 800; color: var(--primary-amber); margin-bottom: 1rem;">
+            🛒 Cliques de Compra por Loja
+          </h4>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>🟡 Mercado Livre</span>
+              <strong id="valCliquesML" style="color: #ffe600;">0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>🟠 Shopee</span>
+              <strong id="valCliquesShopee" style="color: #ee4d2d;">0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.4rem;">
+              <span>🔵 Amazon Brasil</span>
+              <strong id="valCliquesAmz" style="color: #ff9900;">0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-bottom: 0.4rem;">
+              <span>🔴 AliExpress</span>
+              <strong id="valCliquesAli" style="color: #e62e04;">0</strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Histórico Recente de Cliques -->
+      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h4 style="font-size: 1.05rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+            <span>📋</span> Últimos Cliques em Links de Compra (Tempo Real)
+          </h4>
+          <button id="btnLimparMetricas" style="background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 0.45rem 0.85rem; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: var(--transition-fast);" title="Zerar contadores de testes e começar limpo">
+            🗑️ Zerar Métricas de Teste
+          </button>
+        </div>
+        <div id="listaLogsCliques" class="logs-telemetry-container">
+          <div style="text-align: center; padding: 2rem; color: var(--text-dim);">Nenhum clique registrado ainda.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==============================================================================
+         ABA 4: CONFIGURAÇÃO DE IDS DE AFILIADO & BOTS
+         ============================================================================== -->
+    <section id="tabConfig" class="tab-content" style="display: none;">
+      <div style="max-width: 700px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 2rem;">
+        <h3 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--primary-cyan);">
+          ⚙️ Credenciais Globais de Afiliados & Canais
+        </h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+          Configure uma única vez. O robô aplica esses parâmetros automaticamente em todas as URLs rastreadas.
+        </p>
+
+        <form id="formConfig" style="display: flex; flex-direction: column; gap: 1.15rem;">
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem;">Amazon Associate Tag:</label>
+            <input type="text" id="cfgAmazonTag" class="search-box" style="width: 100%;" value="wilbade09-20">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem;">Shopee Affiliate App ID / Sub-ID:</label>
+            <input type="text" id="cfgShopeeId" class="search-box" style="width: 100%;" value="18349700720">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem;">Mercado Livre Tracking ID / Token:</label>
+            <input type="text" id="cfgMlId" class="search-box" style="width: 100%;" value="wilbade">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem;">AliExpress Portals Tracking ID:</label>
+            <input type="text" id="cfgAliId" class="search-box" style="width: 100%;" value="wilbade">
+          </div>
+
+          <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem;">Link de Convite do Grupo VIP do WhatsApp:</label>
+            <input type="url" id="cfgZapLink" class="search-box" style="width: 100%;" value="https://chat.whatsapp.com/exemplo-wltec">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem;">Token do Bot do Telegram (@BotFather):</label>
+            <input type="text" id="cfgTgToken" class="search-box" style="width: 100%;" placeholder="Ex: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 0.35rem;">ID do Canal do Telegram (@seucanal ou -100...):</label>
+            <input type="text" id="cfgTgChatId" class="search-box" style="width: 100%;" placeholder="Ex: @wltecofertas">
+          </div>
+
+          <button type="submit" class="btn-approve-publish" style="margin-top: 1rem;">
+            <span>💾</span> Salvar Configurações Globais
+          </button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="produtos-data.js"></script>
+  <script src="admin-app.js"></script>
+</body>
+</html>

@@ -27,7 +27,13 @@
   - Consultoria para adequação à LGPD (Lei Geral de Proteção de Dados).
   - Emissão de Dossiê Técnico e Relatório de Resiliência Cibernética.
 
+### 3. WL TEC Ofertas — Comparador 4 em 1 & Reviews de Tecnologia
+- **URL**: https://wl.tec.br/ofertas/
+- **Abrangência**: Atendimento Nacional (Todo o Brasil).
+- **Proposta de Valor**: Comparador de preços em tempo real cruzando Mercado Livre, Shopee, Amazon e AliExpress, com resenhas técnicas honestas, prós, contras e central diária de cupons de desconto testados.
+
 ## Links Recomendados
+- [WL TEC Ofertas & Cupons de Hoje](https://wl.tec.br/ofertas/): Comparador 4 em 1 e análises técnicas de produtos.
 - [Manutenção de Notebooks & PCs no ABC](https://wl.tec.br/manutencao/): Orçamento e agendamento do serviço Leva & Traz.
 - [Análise de Cibersegurança de Domínio](https://wl.tec.br/): Teste rápido de vulnerabilidades.
 - [Sitemap XML](https://wl.tec.br/sitemap.xml): Estrutura de URLs do site.

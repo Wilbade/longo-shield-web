@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WL TEC Ofertas | Comparador 4 em 1 & Achados Verificados</title>
+  <meta name="description" content="Encontre o menor preço no Mercado Livre, Shopee, Amazon e AliExpress com curadoria e reviews de especialistas em tecnologia da WL TEC. Cupons diários e frete grátis.">
+  <meta name="keywords" content="ofertas tecnologia, cupons mercado livre, cupons shopee, achadinhos, comparador de preços, menor preço">
+  
+  <!-- Open Graph / Redes Sociais -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="WL TEC Ofertas | Comparador 4 em 1 & Achados Verificados">
+  <meta property="og:description" content="Compare preços em tempo real: Mercado Livre vs Shopee vs Amazon vs AliExpress. Economize com cupons ativos e testes reais.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=1200&auto=format&fit=crop&q=80">
+  
+  <!-- Favicon Tech -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+  
+  <link rel="stylesheet" href="ofertas.css">
+
+  <!-- Schema.org Dados Estruturados -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "WL TEC Ofertas",
+    "url": "https://wl.tec.br/ofertas/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://wl.tec.br/ofertas/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- Header Fixo -->
+  <header class="site-header">
+    <div class="container">
+      <div class="header-inner">
+        <a href="index.html" class="brand-logo">
+          <div class="brand-shield">🛡️</div>
+          <div>
+            <div class="brand-text-title">WL TEC <span style="font-weight: 400; color: #94a3b8;">OFERTAS</span></div>
+          </div>
+          <span class="brand-badge">Verificado</span>
+        </a>
+
+        <div class="nav-actions">
+          <a href="https://chat.whatsapp.com/exemplo-wltec" target="_blank" rel="noopener" class="btn-vip-zap">
+            <span>💬</span> Canal VIP
+          </a>
+          <a href="https://t.me/exemplo_wltec" target="_blank" rel="noopener" class="btn-vip-telegram">
+            <span>✈️</span> Telegram
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-pill">
+        <span>⚡</span> Comparador Inteligente 4 em 1 (ML, Shopee, Amazon & Ali)
+      </div>
+      <h1 class="hero-title">
+        Achados de Tecnologia & Utilidades<br>
+        <span>Testados e com Menor Preço</span>
+      </h1>
+      <p class="hero-subtitle">
+        Curadoria real feita por técnicos de TI. Comparamos o preço nas 4 maiores lojas, revelamos os prós e contras sem enrolação e rastreamos os cupons de frete grátis do dia.
+      </p>
+
+      <!-- Barra de Busca & Filtros -->
+      <div class="filter-bar-container">
+        <div class="search-box">
+          <span style="color: var(--primary-cyan); font-size: 1.1rem; margin-right: 0.5rem;">🔍</span>
+          <input type="text" id="txtBusca" placeholder="Pesquise por fone, creatina, compressor, SSD, relógio..." autocomplete="off">
+        </div>
+
+        <div class="category-chips" id="chipsCategorias">
+          <button class="chip-btn active" data-cat="todas">🔥 Todas as Ofertas</button>
+          <button class="chip-btn" data-cat="tecnologia">💻 Tecnologia & Upgrades</button>
+          <button class="chip-btn" data-cat="utilidades">⚡ Casa & Utilidades</button>
+          <button class="chip-btn" data-cat="saude">💪 Saúde & Esportes</button>
+          <button class="chip-btn" data-cat="moda">👕 Moda & Roupas</button>
+          <button class="chip-btn" data-cat="apostas">🚀 Apostas de Lançamento</button>
+          <button class="chip-btn chip-cupons" id="btnAbaCupons" data-cat="cupons">🏷️ Cupons de Hoje</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seção Principal de Produtos -->
+  <main class="container">
+    
+    <!-- Alerta de Cupons Ativos (Exibido quando a aba Cupons estiver ativa) -->
+    <section id="secCupons" style="display: none;">
+      <div style="margin-bottom: 1.5rem;">
+        <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--primary-amber); display: flex; align-items: center; gap: 0.5rem;">
+          <span>🏷️</span> Cupons Ativos de Hoje (Testados & Verificados)
+        </h2>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">
+          Copie o código do cupom com 1 clique e compre com seu desconto direto no aplicativo ou site oficial.
+        </p>
+      </div>
+
+      <div class="cupons-grid" id="gridCupons">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </section>
+
+    <!-- Grid de Produtos -->
+    <section id="secProdutos">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-muted);" id="lblContagemProdutos">
+          Exibindo 10 ofertas verificadas
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-dim);">
+          🔄 Atualizado há instantes
+        </div>
+      </div>
+
+      <div class="products-grid" id="gridProdutos">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+    </section>
+
+    <!-- Banner Chamada VIP -->
+    <section style="background: linear-gradient(135deg, rgba(16, 21, 31, 0.95), rgba(7, 9, 14, 0.95)); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 2.5rem 1.5rem; text-align: center; margin: 3rem 0; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+      <div style="font-size: 2rem; margin-bottom: 0.5rem;">📲</div>
+      <h3 style="font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem;">
+        Não Perca Nenhuma Queda de Preço
+      </h3>
+      <p style="color: var(--text-muted); font-size: 0.92rem; max-width: 580px; margin: 0 auto 1.5rem auto;">
+        Nosso robô monitora quedas históricas e erros de preço 24 horas por dia. Receba antes de todo mundo no nosso canal oficial sem conversas paralelas nem spam.
+      </p>
+      <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+        <a href="https://chat.whatsapp.com/exemplo-wltec" target="_blank" rel="noopener" class="btn-vip-zap" style="padding: 0.75rem 1.5rem; font-size: 0.95rem;">
+          <span>💬</span> Entrar no Grupo VIP do WhatsApp
+        </a>
+        <a href="https://t.me/exemplo_wltec" target="_blank" rel="noopener" class="btn-vip-telegram" style="padding: 0.75rem 1.5rem; font-size: 0.95rem;">
+          <span>✈️</span> Seguir no Telegram
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Rodapé Institucional Integrado WL TEC -->
+  <footer style="border-top: 1px solid rgba(255, 255, 255, 0.08); background: #05070a; padding: 2.5rem 0; font-size: 0.82rem; color: var(--text-dim);">
+    <div class="container" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.5rem;">
+      <div>
+        <div style="font-weight: 800; color: #ffffff; margin-bottom: 0.25rem;">WL TEC • Ecossistema Digital & Tecnologia</div>
+        <div>Curadoria de ofertas independente. Links comissionados oficiais em conformidade com o CDC e LGPD.</div>
+        <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 1rem;">
+          <a href="../politica-de-privacidade.html" style="color: var(--text-dim); text-decoration: underline;">Política de Privacidade & LGPD</a>
+          <a href="../politica-de-privacidade.html" style="color: var(--text-dim); text-decoration: underline;">Termos de Uso</a>
+        </div>
+      </div>
+      <div style="display: flex; gap: 1.25rem;">
+        <a href="../index.html" style="color: var(--text-muted); text-decoration: none;">Cibersegurança</a>
+        <a href="../manutencao/index.html" style="color: var(--text-muted); text-decoration: none;">Assistência Notebooks</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="produtos-data.js"></script>
+  <script src="ofertas-app.js"></script>
+  <script src="../cookie-banner.js"></script>
+</body>
+</html>
