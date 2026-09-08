@@ -11,6 +11,42 @@ O ecossistema divide-se em **três módulos operacionais isolados**:
 
 ---
 
+## 🏛️ GOVERNANÇA CENTRAL & DIRETRIZES DE NEGÓCIOS (SINGLE SOURCE OF TRUTH)
+
+Este arquivo (`blueprint.md`) é a **Fonte Única e Soberana da Verdade (SSOT)** de todo o ecossistema WL TEC / Longo Shield Web. Qualquer agente de IA ou desenvolvedor deve obrigatoriamente cumprir os seguintes pilares invioláveis:
+
+### 1. Separação Rígida de Módulos (Zero Contaminação Cruzada)
+- **Raiz (`/`)**: Cibersegurança, Soluções Antiphishing, Institucional Longo Shield e utilitários globais (`llms.txt`, `robots.txt`, `politica-de-privacidade.html`).
+- **Módulo Manutenção (`/manutencao/`)**: Landing page comercial voltada ao atendimento de notebooks e computadores no ABC Paulista, com integração ViaCEP, agendamento de Leva & Traz e gravação dual em `pre_chamados`.
+- **Módulo OS (`/os/`)**: CRM interno restrito de Ordens de Serviço (emissão de PDFs técnicos e garantias em conformidade com o CDC, assinaturas digitais, fotos de evidência no Supabase Storage e DRE financeiro).
+- **Módulo Ofertas (`/ofertas/`)**: Vitrine pública de produtos verificados (`index.html`), Comparador de Preços 4 em 1 com SEO E-E-A-T (`produto.html`) e Mesa de Operações Administrativa (`afiliados.html` / `admin-app.js`).
+- **Regra**: Cada módulo possui seu próprio escopo CSS, scripts e dependências. Nenhuma alteração no módulo de ofertas deve tocar ou interferir nos arquivos de `/os/` ou `/manutencao/`, e vice-versa.
+
+### 2. Regras Críticas Invioláveis do Módulo de Ofertas (`/ofertas/`)
+1. **Blindagem de Imagens e Proibição de Fallback Cruzado:**
+   - É expressamente proibido usar URLs externas instáveis geradas por IA sem verificação.
+   - O catálogo base e os fallbacks devem utilizar estritamente os **12 packshots oficiais locais** armazenados em `/ofertas/img/` (`fone_lenovo.jpg`, `fone_qcy.jpg`, `creatina_soldiers.jpg`, `ssd_nvme.jpg`, `smartwatch_colmi.jpg`, `balanca_digital.jpg`, `mini_compressor.jpg`, `carregador_baseus.jpg`, `kit_meias.jpg`, `camiseta_algodao.jpg`, `boticario_insensatez.jpg`, `suporte_moto.jpg`).
+   - NUNCA cruzar imagens de categorias diferentes em fallbacks (ex: moto em suporte de celular ou fones, ou escudo institucional como hero do produto).
+   - Ao sugerir novas fotos no re-escaneamento, a IA deve passar por pré-teste assíncrono via `Image.onload` (`testarCarregamentoImagem`) com verificação de dimensões mínimas e timeout. Em caso de falha, mantém o packshot oficial ou usa o SVG Dark Tech contextualizado do nicho.
+2. **Soberania Absoluta dos Preços do Operador Humano:**
+   - O motor de IA (re-escaneamento) NUNCA deve sobrescrever preços já auditados pelo operador (`preco_mercadolivre`, `preco_shopee`, `preco_amazon`, `preco_aliexpress`, `preco_estimado`).
+   - O preço informado/auditado pelo operador humano é soberano. A IA preenche exclusivamente lojas que estiverem com valores nulos ou zerados.
+3. **Transparência de Links (Oferta Direta vs Cotação de Busca):**
+   - Links de listagem ampla (`lista.mercadolivre.com.br/...`, `shopee.com.br/search?...`, `amazon.com.br/s?...`, `/wholesale...`) NÃO devem ser apresentados como preços fixos travados de produto unitário.
+   - No Comparador 4 em 1, essas lojas devem ser renderizadas com clareza como **"Cotação ao Vivo / Listagem de vendedores"** e botão **`[🔍 Consultar Cotação ➜]`**.
+   - Apenas links diretos de anúncios de produto único (`/p/MLB...`, `/dp/...`, etc.) com preço confirmado participam do selo `★ MENOR PREÇO DIRETO`.
+   - O botão da barra sticky adapta-se dinamicamente entre `[🛒 Comprar no X]` (para oferta direta) e `[🔍 Consultar Cotação no X]` (para busca).
+4. **Prevenção de XSS e Sanitização Contínua:**
+   - Todo dado dinâmico injetado no DOM a partir do Supabase ou parâmetros de URL (`location.search`) deve passar obrigatoriamente por `escapeHtml()`.
+
+### 3. Regra de Atualização Obrigatória do `blueprint.md`
+- Qualquer agente de IA ou desenvolvedor atuando neste repositório DEVE:
+  1. Consultar este `blueprint.md` antes de iniciar qualquer implementação para entender a arquitetura vigente.
+  2. Atualizar este `blueprint.md` ao finalizar cada ciclo de mudanças, registrando as novas funcionalidades, regras de negócio ou refatorações aplicadas.
+  3. Manter o repositório livre de arquivos de prompt temporários ou redundantes na raiz.
+
+---
+
 ## MÓDULO 1: Manutenção de TI & Gestão de OS de Bancada (`/os/` e `/manutencao/`)
 
 ### 1.1 Landing Page Comercial de Manutenção (`/manutencao/`)

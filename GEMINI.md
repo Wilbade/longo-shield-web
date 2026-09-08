@@ -130,24 +130,37 @@ A critical function of the AI is to continuously monitor for and automatically r
 
 ## **Accessibility or A11Y Standards:** The AI implements accessibility features to empower all users, assuming a wide variety of users with different physical abilities, mental abilities, age groups, education levels, and learning styles.
 
-## **Iterative Development & User Interaction**
+## **Iterative Development, Single Source of Truth (SSOT) & User Interaction**
 
-The AI's workflow is iterative, transparent, and responsive to user input.
+The AI's workflow is iterative, transparent, modular, and strictly governed by `blueprint.md`.
 
-* **Plan Generation & Blueprint Management:** Each time the user requests a change, the AI will first generate a clear plan overview and a list of actionable steps. This plan will then be used to **create or update a blueprint.md file** in the project's root directory.
-  * The `blueprint.md` file will serve as a single source of truth, containing:
-    * A section with a concise overview of the purpose and capabilities.
-    * A section with a detailed outline documenting the project, including *all style, design, and features* implemented in the application from the initial version to the current version.
-    * A section with a detailed section outlining the plan and steps for the *current* requested change.
-    *
-  * Before initiating any new change, the AI will reference the `blueprint.md` to ensure full context and understanding of the application's current state.
-* **Prompt Understanding:** The AI will interpret user prompts to understand the desired changes. It will ask clarifying questions if the prompt is ambiguous.
-* **Contextual Responses:** The AI will provide conversational responses, explaining its actions, progress, and any issues encountered. It will summarize changes made.
+* **Blueprint Management (Single Source of Truth - SSOT):**
+  * The `blueprint.md` file in the project's root directory is the **absolute and single source of truth** for all specifications, architectural boundaries, and business rules.
+  * **MANDATORY PRE-CHECK:** Before starting any research or modifying any code, the AI MUST reference `blueprint.md` to guarantee full context and prevent regressions.
+  * **MANDATORY POST-MODIFICATION UPDATE:** Whenever any code, feature, bugfix, or refactoring is applied, the AI MUST update `blueprint.md` to document what was changed and maintain the documentation in sync with reality. No task is complete until `blueprint.md` is updated.
+  * Keep the root directory clean: scratch or temporary prompt files (e.g. `PROMPT_CONTEXTO.md`) must be consolidated into `blueprint.md` and deleted.
+
+* **Critical Architectural Boundaries:**
+  * **Strict Modular Separation:**
+    * `/` (Root): Cybersecurity, Antiphishing Solutions, Corporate Longo Shield.
+    * `/manutencao/`: Commercial landing page for computer maintenance in ABC Paulista.
+    * `/os/`: Internal CRM for Service Orders, bench tickets, and repair reports.
+    * `/ofertas/`: Public deals showcase, 4-in-1 comparison engine, and Operations Admin (`afiliados.html` / `admin-app.js`).
+    * Modules must NEVER cross-contaminate code, styles, or logic.
+
+* **Critical Business Rules for Offers (`/ofertas/`):**
+  * **Image Shielding:** Never use unstable external URLs. Always use official packshots in `/ofertas/img/` or test asynchronously via `Image.onload`. Strictly forbid cross-category image fallbacks (e.g., motorcycle mount photos or shields on headphones/creatine/clothing).
+  * **Operator Price Sovereignty:** Human operator prices and verified listings are authoritative. The AI re-scan engine must NEVER overwrite operator-audited prices with AI hallucinations.
+  * **Search vs Direct Links:** Broad search listings (`/lista...`, `/search...`) must be displayed as "Consultar Cotação", never as fixed direct offer prices.
+  * **XSS Prevention:** All dynamic content inserted into the DOM must be sanitized via `escapeHtml()`.
+
+* **Prompt Understanding & Contextual Responses:** The AI will interpret user prompts to understand the desired changes. It will ask clarifying questions if the prompt is ambiguous and provide concise, professional responses.
 * **Error Checking Flow:**
   1. **Code Change:** AI applies a code modification.
   2. **Dependency Check:** If a `package.json` was modified, AI runs `npm install`.
   3. **Preview Check:** AI observes the browser preview and developer console for visual and runtime errors.
-  4. **Remediation/Report:** If errors are found, AI attempts automatic fixes. If unsuccessful, it reports details to the user.
+  4. **Documentation Sync:** AI updates `blueprint.md`.
+  5. **Remediation/Report:** If errors are found, AI attempts automatic fixes. If unsuccessful, it reports details to the user.
 
 
 # Firebase MCP
