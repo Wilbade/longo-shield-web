@@ -2080,4 +2080,154 @@ body {
   }
 }
 
+/* ==============================================================================
+   ESTILOS MOBILE APP-LIKE & CARDS DO CATÁLOGO NA MESA DE OPERAÇÕES
+   ============================================================================== */
+.desktop-table-wrapper {
+  display: block;
+}
+
+.mobile-products-list {
+  display: none;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+@media (max-width: 768px) {
+  .desktop-table-wrapper {
+    display: none !important;
+  }
+  .mobile-products-list {
+    display: flex !important;
+  }
+  
+  /* Previne auto-zoom incômodo no Safari e Chrome Mobile ao focar campos */
+  .draft-card-container input,
+  .draft-card-container select,
+  .draft-card-container textarea,
+  .ingest-box input,
+  .ingest-box select {
+    font-size: 16px !important;
+  }
+}
+
+.mobile-product-card {
+  background: rgba(16, 21, 31, 0.95);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.mobile-product-header {
+  display: flex;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.mobile-product-thumb {
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: #0b0f19;
+  flex-shrink: 0;
+}
+
+.mobile-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-product-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+  line-height: 1.3;
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.mobile-product-price {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 900;
+  font-size: 1.15rem;
+  color: var(--primary-green);
+}
+
+.mobile-product-stats {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.45rem 0;
+}
+
+.mobile-product-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.btn-mobile-edit,
+.btn-mobile-rescan,
+.btn-mobile-view,
+.btn-mobile-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: var(--transition-fast);
+}
+
+.btn-mobile-edit {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.btn-mobile-rescan {
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.btn-mobile-view {
+  background: rgba(0, 255, 255, 0.12);
+  color: var(--primary-cyan);
+  border-color: rgba(0, 255, 255, 0.3);
+}
+
+.btn-mobile-delete {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.btn-mobile-edit:active,
+.btn-mobile-rescan:active,
+.btn-mobile-view:active,
+.btn-mobile-delete:active {
+  transform: scale(0.97);
+}
+
+
 

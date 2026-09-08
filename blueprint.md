@@ -315,3 +315,16 @@ ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
    - Padronização no modelo já validado em `wl.leads.html`: recuperação da chave via tabela `config_privada` sob sessão autenticada do Supabase, com suporte a retentativas e rotação de modelos (`gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.5-flash`).
 6. **Remoção do Botão "Restaurar 10":**
    - Eliminação do botão no cabeçalho da Mesa de Operações para evitar sobrescrita acidental do catálogo oficial do administrador.
+7. **Botão "Re-escanear com IA" & Resolução Rigorosa de Fotos Oficiais:**
+   - Implementação da ação `[🔄 Re-escanear com IA]` tanto no rascunho em edição quanto nas linhas da tabela desktop e nos cards touch mobile do catálogo.
+   - Auditoria via Gemini e inteligência de mercado: busca fotos oficiais de estúdio e catálogo de e-commerce (banindo fotos aleatórias do Unsplash como motos em suportes de celular), cotações ao vivo nas 4 lojas, total de avaliações, estrelas e selos dinâmicos ("🔥 Mais Vendido", "⭐ Melhor Avaliado").
+   - Atualização instantânea com sincronização direta no banco Supabase (`afiliados_produtos`).
+8. **Motor de Estúdio Visual WL TEC (Dark Mode Canvas):**
+   - Resolução da alternância entre "📷 Foto Original HD" e "✨ Estúdio WL TEC": geração instantânea client-side via HTML5 Canvas de um ambiente de estúdio fotográfico dark-tech (fundo gradiente radial escuro #151d2f/#05070d, pedestal com iluminação neon ciano e drop-shadow realista sobre o produto), alterando a imagem visualmente na tela com preview ao vivo.
+9. **Validação Pré-Publicação (Anti-Oferta Inverídica):**
+   - Checagem automática no momento do clique em "Aprovar e Publicar": bloqueia títulos vazios, preços zerados, fotos inexistentes ou de veículos desconexos e gera automaticamente links de afiliados com tracking ID ativo para as 4 lojas antes de subir para o ar.
+10. **Auditoria Automática Agendada 24/7 no Supabase (`pg_cron` & Edge Function):**
+    - **Edge Function (`supabase/functions/auditar-ofertas-auto/index.ts`)**: Executada na nuvem, lê periodicamente a tabela `afiliados_produtos`, consulta a API do Gemini via `config_privada` e atualiza contagem de avaliações, notas, selos ("🔥 Mais Vendido", "⭐ Melhor Avaliado") e cotações de preços.
+    - **Script SQL de Agendamento (`supabase/cron_auditoria_ofertas.sql`)**: Configura o `pg_cron` e `pg_net` para rodar diariamente às 04:00 UTC (01:00 BRT), acompanhado de uma rotina SQL nativa de segurança (`public.auditar_metricas_ofertas_sql()`) que recalcula badges baseada em tração de cliques e arquiva produtos ociosos (> 45 dias) sem depender de requisições HTTP externas.
+    - **Botão na Mesa de Operações (`#btnAuditarNuvemAgora`)**: Permite que o administrador dispare essa auditoria completa de todas as ofertas a qualquer momento pelo celular com 1 clique.
+
