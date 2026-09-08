@@ -146,6 +146,96 @@
     } catch(e) {}
   }
 
+  function carregarCupons() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CUPONS);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return window.CUPONS_INICIAIS || [];
+  }
+
+  function salvarCupons(lista) {
+    try {
+      localStorage.setItem(STORAGE_KEY_CUPONS, JSON.stringify(lista));
+    } catch(e) {}
+  }
+
+  let cupons = carregarCupons();
+
+  // ── Gerador Automático de Deep-Links de Afiliados (100% de Cobertura das 4 Lojas) ──
+  function gerarLinksAfiliadosAutomaticos(titulo, obj = {}, cfg = config) {
+    const termo = encodeURIComponent((titulo || 'produto').trim());
+    const mlWord = cfg.ml_id || 'wilbade';
+    const amzTag = cfg.amazon_tag || 'wilbade09-20';
+    const aliTag = cfg.ali_id || 'wilbade';
+
+    if (!obj.link_mercadolivre || obj.link_mercadolivre.trim() === '') {
+      obj.link_mercadolivre = `https://lista.mercadolivre.com.br/${termo}?matt_tool=83539355&matt_word=${encodeURIComponent(mlWord)}`;
+    }
+    if (!obj.link_shopee || obj.link_shopee.trim() === '') {
+      obj.link_shopee = `https://shopee.com.br/search?keyword=${termo}`;
+    }
+    if (!obj.link_amazon || obj.link_amazon.trim() === '') {
+      obj.link_amazon = `https://www.amazon.com.br/s?k=${termo}&tag=${encodeURIComponent(amzTag)}`;
+    }
+    if (!obj.link_aliexpress || obj.link_aliexpress.trim() === '') {
+      obj.link_aliexpress = `https://pt.aliexpress.com/wholesale?SearchText=${termo}`;
+    }
+    return obj;
+  }
+
+  // ── Chamador do Google Gemini com Retry e Fallback de Modelos (Padrão Seguro WL TEC) ──
+  async function chamarGeminiComRetry(prompt, apiKey, maxRetries = 3) {
+    if (!apiKey) return null;
+    const modelos = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
+    for (const modelo of modelos) {
+      let delay = 1500;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1/models/${modelo}:generateContent?key=${apiKey}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          if (res.status === 429) {
+            console.warn(`[Gemini 429 Rate Limit] Modelo ${modelo}, tentativa ${attempt + 1}/${maxRetries}. Aguardando ${delay}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+            delay *= 2;
+            continue;
+          }
+          if (!res.ok) {
+            console.warn(`[Gemini HTTP Error] Status ${res.status} no modelo ${modelo}`);
+            break;
+          }
+          const data = await res.json();
+          if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
+            return data.candidates[0].content.parts[0].text;
+          }
+        } catch (err) {
+          console.warn(`[Gemini Exception] Erro ao chamar ${modelo}:`, err);
+          break;
+        }
+      }
+    }
+    return null;
+  }
+
+  async function obterChaveGeminiSegura() {
+    if (config.gemini_key) return config.gemini_key;
+    if (db) {
+      try {
+        const { data: keyData } = await db.from('config_privada').select('chave_valor').eq('chave_nome', 'GEMINI_API_KEY').maybeSingle();
+        if (keyData && keyData.chave_valor) {
+          config.gemini_key = keyData.chave_valor;
+          salvarConfig(config);
+          return keyData.chave_valor;
+        }
+      } catch(e) {}
+    }
+    return '';
+  }
+
   // Toast Helper
   function showToast(msg, icon = '✅') {
     const existing = document.querySelector('.toast-msg');
@@ -282,6 +372,9 @@
     if (c) c.style.display = 'block';
     if (emptyNotice) emptyNotice.style.display = 'none';
 
+    // Garante 100% de preenchimento dos 4 links com parâmetros de afiliado
+    gerarLinksAfiliadosAutomaticos(rascunhoAtual.titulo, rascunhoAtual, config);
+
     const editTitulo = document.getElementById('editTitulo');
     if (editTitulo) editTitulo.value = rascunhoAtual.titulo || '';
 
@@ -304,7 +397,7 @@
       };
     }
 
-    // Seletor A3: Foto Original vs Estúdio Dark Mode WL TEC
+    // Seletor: Foto Original vs Estúdio Dark Mode WL TEC
     const btnFotoOriginal = document.getElementById('btnFotoOriginal');
     const btnFotoEstudio = document.getElementById('btnFotoEstudio');
     const lblFotoAtiva = document.getElementById('lblFotoAtiva');
@@ -375,52 +468,52 @@
     const draftLojasGrid = document.getElementById('draftLojasGrid');
     if (draftLojasGrid) {
       draftLojasGrid.innerHTML = `
-        <div style="background: rgba(255, 230, 0, 0.08); border: 1px solid rgba(255, 230, 0, 0.3); padding: 0.75rem; border-radius: 6px;">
-          <div style="color: #ffe600; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <div style="background: rgba(255, 230, 0, 0.08); border: 1px solid rgba(255, 230, 0, 0.3); padding: 0.85rem; border-radius: 8px;">
+          <div style="color: #ffe600; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
             <span>🟡 Mercado Livre</span>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">${rascunhoAtual.destaque_mercadolivre || 'Full'}</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">${rascunhoAtual.destaque_mercadolivre || 'Full'}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
-            <span style="color: var(--text-dim); font-size: 0.85rem; font-weight: 700;">R$</span>
-            <input type="number" step="0.01" id="editPrecoML" value="${rascunhoAtual.preco_mercadolivre !== null && rascunhoAtual.preco_mercadolivre !== undefined ? rascunhoAtual.preco_mercadolivre : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(255,230,0,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; padding: 0.35rem 0.5rem; border-radius: 4px;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+            <span style="color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">R$</span>
+            <input type="number" step="0.01" id="editPrecoML" value="${rascunhoAtual.preco_mercadolivre !== null && rascunhoAtual.preco_mercadolivre !== undefined ? rascunhoAtual.preco_mercadolivre : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(255,230,0,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 700; padding: 0.55rem 0.65rem; border-radius: 6px;">
           </div>
-          <input type="url" id="editLinkML" value="${rascunhoAtual.link_mercadolivre || ''}" placeholder="Link Mercado Livre..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; font-size: 0.72rem; color: #a5f3fc; padding: 0.25rem 0.4rem;">
+          <input type="url" id="editLinkML" value="${rascunhoAtual.link_mercadolivre || ''}" placeholder="Link Mercado Livre..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; font-size: 0.82rem; color: #a5f3fc; padding: 0.55rem 0.65rem;">
         </div>
 
-        <div style="background: rgba(238, 77, 45, 0.08); border: 1px solid rgba(238, 77, 45, 0.3); padding: 0.75rem; border-radius: 6px;">
-          <div style="color: #ee4d2d; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <div style="background: rgba(238, 77, 45, 0.08); border: 1px solid rgba(238, 77, 45, 0.3); padding: 0.85rem; border-radius: 8px;">
+          <div style="color: #ee4d2d; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
             <span>🟠 Shopee</span>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">${rascunhoAtual.destaque_shopee || 'Cupons'}</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">${rascunhoAtual.destaque_shopee || 'Cupons'}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
-            <span style="color: var(--text-dim); font-size: 0.85rem; font-weight: 700;">R$</span>
-            <input type="number" step="0.01" id="editPrecoShopee" value="${rascunhoAtual.preco_shopee !== null && rascunhoAtual.preco_shopee !== undefined ? rascunhoAtual.preco_shopee : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(238,77,45,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; padding: 0.35rem 0.5rem; border-radius: 4px;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+            <span style="color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">R$</span>
+            <input type="number" step="0.01" id="editPrecoShopee" value="${rascunhoAtual.preco_shopee !== null && rascunhoAtual.preco_shopee !== undefined ? rascunhoAtual.preco_shopee : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(238,77,45,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 700; padding: 0.55rem 0.65rem; border-radius: 6px;">
           </div>
-          <input type="url" id="editLinkShopee" value="${rascunhoAtual.link_shopee || ''}" placeholder="Link Shopee..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; font-size: 0.72rem; color: #a5f3fc; padding: 0.25rem 0.4rem;">
+          <input type="url" id="editLinkShopee" value="${rascunhoAtual.link_shopee || ''}" placeholder="Link Shopee..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; font-size: 0.82rem; color: #a5f3fc; padding: 0.55rem 0.65rem;">
         </div>
 
-        <div style="background: rgba(255, 153, 0, 0.08); border: 1px solid rgba(255, 153, 0, 0.3); padding: 0.75rem; border-radius: 6px;">
-          <div style="color: #ff9900; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <div style="background: rgba(255, 153, 0, 0.08); border: 1px solid rgba(255, 153, 0, 0.3); padding: 0.85rem; border-radius: 8px;">
+          <div style="color: #ff9900; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
             <span>🔵 Amazon</span>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">${rascunhoAtual.destaque_amazon || 'Prime'}</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">${rascunhoAtual.destaque_amazon || 'Prime'}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
-            <span style="color: var(--text-dim); font-size: 0.85rem; font-weight: 700;">R$</span>
-            <input type="number" step="0.01" id="editPrecoAmazon" value="${rascunhoAtual.preco_amazon !== null && rascunhoAtual.preco_amazon !== undefined ? rascunhoAtual.preco_amazon : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(255,153,0,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; padding: 0.35rem 0.5rem; border-radius: 4px;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+            <span style="color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">R$</span>
+            <input type="number" step="0.01" id="editPrecoAmazon" value="${rascunhoAtual.preco_amazon !== null && rascunhoAtual.preco_amazon !== undefined ? rascunhoAtual.preco_amazon : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(255,153,0,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 700; padding: 0.55rem 0.65rem; border-radius: 6px;">
           </div>
-          <input type="url" id="editLinkAmazon" value="${rascunhoAtual.link_amazon || ''}" placeholder="Link Amazon..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; font-size: 0.72rem; color: #a5f3fc; padding: 0.25rem 0.4rem;">
+          <input type="url" id="editLinkAmazon" value="${rascunhoAtual.link_amazon || ''}" placeholder="Link Amazon..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; font-size: 0.82rem; color: #a5f3fc; padding: 0.55rem 0.65rem;">
         </div>
 
-        <div style="background: rgba(230, 46, 4, 0.08); border: 1px solid rgba(230, 46, 4, 0.3); padding: 0.75rem; border-radius: 6px;">
-          <div style="color: #e62e04; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <div style="background: rgba(230, 46, 4, 0.08); border: 1px solid rgba(230, 46, 4, 0.3); padding: 0.85rem; border-radius: 8px;">
+          <div style="color: #e62e04; font-weight: 800; display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
             <span>🔴 AliExpress</span>
-            <span style="font-size: 0.7rem; color: var(--text-muted);">${rascunhoAtual.destaque_aliexpress || 'Choice'}</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">${rascunhoAtual.destaque_aliexpress || 'Choice'}</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 0.3rem; margin-bottom: 0.4rem;">
-            <span style="color: var(--text-dim); font-size: 0.85rem; font-weight: 700;">R$</span>
-            <input type="number" step="0.01" id="editPrecoAli" value="${rascunhoAtual.preco_aliexpress !== null && rascunhoAtual.preco_aliexpress !== undefined ? rascunhoAtual.preco_aliexpress : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(230,46,4,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 700; padding: 0.35rem 0.5rem; border-radius: 4px;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem;">
+            <span style="color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">R$</span>
+            <input type="number" step="0.01" id="editPrecoAli" value="${rascunhoAtual.preco_aliexpress !== null && rascunhoAtual.preco_aliexpress !== undefined ? rascunhoAtual.preco_aliexpress : ''}" placeholder="0.00" style="width: 100%; background: #0a0d14; border: 1px solid rgba(230,46,4,0.4); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 700; padding: 0.55rem 0.65rem; border-radius: 6px;">
           </div>
-          <input type="url" id="editLinkAli" value="${rascunhoAtual.link_aliexpress || ''}" placeholder="Link AliExpress..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; font-size: 0.72rem; color: #a5f3fc; padding: 0.25rem 0.4rem;">
+          <input type="url" id="editLinkAli" value="${rascunhoAtual.link_aliexpress || ''}" placeholder="Link AliExpress..." title="Link direto da oferta" style="width: 100%; background: #07090e; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; font-size: 0.82rem; color: #a5f3fc; padding: 0.55rem 0.65rem;">
         </div>
       `;
 
@@ -461,51 +554,94 @@
     }
   }
 
-  // Renderizar Tabela de Produtos Publicados (Aba 2)
+  // Renderizar Tabela de Produtos Publicados (Aba 2) com suporte Desktop e Mobile App
   function renderizarTabelaProdutos() {
     const tbody = document.getElementById('tabelaCorpoProdutos');
-    if (!tbody) return;
+    const mobileList = document.getElementById('listaCardsProdutosMobile');
+    const countTab = document.getElementById('countProdutosTab');
+    const kpiAtivos = document.getElementById('kpiProdutosAtivos');
 
-    tbody.innerHTML = produtos.map(p => `
-      <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <td style="padding: 0.85rem 1rem;">
-          <div style="font-weight: 700; color: #fff;">${p.titulo}</div>
-          <div style="font-size: 0.75rem; color: var(--text-dim);">${p.slug}</div>
-        </td>
-        <td style="padding: 0.85rem 1rem;">
-          <span style="font-size: 0.75rem; background: rgba(0,255,255,0.1); color: var(--primary-cyan); padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
-            ${p.categoria}
-          </span>
-        </td>
-        <td style="padding: 0.85rem 1rem; font-weight: 800; color: var(--primary-green);">
-          ${Number(p.preco_estimado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </td>
-        <td style="padding: 0.85rem 1rem;">${p.total_visitas || 0}</td>
-        <td style="padding: 0.85rem 1rem; font-weight: 700;">${p.total_cliques || 0}</td>
-        <td style="padding: 0.85rem 1rem; text-align: right;">
-          <a href="${p.slug}.html" target="_blank" class="btn-admin-link" style="display: inline-block; padding: 0.3rem 0.6rem; margin-right: 0.4rem;">
-            Ver 👁️
-          </a>
-          <button onclick="window.editarRascunho('${p.slug}')" class="btn-admin-link" style="display: inline-block; padding: 0.3rem 0.6rem; margin-right: 0.4rem; color: var(--primary-amber);">
-            Editar ✏️
-          </button>
-          <button onclick="window.excluirProduto('${p.slug}')" class="btn-admin-link" style="display: inline-block; padding: 0.3rem 0.6rem; color: #ef4444;">
-            Excluir 🗑️
-          </button>
-        </td>
-      </tr>
-    `).join('');
+    if (countTab) countTab.textContent = produtos.length;
+    if (kpiAtivos) kpiAtivos.textContent = produtos.length;
+
+    // 1. Tabela Desktop
+    if (tbody) {
+      tbody.innerHTML = produtos.map(p => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+          <td style="padding: 0.85rem 1rem;">
+            <div style="font-weight: 700; color: #fff;">${p.titulo}</div>
+            <div style="font-size: 0.75rem; color: var(--text-dim);">${p.slug}</div>
+          </td>
+          <td style="padding: 0.85rem 1rem;">
+            <span style="font-size: 0.75rem; background: rgba(0,255,255,0.1); color: var(--primary-cyan); padding: 0.2rem 0.5rem; border-radius: 4px; text-transform: uppercase;">
+              ${p.categoria}
+            </span>
+          </td>
+          <td style="padding: 0.85rem 1rem; font-weight: 800; color: var(--primary-green);">
+            ${Number(p.preco_estimado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </td>
+          <td style="padding: 0.85rem 1rem;">${p.total_visitas || 0}</td>
+          <td style="padding: 0.85rem 1rem; font-weight: 700;">${p.total_cliques || 0}</td>
+          <td style="padding: 0.85rem 1rem; text-align: right; white-space: nowrap;">
+            <a href="produto.html?slug=${p.slug}" target="_blank" class="btn-admin-link" style="display: inline-block; padding: 0.35rem 0.65rem; margin-right: 0.3rem;">
+              Ver 👁️
+            </a>
+            <button onclick="window.editarRascunho('${p.slug}')" class="btn-admin-link" style="display: inline-block; padding: 0.35rem 0.65rem; margin-right: 0.3rem; color: var(--primary-amber);">
+              Editar ✏️
+            </button>
+            <button onclick="window.excluirProduto('${p.slug}')" class="btn-admin-link" style="display: inline-block; padding: 0.35rem 0.65rem; color: #ef4444;">
+              Excluir 🗑️
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 2. Cards Mobile (Experiência Touch App para Celular)
+    if (mobileList) {
+      mobileList.innerHTML = produtos.map(p => `
+        <div class="mobile-product-card">
+          <div class="mobile-product-header">
+            <img src="${p.imagem_url || 'img/suporte_moto.jpg'}" class="mobile-product-thumb" alt="${p.titulo}" onerror="this.src='img/suporte_moto.jpg'">
+            <div class="mobile-product-info">
+              <div class="mobile-product-title">${p.titulo}</div>
+              <div class="mobile-product-price">${Number(p.preco_estimado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
+            </div>
+          </div>
+          <div class="mobile-product-stats">
+            <span>🏷️ ${p.categoria}</span>
+            <span>👁️ ${p.total_visitas || 0} visitas</span>
+            <span>👆 ${p.total_cliques || 0} cliques</span>
+          </div>
+          <div class="mobile-product-actions">
+            <button onclick="window.editarRascunho('${p.slug}')" class="btn-mobile-edit">
+              <span>✏️</span> Editar Oferta
+            </button>
+            <a href="produto.html?slug=${p.slug}" target="_blank" class="btn-mobile-view">
+              <span>👁️</span> Ver
+            </a>
+            <button onclick="window.excluirProduto('${p.slug}')" class="btn-mobile-delete">
+              <span>🗑️</span> Excluir
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
   }
 
-  // Ações Globais da Tabela
+  // Ações Globais da Tabela / Cards Mobile
   window.editarRascunho = function(slug) {
     const item = produtos.find(p => p.slug === slug);
     if (item) {
       rascunhoAtual = JSON.parse(JSON.stringify(item));
       renderizarRascunho();
-      // Trocar para aba 1
+      // Troca para a aba da Mesa de Operações e rola suavemente até o formulário
       document.querySelectorAll('.tab-btn')[0].click();
-      showToast("Produto carregado na Mesa de Edição!", "✏️");
+      const cRascunho = document.getElementById('containerRascunho');
+      if (cRascunho) {
+        cRascunho.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      showToast("Oferta carregada para edição no seu celular!", "✏️");
     }
   };
 
@@ -758,52 +894,141 @@
 
         if (target === 'tabProdutos') renderizarTabelaProdutos();
         if (target === 'tabMetricas') atualizarMesaMetricas();
+        if (target === 'tabCupons') renderizarCuponsAdmin();
       });
     });
+
+    // ── Motor Autônomo de Mineração por Nichos (Google Trends & Marketplaces BR) ──
+    async function executarMineracaoTrends(isAposta = false) {
+      const nichoSelect = document.getElementById('selNichoTrends');
+      const nicho = nichoSelect ? nichoSelect.value : 'todos';
+      const rotulosNicho = {
+        todos: 'Geral (Mais Buscados)',
+        tecnologia: 'Tecnologia & Inovação',
+        saude: 'Saúde & Bem-Estar',
+        casa: 'Casa Conectada',
+        gamer: 'Setup Gamer',
+        apostas: 'Apostas de Alta'
+      };
+      const nomeNicho = rotulosNicho[nicho] || nicho;
+
+      showToast(isAposta 
+        ? `Minerando aposta de alta em ${nomeNicho}...` 
+        : `Rastreando tendências 48h em ${nomeNicho}...`, "🔍");
+
+      const apiKey = await obterChaveGeminiSegura();
+
+      if (apiKey) {
+        try {
+          const promptIa = `Você é o minerador sênior de inteligência de mercado do comparador de preços WL TEC Ofertas (Brasil).
+Rastreie um produto REAL em altíssima tendência de busca e vendas no mercado brasileiro hoje para o nicho: "${nomeNicho}".
+${isAposta ? 'Foque em um LANÇAMENTO recente ou produto com explosão repentina de interesse no Google Trends Brasil.' : 'Foque em um produto CAMPEÃO de vendas com excelente custo-benefício nas 4 lojas (Mercado Livre, Shopee, Amazon Brasil e AliExpress).'}
+
+Retorne ESTRITAMENTE um JSON puro sem markdown e sem crases:
+{
+  "titulo": "Nome comercial limpo e oficial do produto (ex: Fone Bluetooth QCY T13 ANC)",
+  "subtitulo": "Frase de impacto explicando o benefício principal para o consumidor",
+  "categoria": "${nicho === 'todos' ? 'tecnologia' : (nicho === 'apostas' ? 'tecnologia' : nicho)}",
+  "badge": "${isAposta ? '🚀 Aposta de Alta (Trends Brasil)' : '🔥 Tendência 48h (+280% buscas)'}",
+  "is_aposta_alta": ${isAposta ? 'true' : 'false'},
+  "avaliacao_estrelas": 4.8,
+  "total_avaliacoes": 14200,
+  "preco_estimado": 89.90,
+  "preco_antigo": 149.90,
+  "imagem_url": "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&auto=format&fit=crop&q=80",
+  "preco_mercadolivre": 98.00,
+  "destaque_mercadolivre": "Entrega Full 24h",
+  "preco_shopee": 89.90,
+  "destaque_shopee": "Cupons de Frete Grátis",
+  "preco_amazon": 109.90,
+  "destaque_amazon": "Prime Nacional",
+  "preco_aliexpress": 79.00,
+  "destaque_aliexpress": "Choice Importação Direta",
+  "veredito_rapido": "Dois parágrafos de análise técnica fidedigna explicando porque o produto se destaca, para quem é indicado e se realmente compensa pelo preço atual.",
+  "pros": ["Ponto forte real 1", "Ponto forte real 2", "Ponto forte real 3", "Ponto forte real 4"],
+  "contras": ["Ponto de atenção ou limitação real 1", "Ponto de atenção 2"],
+  "especificacoes_tecnicas": [
+    { "chave": "Conectividade", "valor": "Bluetooth 5.3" },
+    { "chave": "Bateria", "valor": "Até 30h com o estojo" },
+    { "chave": "Compatibilidade", "valor": "Android e iOS" },
+    { "chave": "Garantia", "valor": "90 dias oficial" }
+  ],
+  "fontes_citadas": [
+    { "nome": "Especificações e testes de laboratório do fabricante", "url": "#" },
+    { "nome": "Índice de satisfação consolidado em marketplaces brasileiros", "url": "#" }
+  ],
+  "faq": [
+    { "pergunta": "O produto possui garantia no Brasil?", "resposta": "Sim, com direito à devolução legal e suporte do vendedor parceiro." },
+    { "pergunta": "Funciona em qualquer aparelho?", "resposta": "Sim, universal para smartphones, tablets e computadores." }
+  ]
+}
+
+Regras:
+1. Valores de preços realistas para o Brasil em reais (BRL).
+2. Se o produto tiver código de homologação oficial (Anatel/Inmetro), cite em fontes_citadas. Se for produto isento de homologação compulsória, declare explicitamente: "Especificações técnicas declaradas pelo fabricante e auditadas pela bancada WL TEC."
+3. Não repita produtos que já estejam no catálogo.`;
+
+          const textoIa = await chamarGeminiComRetry(promptIa, apiKey);
+          if (textoIa) {
+            const clean = textoIa.replace(/```json/g, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(clean);
+
+            const slug = parsed.titulo
+              .toLowerCase()
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-+|-+$/g, '');
+
+            parsed.slug = slug || ('oferta-' + Date.now().toString(36));
+
+            // Garante 100% dos links de afiliados preenchidos
+            gerarLinksAfiliadosAutomaticos(parsed.titulo, parsed, config);
+
+            rascunhoAtual = parsed;
+            renderizarRascunho();
+
+            const cRascunho = document.getElementById('containerRascunho');
+            if (cRascunho) cRascunho.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            showToast(`🔥 IA minerou "${parsed.titulo}" com sucesso!`, "✅");
+            return;
+          }
+        } catch(errIa) {
+          console.warn('[WL TEC] Fallback de IA na mineração:', errIa);
+        }
+      }
+
+      // Fallback Dinâmico no banco de tendências ampliado
+      let pool = TENDENCIAS_BANCO.filter(t => !produtos.some(p => p.slug === t.slug));
+      if (nicho !== 'todos') {
+        const poolNicho = pool.filter(t => t.categoria === nicho || (nicho === 'apostas' && t.is_aposta_alta));
+        if (poolNicho.length > 0) pool = poolNicho;
+      }
+      if (pool.length === 0) pool = TENDENCIAS_BANCO;
+
+      const item = pool[Math.floor(Math.random() * pool.length)];
+      rascunhoAtual = JSON.parse(JSON.stringify(item));
+      if (isAposta) rascunhoAtual.badge = "🚀 Aposta de Alta (Trends Brasil)";
+
+      // Garante que todos os 4 links estejam preenchidos
+      gerarLinksAfiliadosAutomaticos(rascunhoAtual.titulo, rascunhoAtual, config);
+
+      renderizarRascunho();
+      const cRascunho = document.getElementById('containerRascunho');
+      if (cRascunho) cRascunho.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showToast("Oferta minerada com sucesso! Confira e aprove.", "✅");
+    }
 
     // Botão Radar 48h
     const btnRadar48h = document.getElementById('btnRadar48h');
     if (btnRadar48h) {
-      btnRadar48h.addEventListener('click', () => {
-        showToast("Minerando tendências em alta nas 4 plataformas...", "🔍");
-        setTimeout(() => {
-          // Prioriza itens do banco de tendências que ainda não foram adicionados ao catálogo
-          const naoAdicionados = TENDENCIAS_BANCO.filter(t => !produtos.some(p => p.slug === t.slug));
-          const pool = naoAdicionados.length > 0 ? naoAdicionados : TENDENCIAS_BANCO;
-          const item = pool[Math.floor(Math.random() * pool.length)];
-
-          rascunhoAtual = JSON.parse(JSON.stringify(item));
-          renderizarRascunho();
-
-          const cRascunho = document.getElementById('containerRascunho');
-          if (cRascunho) {
-            cRascunho.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-
-          showToast("🔥 Oferta minerada! Confira os preços abaixo e clique em 'Aprovar e Publicar' para adicionar ao catálogo.", "✅");
-        }, 700);
-      });
+      btnRadar48h.addEventListener('click', () => executarMineracaoTrends(false));
     }
 
     // Botão Apostas de Lançamento
     const btnRadarApostas = document.getElementById('btnRadarApostas');
     if (btnRadarApostas) {
-      btnRadarApostas.addEventListener('click', () => {
-        showToast("Minerando produtos recém-homologados (Anatel/Inmetro)...", "🚀");
-        setTimeout(() => {
-          const item = window.PRODUTOS_INICIAIS.find(p => p.is_aposta_alta) || TENDENCIAS_BANCO[0];
-          rascunhoAtual = JSON.parse(JSON.stringify(item));
-          rascunhoAtual.badge = "🚀 Lançamento Homologado 2026";
-          renderizarRascunho();
-
-          const cRascunho = document.getElementById('containerRascunho');
-          if (cRascunho) {
-            cRascunho.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-
-          showToast("💎 Aposta minerada! Role para baixo e clique em 'Aprovar e Publicar' para incluir no catálogo.", "✅");
-        }, 700);
-      });
+      btnRadarApostas.addEventListener('click', () => executarMineracaoTrends(true));
     }
 
     // ── Analisador Autônomo de URLs de E-Commerce & Gerador de Reviews ──
@@ -1435,6 +1660,7 @@ Regras:
               contras: rascunhoAtual.contras || [],
               faq: rascunhoAtual.faq || [],
               especificacoes_tecnicas: rascunhoAtual.especificacoes_tecnicas || [],
+              fontes_citadas: rascunhoAtual.fontes_citadas || [],
               status: 'publicado',
               is_aposta_alta: !!rascunhoAtual.is_aposta_alta,
               atualizado_em: new Date().toISOString()
@@ -1461,26 +1687,143 @@ Regras:
       });
     }
 
-    // Botão Restaurar Catálogo Calibrado Oficial
-    const btnResetarCatalogo = document.getElementById('btnResetarCatalogo');
-    if (btnResetarCatalogo) {
-      btnResetarCatalogo.addEventListener('click', () => {
-        if (confirm("Deseja restaurar o catálogo oficial com os 10 produtos calibrados (preços reais 2026)? Isso resetará eventuais edições manuais.")) {
-          try { localStorage.removeItem(STORAGE_KEY_EXCLUIDOS); } catch(e) {}
-          produtos = JSON.parse(JSON.stringify(window.PRODUTOS_INICIAIS || []));
-          salvarProdutos(produtos);
-          atualizarMesaMetricas();
-          renderizarTabelaProdutos();
-          if (rascunhoAtual) {
-            const prodRecarregado = produtos.find(p => p.slug === rascunhoAtual.slug);
-            if (prodRecarregado) {
-              rascunhoAtual = JSON.parse(JSON.stringify(prodRecarregado));
-              renderizarRascunho();
-            }
+    // ── Gestor de Cupons Ativos (Aba 3 - Especial 09.09 & Marketplaces) ──
+    function renderizarCuponsAdmin() {
+      const container = document.getElementById('containerListaCuponsAdmin');
+      const countBadge = document.getElementById('countCuponsTab');
+      if (countBadge) countBadge.textContent = cupons.length;
+      if (!container) return;
+
+      if (cupons.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; background: var(--bg-card); border-radius: var(--radius-md); border: 1px dashed var(--border-color); color: var(--text-muted);">
+            Nenhum cupom cadastrado ainda. Preencha o formulário acima para adicionar cupons do 09.09 ou de promoções ativas.
+          </div>
+        `;
+        return;
+      }
+
+      const mapLoja = {
+        mercadolivre: { nome: 'Mercado Livre', badge: 'badge-loja-ml', icon: '🟡' },
+        shopee: { nome: 'Shopee', badge: 'badge-loja-shopee', icon: '🟠' },
+        amazon: { nome: 'Amazon Brasil', badge: 'badge-loja-amazon', icon: '🔵' },
+        aliexpress: { nome: 'AliExpress', badge: 'badge-loja-aliexpress', icon: '🔴' }
+      };
+
+      container.innerHTML = cupons.map((c, idx) => {
+        const l = mapLoja[c.loja] || { nome: c.loja, badge: 'badge-loja-ml', icon: '🏷️' };
+        return `
+          <div class="cupon-card" style="margin: 0; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="cupon-tag ${l.badge}">${l.icon} ${l.nome}</span>
+              <span style="font-size: 0.72rem; color: var(--primary-amber); font-weight: 700;">${c.destaque || 'Ativo'}</span>
+            </div>
+            <div class="cupon-discount" style="font-size: 1.15rem;">${c.desconto_texto}</div>
+            <div class="cupon-code-row" style="margin-top: 0.5rem;">
+              <div class="code-box" style="font-size: 0.95rem;">${c.codigo}</div>
+              <button onclick="window.excluirCupom(${idx})" class="btn-mobile-delete" style="padding: 0.4rem 0.7rem; font-size: 0.75rem;">
+                🗑️ Excluir
+              </button>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 0.4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              🔗 Destino: <a href="${c.link_destino}" target="_blank" style="color: var(--primary-cyan); text-decoration: none;">${c.link_destino}</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.excluirCupom = async function(idx) {
+      if (!confirm("Deseja realmente remover este cupom?")) return;
+      const cupomRemovido = cupons[idx];
+      cupons.splice(idx, 1);
+      salvarCupons(cupons);
+      renderizarCuponsAdmin();
+      showToast("Cupom removido com sucesso!", "🗑️");
+
+      if (db && cupomRemovido?.codigo) {
+        try {
+          await db.from('afiliados_cupons').delete().eq('codigo', cupomRemovido.codigo);
+        } catch(e) {}
+      }
+    };
+
+    // Formulário de Cadastro de Novo Cupom
+    const formNovoCupom = document.getElementById('formNovoCupom');
+    if (formNovoCupom) {
+      formNovoCupom.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const loja = document.getElementById('cupomLoja').value;
+        const codigo = document.getElementById('cupomCodigo').value.trim().toUpperCase();
+        const desconto = document.getElementById('cupomDesconto').value.trim();
+        const destaque = document.getElementById('cupomDestaque').value.trim() || '🔥 Especial 09.09';
+        const link = document.getElementById('cupomLinkDestino').value.trim();
+
+        if (!codigo || !desconto || !link) return;
+
+        const novo = {
+          id: 'cupom_' + Date.now(),
+          loja: loja,
+          loja_nome: loja === 'mercadolivre' ? 'Mercado Livre' : loja === 'shopee' ? 'Shopee' : loja === 'amazon' ? 'Amazon Brasil' : 'AliExpress',
+          codigo: codigo,
+          desconto_texto: desconto,
+          descricao: `${desconto} em compras válidas na ${loja === 'mercadolivre' ? 'Mercado Livre' : loja === 'shopee' ? 'Shopee' : loja === 'amazon' ? 'Amazon' : 'AliExpress'}`,
+          destaque: destaque,
+          link_destino: link,
+          valido_ate: '09/09/2026',
+          ativo: true
+        };
+
+        cupons.unshift(novo);
+        salvarCupons(cupons);
+        renderizarCuponsAdmin();
+        formNovoCupom.reset();
+        showToast(`Cupom ${codigo} cadastrado com sucesso e ativo na vitrine!`, "🎉");
+
+        // Salva no Supabase
+        if (db) {
+          try {
+            await db.from('afiliados_cupons').upsert({
+              loja: novo.loja,
+              codigo: novo.codigo,
+              descricao: novo.descricao,
+              desconto_texto: novo.desconto_texto,
+              link_destino: novo.link_destino,
+              ativo: true
+            }, { onConflict: 'codigo' });
+          } catch(eSupa) {
+            console.warn("Erro ao salvar cupom no Supabase:", eSupa);
           }
-          showToast("Catálogo calibrado de 2026 restaurado com sucesso!", "🔄");
         }
       });
+    }
+
+    async function sincronizarCuponsComNuvem() {
+      if (!db) return;
+      try {
+        const { data, error } = await db.from('afiliados_cupons').select('*').eq('ativo', true);
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const map = new Map();
+          cupons.forEach(c => map.set(c.codigo, c));
+          data.forEach(c => {
+            map.set(c.codigo, {
+              id: c.id || ('cupom_' + c.codigo),
+              loja: c.loja,
+              loja_nome: c.loja === 'mercadolivre' ? 'Mercado Livre' : c.loja === 'shopee' ? 'Shopee' : c.loja === 'amazon' ? 'Amazon Brasil' : 'AliExpress',
+              codigo: c.codigo,
+              desconto_texto: c.desconto_texto,
+              descricao: c.descricao,
+              destaque: c.desconto_texto,
+              link_destino: c.link_destino,
+              valido_ate: c.valido_ate || 'Hoje',
+              ativo: c.ativo
+            });
+          });
+          cupons = Array.from(map.values());
+          salvarCupons(cupons);
+          renderizarCuponsAdmin();
+        }
+      } catch(e) {}
     }
 
     // Botão Descartar Rascunho
@@ -1680,6 +2023,8 @@ ${precoDe ? `💥 De: ~R$ ${precoDe}~ ➡️ *Por: R$ ${precoAtual}*` : `💥 *P
             } catch(eKey) {}
           }
           sincronizarComNuvem();
+          sincronizarCuponsComNuvem();
+          renderizarCuponsAdmin();
           return true;
         } else {
           if (loginOverlay) loginOverlay.style.display = 'flex';

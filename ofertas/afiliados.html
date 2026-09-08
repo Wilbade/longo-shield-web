@@ -60,9 +60,6 @@
           <a href="index.html" class="btn-admin-link">
             <span>🌐</span> Ver Vitrine
           </a>
-          <button class="btn-admin-link" id="btnResetarCatalogo" style="color: var(--primary-amber); border-color: rgba(255, 179, 0, 0.3);" title="Recarregar catálogo padrão com 10 produtos">
-            <span>🔄</span> Restaurar 10
-          </button>
           <button class="btn-admin-link" id="btnLogout" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.3);" title="Encerrar sessão de segurança">
             <span>🚪</span> Sair
           </button>
@@ -100,12 +97,13 @@
       </div>
     </section>
 
-    <!-- Navegação em Abas do Painel -->
+    <!-- Navegação em Abas do Painel (Touch Scroll no Mobile) -->
     <div class="admin-tabs">
-      <button class="tab-btn active" data-tab="tabMesa">⚡ Mesa de Operações (Criar & Rascunhos)</button>
-      <button class="tab-btn" data-tab="tabProdutos">📦 Catálogo de Produtos (<span id="countProdutosTab">10</span>)</button>
-      <button class="tab-btn" data-tab="tabMetricas">📊 Telemetria & Tráfego</button>
-      <button class="tab-btn" data-tab="tabConfig">⚙️ IDs de Afiliado & Bots</button>
+      <button class="tab-btn active" data-tab="tabMesa">⚡ Mesa & Mineração</button>
+      <button class="tab-btn" data-tab="tabProdutos">📦 Catálogo (<span id="countProdutosTab">10</span>)</button>
+      <button class="tab-btn" data-tab="tabCupons">🏷️ Cupons Ativos (<span id="countCuponsTab">0</span>)</button>
+      <button class="tab-btn" data-tab="tabMetricas">📊 Tráfego</button>
+      <button class="tab-btn" data-tab="tabConfig">⚙️ IDs & Configs</button>
     </div>
 
     <!-- ==============================================================================
@@ -113,20 +111,28 @@
          ============================================================================== -->
     <section id="tabMesa" class="tab-content">
       
-      <!-- Gatilhos de Mineração Rápida -->
+      <!-- Gatilhos de Mineração Rápida com Filtro de Nicho Google Trends -->
       <div class="ingest-box">
-        <div class="radar-trigger-row">
+        <div class="radar-trigger-row" style="align-items: center; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 220px;">
+            <label for="selNichoTrends" style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;">Nicho Trends:</label>
+            <select id="selNichoTrends" style="background: rgba(16, 21, 31, 0.9); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: #fff; padding: 0.55rem 0.75rem; font-size: 0.88rem; outline: none; width: 100%;">
+              <option value="todos">⚡ Geral (Mais Buscados)</option>
+              <option value="tecnologia">🎧 Tecnologia & Inovação</option>
+              <option value="saude">🌿 Saúde, Cuidados & Bem-Estar</option>
+              <option value="casa">🏠 Casa Conectada & Utilidades</option>
+              <option value="gamer">🎮 Setup Gamer & Escritório</option>
+              <option value="apostas">🚀 Apostas de Alta (Trends Brasil)</option>
+            </select>
+          </div>
+
           <button class="btn-radar" id="btnRadar48h">
-            <span>🔥</span> Rastrear Tendências 48h (Mais Vendidos)
+            <span>🔥</span> Minerar Tendências 48h
           </button>
           
           <button class="btn-aposta-trigger" id="btnRadarApostas">
-            <span>🚀</span> Minerar Apostas de Lançamento (Anatel/Inmetro)
+            <span>🚀</span> Minerar Aposta de Alta
           </button>
-
-          <span style="font-size: 0.8rem; color: var(--text-dim); margin-left: auto;">
-            ⚡ Mineração automática de fotos, preços, ficha técnica e fontes
-          </span>
         </div>
 
         <!-- Entrada de Link Manual & Preço Real da Oferta -->
@@ -293,7 +299,8 @@
         <span style="font-size: 0.82rem; color: var(--text-muted);">Poda algorítmica ativa: produtos sem cliques em 45 dias são arquivados automaticamente.</span>
       </div>
 
-      <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden;">
+      <!-- Tabela Desktop -->
+      <div class="desktop-table-wrapper" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden;">
         <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
           <thead>
             <tr style="background: rgba(7, 9, 14, 0.8); border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
@@ -309,6 +316,72 @@
             <!-- Renderizado dinamicamente via JS -->
           </tbody>
         </table>
+      </div>
+
+      <!-- Cards Mobile (App-like para Celular) -->
+      <div class="mobile-products-list" id="listaCardsProdutosMobile">
+        <!-- Renderizado dinamicamente via JS com botões de fácil toque no celular -->
+      </div>
+    </section>
+
+    <!-- ==============================================================================
+         ABA 3: GESTOR DE CUPONS & CAMPANHAS (09.09, BLACK FRIDAY, ETC.)
+         ============================================================================== -->
+    <section id="tabCupons" class="tab-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <h3 style="font-size: 1.2rem; font-weight: 800; color: #fff;">Gestor de Cupons Ativos</h3>
+          <span style="font-size: 0.82rem; color: var(--text-muted);">Cupons cadastrados aparecem instantaneamente na aba pública da vitrine.</span>
+        </div>
+      </div>
+
+      <!-- Formulário de Cadastro de Novo Cupom -->
+      <div class="ingest-box" style="margin-bottom: 1.5rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--primary-cyan); margin-bottom: 1rem;">
+          ➕ Cadastrar Novo Cupom de Loja
+        </h4>
+        <form id="formNovoCupom" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.85rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 0.3rem;">Plataforma / Loja:</label>
+            <select id="cupomLoja" style="width: 100%; background: rgba(16, 21, 31, 0.9); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: #fff; padding: 0.65rem 0.75rem; font-size: 0.88rem; outline: none;">
+              <option value="mercadolivre">🟡 Mercado Livre</option>
+              <option value="shopee">🟠 Shopee</option>
+              <option value="amazon">🔵 Amazon Brasil</option>
+              <option value="aliexpress">🔴 AliExpress</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 0.3rem;">Código do Cupom:</label>
+            <input type="text" id="cupomCodigo" placeholder="Ex: 0909APP, BRASIL20" required style="width: 100%; background: rgba(16, 21, 31, 0.9); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: #00ffff; font-family: 'JetBrains Mono', monospace; font-weight: 800; padding: 0.65rem 0.75rem; font-size: 0.95rem; outline: none; text-transform: uppercase;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 0.3rem;">Texto do Desconto:</label>
+            <input type="text" id="cupomDesconto" placeholder="Ex: R$ 20 OFF acima de R$ 99" required style="width: 100%; background: rgba(16, 21, 31, 0.9); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: #fff; padding: 0.65rem 0.75rem; font-size: 0.88rem; outline: none;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 0.3rem;">Destaque / Campanha:</label>
+            <input type="text" id="cupomDestaque" placeholder="Ex: 🔥 Especial 09.09, Frete Grátis" style="width: 100%; background: rgba(16, 21, 31, 0.9); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: var(--primary-amber); padding: 0.65rem 0.75rem; font-size: 0.88rem; outline: none;">
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-dim); margin-bottom: 0.3rem;">Link de Destino Oficial (com sua tag):</label>
+            <input type="url" id="cupomLinkDestino" placeholder="https://mercadolivre.com.br/cupons..." required style="width: 100%; background: rgba(16, 21, 31, 0.9); border: 1px solid var(--border-color); border-radius: var(--radius-sm); color: #a5f3fc; padding: 0.65rem 0.75rem; font-size: 0.85rem; outline: none;">
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; align-items: flex-end; grid-column: 1 / -1; margin-top: 0.5rem;">
+            <button type="submit" class="btn-approve-publish" style="padding: 0.7rem 1.75rem; font-size: 0.95rem;">
+              <span>💾</span> Salvar Cupom na Vitrine
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lista de Cupons Ativos -->
+      <div id="containerListaCuponsAdmin" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+        <!-- Injetado dinamicamente via JS -->
       </div>
     </section>
 

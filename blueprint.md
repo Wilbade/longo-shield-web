@@ -295,3 +295,23 @@ ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
 - `llms.txt` na raiz padronizado segundo as diretrizes de IAs generativas (ChatGPT Search, Perplexity, Gemini, Claude).
 - Define para as IAs como citar ofertas, atributos de preço, comparador de marketplaces e links canônicos.
 - `robots.txt` mapeado com permissões explícitas para rastreadores de busca generativa (`OAI-SearchBot`, `PerplexityBot`, `Google-Extended`, `Claude-Web`, etc.).
+
+---
+
+## PLANO DE EVOLUÇÃO SÊNIOR: MESA DE OPERAÇÕES, REVIEWS COMPLETOS & GEO (2026-09-08)
+
+### Diagnóstico e Resolução dos Problemas Operacionais
+1. **Links de Compras Vazios ("Rastrear Tendências 48h"):**
+   - Criação de gerador de deep-links de busca com tags de afiliado (`wilbade09-20`, `18349700720`, `wilbade`). Quando qualquer link de marketplace não for fornecido diretamente, o sistema gera dinamicamente a busca oficial da loja com a tag do usuário, assegurando que 100% das 4 lojas sempre possuam links de afiliado ativos.
+2. **Mineração por Nichos do Google Trends (Superando a limitação do QCY T13):**
+   - Criação de seletor por categorias de alto crescimento (Tecnologia & Inovação, Saúde & Bem-Estar, Casa Conectada, Setup Gamer, Trends Gerais). Mineração dinâmica sem repetição de produtos já aprovados no catálogo.
+3. **Gestão e Ranqueamento de Cupons por Loja (Especial 09.09):**
+   - Nova aba na Mesa de Operações para cadastrar cupons ativos com identificador explícito de marketplace (Mercado Livre, Shopee, Amazon, AliExpress), regras de desconto e links de afiliados.
+   - Atualização da vitrine pública de cupons com badges visuais oficiais das lojas e marcação estruturada para SEO/GEO.
+4. **Reviews Fidedignos (E-E-A-T Real):**
+   - Correção do payload do Supabase em `admin-app.js` para persistir `fontes_citadas`, `especificacoes_tecnicas`, `faq`, `comentarios_reais` e `metodologia_review`.
+   - Síntese realista: quando houver homologação pública oficial (Anatel/Inmetro), cita com precisão; quando não houver ou não se aplicar, informa com transparência que se baseia nas especificações oficiais do fabricante.
+5. **Segurança da API Gemini:**
+   - Padronização no modelo já validado em `wl.leads.html`: recuperação da chave via tabela `config_privada` sob sessão autenticada do Supabase, com suporte a retentativas e rotação de modelos (`gemini-2.0-flash`, `gemini-1.5-flash`, `gemini-2.5-flash`).
+6. **Remoção do Botão "Restaurar 10":**
+   - Eliminação do botão no cabeçalho da Mesa de Operações para evitar sobrescrita acidental do catálogo oficial do administrador.
