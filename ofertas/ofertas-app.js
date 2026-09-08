@@ -116,6 +116,27 @@
   }
 
   /**
+   * Refina links de busca do Mercado Livre para filtrar produtos novos e ordenar por menor preço.
+   * Evita que o usuário caia em anúncios de peças usadas (ex: caixas avulsas de R$ 39).
+   */
+  function refinarLinkMercadoLivre(link) {
+    if (!link || typeof link !== 'string') return '';
+    if (link.includes('lista.mercadolivre.com.br')) {
+      let [basePath, query] = link.split('?');
+      basePath = basePath.replace(/\/+$/, '');
+      if (!basePath.includes('ITEM*CONDITION')) {
+        basePath += '_ITEM*CONDITION_2230284';
+      }
+      if (!basePath.includes('OrderId_PRICE')) {
+        basePath += '_OrderId_PRICE*ASC';
+      }
+      return query ? `${basePath}?${query}` : basePath;
+    }
+    return link;
+  }
+  window.refinarLinkMercadoLivre = refinarLinkMercadoLivre;
+
+  /**
    * Retorna a lista de slugs que o admin excluiu permanentemente.
    * Atua como barreira dupla: filtro local + filtro na sincronização da nuvem.
    */
@@ -702,7 +723,7 @@
           nome: 'Mercado Livre',
           badgeClass: 'store-ml',
           icon: '🟡',
-          link: produto.link_mercadolivre,
+          link: refinarLinkMercadoLivre(produto.link_mercadolivre),
           preco: produto.preco_mercadolivre,
           destaque: produto.destaque_mercadolivre || 'Entrega Full (Chega rápido)',
           btnClass: 'btn-ml'

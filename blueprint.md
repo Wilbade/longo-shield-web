@@ -28,14 +28,19 @@ Este arquivo (`blueprint.md`) é a **Fonte Única e Soberana da Verdade (SSOT)**
    - O catálogo base e os fallbacks devem utilizar estritamente os **12 packshots oficiais locais** armazenados em `/ofertas/img/` (`fone_lenovo.jpg`, `fone_qcy.jpg`, `creatina_soldiers.jpg`, `ssd_nvme.jpg`, `smartwatch_colmi.jpg`, `balanca_digital.jpg`, `mini_compressor.jpg`, `carregador_baseus.jpg`, `kit_meias.jpg`, `camiseta_algodao.jpg`, `boticario_insensatez.jpg`, `suporte_moto.jpg`).
    - NUNCA cruzar imagens de categorias diferentes em fallbacks (ex: moto em suporte de celular ou fones, ou escudo institucional como hero do produto).
    - Ao sugerir novas fotos no re-escaneamento, a IA deve passar por pré-teste assíncrono via `Image.onload` (`testarCarregamentoImagem`) com verificação de dimensões mínimas e timeout. Em caso de falha, mantém o packshot oficial ou usa o SVG Dark Tech contextualizado do nicho.
-2. **Soberania Absoluta dos Preços do Operador Humano:**
-   - O motor de IA (re-escaneamento) NUNCA deve sobrescrever preços já auditados pelo operador (`preco_mercadolivre`, `preco_shopee`, `preco_amazon`, `preco_aliexpress`, `preco_estimado`).
-   - O preço informado/auditado pelo operador humano é soberano. A IA preenche exclusivamente lojas que estiverem com valores nulos ou zerados.
-3. **Transparência de Links & Exibição Obrigatória de Preços:**
+2. **Soberania Absoluta dos Preços do Operador Humano & Gestão Inteligente:**
+   - O operador humano tem soberania sobre os preços auditados.
+   - Ao executar o re-escaneamento com IA, o sistema atualiza fotos oficiais, prós/contras, especificações e métricas. Caso o produto já possua preços cadastrados pelo operador, o sistema apresenta confirmação explícita para o operador decidir entre aceitar as novas cotações da IA ou manter os preços auditados.
+   - Se as lojas estiverem vazias ou zeradas, o preenchimento automático das cotações é realizado diretamente.
+3. **Trava Anti-Acessórios Obrigatória na IA:**
+   - Os motores de re-escaneamento e mineração com Gemini devem instruir explicitamente: *"DESCONSIDERE rigorosamente anúncios de peças avulsas, estojos/cases de carregamento usados, cabos ou acessórios isolados. O preço coletado deve ser exclusivamente do produto completo, novo e lacrado."*
+4. **Refinamento de Links de Marketplace (Filtro "Novo" & "Menor Preço"):**
+   - Links de busca ampla do Mercado Livre devem ser automaticamente refinados com os parâmetros de condição "Novo" e ordenação por menor preço (`_ITEM*CONDITION_2230284_OrderId_PRICE*ASC`). Isso garante que o usuário seja direcionado aos menores preços reais de produtos novos, eliminando o risco de cair em anúncios de peças usadas (ex: estojos de R$ 39) ou anúncios pagos superfaturados.
+5. **Transparência de Links & Exibição Obrigatória de Preços:**
    - **Exibição de Preços Existentes:** Se a loja possui um preço cadastrado e válido (ex: `preco_mercadolivre`, `preco_shopee`, etc.), o valor em Reais (R$) DEVE ser exibido claramente em destaque para permitir a comparação pelo usuário, acompanhado do selo "Cotação de Referência" quando o link for de busca.
    - Links de listagem ampla (`lista.mercadolivre.com.br/...`, `shopee.com.br/search?...`, `amazon.com.br/s?...`, `/wholesale...`) exibem o botão transparente **`[🔍 Consultar Cotação ➜]`**.
    - O menor preço na sidebar sticky deve refletir fidedignamente o menor valor real válido entre as lojas ativas cadastradas, sem alucinar ou manter valores mínimos desatualizados.
-4. **Prevenção de XSS e Sanitização Contínua:**
+6. **Prevenção de XSS e Sanitização Contínua:**
    - Todo dado dinâmico injetado no DOM a partir do Supabase ou parâmetros de URL (`location.search`) deve passar obrigatoriamente por `escapeHtml()`.
 
 ### 3. Autonomia por Agentes para Tarefas Complexas
@@ -383,3 +388,8 @@ ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
     - Correção imediata do `Uncaught ReferenceError: escapeHtml is not defined` no `ofertas/admin-app.js`, garantindo que a função utilitária de sanitização XSS esteja declarada tanto no escopo léxico interno quanto exportada para `window.escapeHtml`.
     - Atualização do cache-busting em `afiliados.html` para `v=2.5`.
     - Formalização da "Trava de Segurança de Refatoração" como diretriz mandatória no `blueprint.md` e `GEMINI.md`, proibindo expressamente a remoção ou omissão de utilitários durante mudanças de layout ou templates.
+13. **Automação Definitiva do Motor de Re-escanear, Trava Anti-Acessórios & Links de Mercado Livre (2026-09-08):**
+    - **Trava Anti-Acessórios na IA**: Atualização dos prompts de re-escaneamento e mineração do Gemini em `admin-app.js` para exigir estritamente cotação de produtos completos, novos e lacrados, desconsiderando peças avulsas, estojos usados ou acessórios.
+    - **Refinamento de Links de Busca do Mercado Livre (`refinarLinkMercadoLivre`)**: Injeção automática dos parâmetros de produto novo e ordenação por menor preço (`_ITEM*CONDITION_2230284_OrderId_PRICE*ASC`) em `admin-app.js`, `ofertas-app.js` e `produtos-data.js`, eliminando descompassos de anúncios usados na experiência do usuário.
+    - **Gestão Inteligente de Preços**: Ao re-escanear produtos já auditados, o sistema oferece diálogo de confirmação claro ao operador para aceitar as novas cotações da IA ou manter os preços auditados, garantindo autonomia sem surpresas.
+    - **Cache Busting**: Versionamento avançado para `v=2.6` nos scripts de `afiliados.html`, `produto.html` e `index.html`.

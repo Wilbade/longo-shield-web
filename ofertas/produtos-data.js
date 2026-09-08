@@ -37,7 +37,7 @@ const PRODUTOS_INICIAIS = [
       "img/fone_lenovo.jpg"
     ],
     
-    link_mercadolivre: "https://lista.mercadolivre.com.br/fone-bluetooth-lenovo-thinkplus-lp40-pro?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/fone-bluetooth-lenovo-thinkplus-lp40-pro_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 54.90,
     destaque_mercadolivre: "Entrega Full (Chega amanhã em SP)",
     
@@ -116,7 +116,7 @@ const PRODUTOS_INICIAIS = [
       "img/mini_compressor.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/mini-compressor-ar-digital-portatil?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/mini-compressor-ar-digital-portatil_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 74.90,
     destaque_mercadolivre: "Entrega Full em 24h",
 
@@ -190,7 +190,7 @@ const PRODUTOS_INICIAIS = [
       "img/creatina_soldiers.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/creatina-monohidratada-1kg-soldiers-nutrition?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/creatina-monohidratada-1kg-soldiers-nutrition_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 68.90,
     destaque_mercadolivre: "Loja Oficial no Full (71% OFF)",
 
@@ -264,7 +264,7 @@ const PRODUTOS_INICIAIS = [
       "img/ssd_nvme.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/ssd-nvme-m2-1tb?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/ssd-nvme-m2-1tb_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 439.90,
     destaque_mercadolivre: "Garantia Nacional 3 Anos no Full",
 
@@ -338,7 +338,7 @@ const PRODUTOS_INICIAIS = [
       "img/smartwatch_colmi.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/smartwatch-colmi-p28-plus?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/smartwatch-colmi-p28-plus_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 139.90,
     destaque_mercadolivre: "Envio Nacional Imediato",
 
@@ -411,7 +411,7 @@ const PRODUTOS_INICIAIS = [
       "img/camiseta_algodao.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/camiseta-basica-masculina-algodao-penteado?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/camiseta-basica-masculina-algodao-penteado_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 42.90,
     destaque_mercadolivre: "Kits com 3 ou 5 peças no Full",
 
@@ -484,7 +484,7 @@ const PRODUTOS_INICIAIS = [
       "img/balanca_digital.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/balanca-digital-bioimpedancia-bluetooth?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/balanca-digital-bioimpedancia-bluetooth_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 39.90,
     destaque_mercadolivre: "Chega amanhã com Mercado Envios",
 
@@ -557,7 +557,7 @@ const PRODUTOS_INICIAIS = [
       "img/carregador_baseus.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/carregador-baseus-30w-gan?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/carregador-baseus-30w-gan_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 69.90,
     destaque_mercadolivre: "Loja Oficial Baseus Full",
 
@@ -630,7 +630,7 @@ const PRODUTOS_INICIAIS = [
       "img/fone_qcy.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/fone-qcy-t13-anc?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/fone-qcy-t13-anc_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 139.90,
     destaque_mercadolivre: "Revendedor Oficial no Full",
 
@@ -704,7 +704,7 @@ const PRODUTOS_INICIAIS = [
       "img/kit_meias.jpg"
     ],
 
-    link_mercadolivre: "https://lista.mercadolivre.com.br/kit-10-pares-meia-cano-curto?matt_tool=83539355&matt_word=wilbade",
+    link_mercadolivre: "https://lista.mercadolivre.com.br/kit-10-pares-meia-cano-curto_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=wilbade",
     preco_mercadolivre: 28.90,
     destaque_mercadolivre: "Frete Full no Mercado Livre",
 

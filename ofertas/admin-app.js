@@ -176,6 +176,31 @@
 
   let cupons = carregarCupons();
 
+  /**
+   * Refina links de busca do Mercado Livre para filtrar produtos novos e ordenar por menor preço.
+   * Evita que o usuário caia em anúncios de peças usadas (ex: caixas avulsas de R$ 39).
+   */
+  function refinarLinkMercadoLivre(link, mlWord = 'wilbade') {
+    if (!link || typeof link !== 'string') return '';
+    const word = encodeURIComponent(mlWord || 'wilbade');
+    if (link.includes('lista.mercadolivre.com.br')) {
+      let [basePath, query] = link.split('?');
+      basePath = basePath.replace(/\/+$/, '');
+      if (!basePath.includes('ITEM*CONDITION')) {
+        basePath += '_ITEM*CONDITION_2230284';
+      }
+      if (!basePath.includes('OrderId_PRICE')) {
+        basePath += '_OrderId_PRICE*ASC';
+      }
+      const params = new URLSearchParams(query || '');
+      if (!params.has('matt_tool')) params.set('matt_tool', '83539355');
+      if (!params.has('matt_word')) params.set('matt_word', word);
+      return `${basePath}?${params.toString()}`;
+    }
+    return link;
+  }
+  window.refinarLinkMercadoLivre = refinarLinkMercadoLivre;
+
   // ── Gerador Automático de Deep-Links de Afiliados (100% de Cobertura das 4 Lojas) ──
   function gerarLinksAfiliadosAutomaticos(titulo, obj = {}, cfg = config) {
     const termo = encodeURIComponent((titulo || 'produto').trim());
@@ -184,7 +209,9 @@
     const aliTag = cfg.ali_id || 'wilbade';
 
     if (!obj.link_mercadolivre || obj.link_mercadolivre.trim() === '') {
-      obj.link_mercadolivre = `https://lista.mercadolivre.com.br/${termo}?matt_tool=83539355&matt_word=${encodeURIComponent(mlWord)}`;
+      obj.link_mercadolivre = `https://lista.mercadolivre.com.br/${termo}_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=${encodeURIComponent(mlWord)}`;
+    } else {
+      obj.link_mercadolivre = refinarLinkMercadoLivre(obj.link_mercadolivre, mlWord);
     }
     if (!obj.link_shopee || obj.link_shopee.trim() === '') {
       obj.link_shopee = `https://shopee.com.br/search?keyword=${termo}`;
@@ -905,6 +932,7 @@ SEUS OBJETIVOS OBRIGATÓRIOS:
    - NUNCA use fotos genéricas do Unsplash de pessoas, motos ou veículos a menos que o produto anunciado seja uma moto de verdade.
 2. COTAÇÃO ATUALIZADA NAS 4 LOJAS (BRL):
    - Preços reais de mercado em reais (BRL). Se a loja comprovadamente não vender o item, retorne null.
+   - TRAVA ANTI-ACESSÓRIOS OBRIGATÓRIA: DESCONSIDERE rigorosamente anúncios de peças avulsas, estojos/cases de carregamento usados, cabos ou acessórios isolados. O preço coletado deve ser exclusivamente do produto completo, novo e lacrado.
 3. MÉTRICAS DE VENDAS E AVALIAÇÕES:
    - "total_avaliacoes": total realista consolidado de avaliações (ex: 18500).
    - "avaliacao_estrelas": média de 1 a 5 (ex: 4.8).
@@ -953,23 +981,60 @@ Retorne ESTRITAMENTE um JSON puro sem markdown e sem crases:
           if (Array.isArray(parsed.contras) && parsed.contras.length > 0) prod.contras = parsed.contras;
           if (Array.isArray(parsed.fontes_citadas) && parsed.fontes_citadas.length > 0) prod.fontes_citadas = parsed.fontes_citadas;
 
-          // SOBERANIA DOS PREÇOS DO OPERADOR:
-          // O re-escaneamento com IA NUNCA sobrescreve preços já auditados pelo operador humano.
-          // Apenas preenche lojas que estiverem sem cotação cadastrada (nulas ou zeradas).
-          if ((prod.preco_mercadolivre === undefined || prod.preco_mercadolivre === null || prod.preco_mercadolivre === 0) && parsed.preco_mercadolivre) {
-            prod.preco_mercadolivre = Number(parsed.preco_mercadolivre);
+          // GESTÃO INTELIGENTE DE PREÇOS COM CONTROLE DO OPERADOR:
+          // Permite ao operador aceitar as novas cotações sugeridas pela IA ou manter os preços já auditados.
+          const temPrecosAuditados = Boolean(
+            (prod.preco_mercadolivre && prod.preco_mercadolivre > 0) ||
+            (prod.preco_shopee && prod.preco_shopee > 0) ||
+            (prod.preco_amazon && prod.preco_amazon > 0) ||
+            (prod.preco_aliexpress && prod.preco_aliexpress > 0)
+          );
+
+          let substituirPrecos = !temPrecosAuditados; // Se não houver preços cadastrados, preenche direto
+
+          if (temPrecosAuditados && !isDraft) {
+            const resumoCotacoes = 
+              `🤖 O re-escaneamento IA encontrou novas cotações (produto completo novo):\n` +
+              `• Mercado Livre: R$ ${parsed.preco_mercadolivre || 'N/D'}\n` +
+              `• Shopee: R$ ${parsed.preco_shopee || 'N/D'}\n` +
+              `• Amazon: R$ ${parsed.preco_amazon || 'N/D'}\n` +
+              `• AliExpress: R$ ${parsed.preco_aliexpress || 'N/D'}\n\n` +
+              `Deseja atualizar os preços das lojas com essas novas cotações da IA?\n\n` +
+              `[OK] = Aplicar novos preços sugeridos pela IA\n` +
+              `[Cancelar] = Manter os seus preços já auditados`;
+            substituirPrecos = window.confirm(resumoCotacoes);
           }
-          if ((prod.preco_shopee === undefined || prod.preco_shopee === null || prod.preco_shopee === 0) && parsed.preco_shopee) {
-            prod.preco_shopee = Number(parsed.preco_shopee);
-          }
-          if ((prod.preco_amazon === undefined || prod.preco_amazon === null || prod.preco_amazon === 0) && parsed.preco_amazon) {
-            prod.preco_amazon = Number(parsed.preco_amazon);
-          }
-          if ((prod.preco_aliexpress === undefined || prod.preco_aliexpress === null || prod.preco_aliexpress === 0) && parsed.preco_aliexpress) {
-            prod.preco_aliexpress = Number(parsed.preco_aliexpress);
-          }
-          if ((!prod.preco_antigo || prod.preco_antigo <= 0) && parsed.preco_antigo) {
-            prod.preco_antigo = Number(parsed.preco_antigo);
+
+          if (substituirPrecos || isDraft) {
+            if (parsed.preco_mercadolivre && Number(parsed.preco_mercadolivre) > 0) {
+              prod.preco_mercadolivre = Number(parsed.preco_mercadolivre);
+            }
+            if (parsed.preco_shopee && Number(parsed.preco_shopee) > 0) {
+              prod.preco_shopee = Number(parsed.preco_shopee);
+            }
+            if (parsed.preco_amazon && Number(parsed.preco_amazon) > 0) {
+              prod.preco_amazon = Number(parsed.preco_amazon);
+            }
+            if (parsed.preco_aliexpress && Number(parsed.preco_aliexpress) > 0) {
+              prod.preco_aliexpress = Number(parsed.preco_aliexpress);
+            }
+            if (parsed.preco_antigo && Number(parsed.preco_antigo) > 0) {
+              prod.preco_antigo = Number(parsed.preco_antigo);
+            }
+          } else {
+            // Se o operador optou por manter, apenas preenche as lojas que ainda estiverem vazias/zeradas
+            if ((!prod.preco_mercadolivre || prod.preco_mercadolivre <= 0) && parsed.preco_mercadolivre) {
+              prod.preco_mercadolivre = Number(parsed.preco_mercadolivre);
+            }
+            if ((!prod.preco_shopee || prod.preco_shopee <= 0) && parsed.preco_shopee) {
+              prod.preco_shopee = Number(parsed.preco_shopee);
+            }
+            if ((!prod.preco_amazon || prod.preco_amazon <= 0) && parsed.preco_amazon) {
+              prod.preco_amazon = Number(parsed.preco_amazon);
+            }
+            if ((!prod.preco_aliexpress || prod.preco_aliexpress <= 0) && parsed.preco_aliexpress) {
+              prod.preco_aliexpress = Number(parsed.preco_aliexpress);
+            }
           }
 
           // Validação e pré-carregamento assíncrono da foto oficial (testa Image.onload)
@@ -1362,9 +1427,10 @@ Retorne ESTRITAMENTE um JSON puro sem markdown e sem crases:
 
 Regras:
 1. Valores de preços realistas para o Brasil em reais (BRL).
-2. Se o produto tiver código de homologação oficial (Anatel/Inmetro), cite em fontes_citadas. Se for produto isento de homologação compulsória, declare explicitamente: "Especificações técnicas declaradas pelo fabricante e auditadas pela bancada WL TEC."
-3. Foto Oficial: Busque a URL direta da imagem oficial de catálogo ou CDN de e-commerce (Mercado Livre, Shopee, Amazon, AliExpress ou fabricante). NUNCA forneça URLs genéricas do Unsplash com fotos aleatórias de motos, carros ou pessoas.
-4. Não repita produtos que já estejam no catálogo.`;
+2. TRAVA ANTI-ACESSÓRIOS OBRIGATÓRIA: DESCONSIDERE rigorosamente anúncios de peças avulsas, estojos/cases de carregamento usados, cabos ou acessórios isolados. O preço coletado deve ser exclusivamente do produto completo, novo e lacrado.
+3. Se o produto tiver código de homologação oficial (Anatel/Inmetro), cite em fontes_citadas. Se for produto isento de homologação compulsória, declare explicitamente: "Especificações técnicas declaradas pelo fabricante e auditadas pela bancada WL TEC."
+4. Foto Oficial: Busque a URL direta da imagem oficial de catálogo ou CDN de e-commerce (Mercado Livre, Shopee, Amazon, AliExpress ou fabricante). NUNCA forneça URLs genéricas do Unsplash com fotos aleatórias de motos, carros ou pessoas.
+5. Não repita produtos que já estejam no catálogo.`;
 
           const textoIa = await chamarGeminiComRetry(promptIa, apiKey);
           if (textoIa) {
