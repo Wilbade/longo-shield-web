@@ -33,6 +33,7 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#x27;');
   }
+  window.escapeHtml = escapeHtml;
 
   /**
    * Resolve de forma blindada a foto oficial de catálogo correspondente ao nicho do produto.

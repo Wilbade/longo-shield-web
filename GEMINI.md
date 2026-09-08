@@ -159,6 +159,10 @@ The AI's workflow is iterative, transparent, modular, and strictly governed by `
 * **Autonomous Multi-Agent Orchestration:**
   * For complex tasks, deep refactoring, or multi-step validations, the AI has full autonomy to spawn subagents or task-oriented workflows within the workspace without cluttering the primary conversation.
 
+* **Trava de Segurança de Refatoração (Integridade de Funções Utilitárias & Escopo):**
+  * É **terminantemente proibido** remover, omitir ou deixar de declarar funções utilitárias compartilhadas ou de suporte (como `escapeHtml`, `obterFotoSeguraProduto`, geradores de links e parsers) durante alterações de interface, layout ou templates.
+  * Antes de finalizar qualquer alteração de código, o agente deve garantir que todas as funções chamadas dentro de interpolações (`${...}`), loops (`.map()`, etc.) e atributos inline estejam declaradas no escopo do arquivo e disponíveis para prevenir erros em tempo de execução como `Uncaught ReferenceError`.
+
 * **STRICT PROHIBITION OF USER BROWSER ACCESS:**
   * The AI is **strictly forbidden** from launching, manipulating, or performing visual testing with the user's personal web browser.
   * All interface checks, route validations, DOM tests, scripts, or unit validations must be performed exclusively via command-line interface (CLI), headless scripts, static code analysis, or automated workspace simulations.

@@ -45,7 +45,12 @@ Este arquivo (`blueprint.md`) é a **Fonte Única e Soberana da Verdade (SSOT)**
 - A IA está **estritamente proibida** de abrir, acionar ou tentar realizar testes visuais utilizando o navegador web pessoal do usuário.
 - Quaisquer testes de interface, validações de rotas, verificação de DOM, scripts ou testes unitários devem ser executados **exclusivamente via linha de comando (CLI)**, scripts Node.js headless, análise de código estática ou simulações automatizadas no ambiente de desenvolvimento do workspace.
 
-### 5. Regra de Atualização Obrigatória do `blueprint.md`
+### 5. Trava de Segurança de Refatoração (Integridade de Funções Utilitárias & Escopo)
+- **Proibição Expressa de Remoção de Utilitários:** É terminantemente proibido remover, omitir ou deixar de declarar funções utilitárias compartilhadas ou de suporte (como `escapeHtml`, `obterFotoSeguraProduto`, geradores de links, parsers de moeda, formatadores de data e handlers auxiliares) durante refatorações de interface, layout ou templates.
+- **Checagem de Escopo Pré-Commit (Zero Regressões):** Antes de concluir qualquer alteração em arquivos de script (`admin-app.js`, `ofertas-app.js`, `os.js`, `main.js`), o agente DEVE verificar se todas as variáveis e funções chamadas dentro de interpolações de strings (ex: `${escapeHtml(...)}`, `${obterFoto...}`), métodos de array (`.map(...)`, `.forEach(...)`) e atributos inline (`onclick="..."`) estão devidamente declaradas e acessíveis no escopo léxico do arquivo e/ou no objeto global `window`.
+- **Prevenção de "Uncaught ReferenceError":** A quebra de funções utilitárias que já estavam em produção paralisa os fluxos administrativos e as vitrines. Nenhuma refatoração cosmética pode deletar ou terceirizar utilitários pré-existentes sem garantia absoluta de importação ou declaração equivalente.
+
+### 6. Regra de Atualização Obrigatória do `blueprint.md`
 - Qualquer agente de IA ou desenvolvedor atuando neste repositório DEVE:
   1. Consultar este `blueprint.md` antes de iniciar qualquer implementação para entender a arquitetura vigente.
   2. Atualizar este `blueprint.md` ao finalizar cada ciclo de mudanças, registrando as novas funcionalidades, regras de negócio ou refatorações aplicadas.
@@ -374,3 +379,7 @@ ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
     - **Soberania de Preços do Operador**: O motor de re-escaneamento IA preserva os preços já auditados pelo operador, preenchendo apenas lojas vazias ou zeradas.
     - **Transparência de Links de Busca no Comparador**: Identificação dinâmica de links de listagem ampla (`lista.mercadolivre...`, `/search?...`). Exibe com transparência "Cotação ao Vivo" e o botão `[🔍 Consultar Cotação ➜]`, impedindo a exibição de preços fixos artificiais. O sticky sidebar ajusta-se automaticamente entre "Comprar" e "Consultar Cotação".
     - **Persistência Limpa**: Supabase upserts protegem dados canônicos e métricas auditadas.
+12. **Trava de Segurança de Refatoração & Resolução de Escopo (`escapeHtml`) (2026-09-08):**
+    - Correção imediata do `Uncaught ReferenceError: escapeHtml is not defined` no `ofertas/admin-app.js`, garantindo que a função utilitária de sanitização XSS esteja declarada tanto no escopo léxico interno quanto exportada para `window.escapeHtml`.
+    - Atualização do cache-busting em `afiliados.html` para `v=2.5`.
+    - Formalização da "Trava de Segurança de Refatoração" como diretriz mandatória no `blueprint.md` e `GEMINI.md`, proibindo expressamente a remoção ou omissão de utilitários durante mudanças de layout ou templates.

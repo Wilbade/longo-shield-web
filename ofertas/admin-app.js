@@ -21,6 +21,20 @@
     ? createClient('https://giikoiqpnzgmhcqiuvhs.supabase.co', 'sb_publishable_dtsJRRjhIKGt3OMakg4gUQ_4K0LviLB')
     : null;
 
+  /**
+   * Utilitário de escape para evitar XSS em conteúdo injetado via innerHTML.
+   */
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  }
+  window.escapeHtml = escapeHtml;
+
   // Gerenciamento de Produtos Excluídos (Evita que o catálogo ressuscite itens deletados)
   function getExcluidos() {
     try {
