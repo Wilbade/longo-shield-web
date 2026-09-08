@@ -177,6 +177,60 @@
   let cupons = carregarCupons();
 
   /**
+   * Extrai apenas os termos essenciais (Marca + Modelo) para as buscas nos marketplaces.
+   * Remove stop-words, categorias e adjetivos de marketing que poluem a busca do ML e Shopee.
+   */
+  function extrairTermoBuscaEnxuto(titulo) {
+    if (!titulo || typeof titulo !== 'string') return '';
+    let t = titulo.trim();
+
+    const stopWords = [
+      /projetor\s+port[aá]til\s+smart/gi,
+      /projetor\s+port[aá]til/gi,
+      /projetor\s+smart/gi,
+      /fone\s+(de\s+ouvido\s+)?bluetooth/gi,
+      /fone\s+de\s+ouvido/gi,
+      /fone\s+tws/gi,
+      /smartwatch\s+relogio\s+inteligente/gi,
+      /relogio\s+inteligente/gi,
+      /caixa\s+de\s+som\s+bluetooth/gi,
+      /carregador\s+r[aá]pido/gi,
+      /original/gi,
+      /lacrado/gi,
+      /lan[cç]amento/gi,
+      /novo/gi,
+      /new/gi,
+      /promoc[aã]o/gi,
+      /oferta/gi,
+      /oficial/gi,
+      /frete\s+gr[aá]tis/gi,
+      /entrega\s+full/gi,
+      /pronta\s+entrega/gi,
+      /envio\s+imediato/gi,
+      /bivolt/gi,
+      /110v/gi,
+      /220v/gi,
+      /global\s+version/gi,
+      /vers[aã]o\s+global/gi,
+      /\b(branco|preta|preto|azul|rosa|cinza|dourado)\b/gi
+    ];
+
+    let limpo = t;
+    stopWords.forEach(regex => {
+      limpo = limpo.replace(regex, ' ');
+    });
+
+    limpo = limpo.replace(/[-–—/|:,()]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const tokens = limpo.split(' ').filter(w => w.length >= 2);
+    if (tokens.length >= 2) {
+      return tokens.slice(0, 4).join(' ');
+    }
+    return t.split(' ').slice(0, 3).join(' ');
+  }
+  window.extrairTermoBuscaEnxuto = extrairTermoBuscaEnxuto;
+
+  /**
    * Refina links de busca do Mercado Livre para filtrar produtos novos e ordenar por menor preço.
    * Evita que o usuário caia em anúncios de peças usadas (ex: caixas avulsas de R$ 39).
    */
@@ -203,24 +257,26 @@
 
   // ── Gerador Automático de Deep-Links de Afiliados (100% de Cobertura das 4 Lojas) ──
   function gerarLinksAfiliadosAutomaticos(titulo, obj = {}, cfg = config) {
-    const termo = encodeURIComponent((titulo || 'produto').trim());
+    const termoEnxuto = extrairTermoBuscaEnxuto(titulo || 'produto');
+    const termoUrl = encodeURIComponent(termoEnxuto.toLowerCase().replace(/\s+/g, '-'));
+    const termoQuery = encodeURIComponent(termoEnxuto);
     const mlWord = cfg.ml_id || 'wilbade';
     const amzTag = cfg.amazon_tag || 'wilbade09-20';
     const aliTag = cfg.ali_id || 'wilbade';
 
     if (!obj.link_mercadolivre || obj.link_mercadolivre.trim() === '') {
-      obj.link_mercadolivre = `https://lista.mercadolivre.com.br/${termo}_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=${encodeURIComponent(mlWord)}`;
+      obj.link_mercadolivre = `https://lista.mercadolivre.com.br/${termoUrl}_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=83539355&matt_word=${encodeURIComponent(mlWord)}`;
     } else {
       obj.link_mercadolivre = refinarLinkMercadoLivre(obj.link_mercadolivre, mlWord);
     }
     if (!obj.link_shopee || obj.link_shopee.trim() === '') {
-      obj.link_shopee = `https://shopee.com.br/search?keyword=${termo}`;
+      obj.link_shopee = `https://shopee.com.br/search?keyword=${termoQuery}`;
     }
     if (!obj.link_amazon || obj.link_amazon.trim() === '') {
-      obj.link_amazon = `https://www.amazon.com.br/s?k=${termo}&tag=${encodeURIComponent(amzTag)}`;
+      obj.link_amazon = `https://www.amazon.com.br/s?k=${termoQuery}&tag=${encodeURIComponent(amzTag)}`;
     }
     if (!obj.link_aliexpress || obj.link_aliexpress.trim() === '') {
-      obj.link_aliexpress = `https://pt.aliexpress.com/wholesale?SearchText=${termo}`;
+      obj.link_aliexpress = `https://pt.aliexpress.com/wholesale?SearchText=${termoQuery}`;
     }
     return obj;
   }
@@ -401,6 +457,41 @@
     }
   }
 
+  /**
+   * Converte e comprime qualquer imagem no cliente para WebP otimizado (alta performance, < 90KB).
+   */
+  function converterImagemParaWebp(file, maxWidth = 800, maxHeight = 800, quality = 0.85) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth || h > maxHeight) {
+            if (w > h) {
+              h = Math.round((h * maxWidth) / w);
+              w = maxWidth;
+            } else {
+              w = Math.round((w * maxHeight) / h);
+              h = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/webp', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Renderizar o Rascunho Atual na Mesa
   function renderizarRascunho() {
     const c = document.getElementById('containerRascunho');
@@ -426,12 +517,31 @@
     if (editImagemUrl) editImagemUrl.value = rascunhoAtual.imagem_url || '';
 
     const draftImgThumb = document.getElementById('draftImgThumb');
+    const lblStatus = document.getElementById('lblStatusImagem');
     const fotoSeguraRascunho = obterFotoCatalogoFallback(rascunhoAtual.titulo, rascunhoAtual.imagem_url);
+
+    function atualizarStatusImagem(url) {
+      if (!lblStatus) return;
+      lblStatus.textContent = "⏳ Verificando foto...";
+      lblStatus.style.color = "#38bdf8";
+      testarCarregamentoImagem(url).then(valida => {
+        if (valida) {
+          lblStatus.textContent = "🟢 Foto Válida (Carregada)";
+          lblStatus.style.color = "#10b981";
+        } else {
+          lblStatus.textContent = "🔴 Foto Inválida / Quebrada";
+          lblStatus.style.color = "#ef4444";
+        }
+      });
+    }
+
     if (draftImgThumb) {
       draftImgThumb.src = rascunhoAtual.imagem_url || fotoSeguraRascunho;
+      atualizarStatusImagem(draftImgThumb.src);
       draftImgThumb.onerror = () => {
         draftImgThumb.onerror = null;
         draftImgThumb.src = fotoSeguraRascunho;
+        atualizarStatusImagem(fotoSeguraRascunho);
       };
     }
 
@@ -440,6 +550,7 @@
         const val = editImagemUrl.value.trim();
         draftImgThumb.src = val || fotoSeguraRascunho;
         rascunhoAtual.imagem_url = val || fotoSeguraRascunho;
+        atualizarStatusImagem(draftImgThumb.src);
       };
     }
 
@@ -1715,7 +1826,7 @@ Regras:
       } else if (tLower.includes('perfume') || tLower.includes('colonia') || tLower.includes('hidratante') || tLower.includes('creme') || tLower.includes('fragrancia')) {
         categoria = 'beleza';
         badge = '✨ Destaque em Perfumaria & Beleza';
-        imagemPadrao = (fotoManual && fotoManual.trim()) ? fotoManual.trim() : 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=800&auto=format&fit=crop&q=80';
+        imagemPadrao = (fotoManual && fotoManual.trim()) ? fotoManual.trim() : 'img/boticario_insensatez.jpg';
         veredito = `Fragrância marcante e autêntica de grande sucesso no mercado nacional. Apresenta equilíbrio olfativo ideal para uso diário, proporcionando sensação elegante de frescor prolongado e excelente custo-benefício.`;
         pros = [
           'Alta taxa de aprovação no mercado de perfumaria nacional',
@@ -1807,7 +1918,7 @@ Regras:
       } else {
         categoria = 'utilidades';
         badge = '🔥 Selecionado pela Equipe WL TEC';
-        imagemPadrao = (fotoManual && fotoManual.trim()) ? fotoManual.trim() : 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&auto=format&fit=crop&q=80';
+        imagemPadrao = (fotoManual && fotoManual.trim()) ? fotoManual.trim() : '';
         veredito = `Produto com excelente índice de custo-benefício, acabamento refinado e aprovação dos consumidores brasileiros. Testado para oferecer durabilidade diária e desempenho satisfatório dentro de sua faixa de preço.`;
         pros = [
           'Construção sólida com materiais de alta durabilidade',
@@ -1879,11 +1990,23 @@ Regras:
         else if (loja === 'aliexpress') precoAli = precoManual;
       }
 
-      // Links diretos ou de busca com tags de afiliado
-      let linkML = loja === 'mercadolivre' ? url : `https://lista.mercadolivre.com.br/${encodeURIComponent(tituloFormatado)}?matt_tool=${cfg.ml_id || '83539355'}&matt_word=wilbade`;
-      let linkShopee = loja === 'shopee' ? url : `https://shopee.com.br/search?keyword=${encodeURIComponent(tituloFormatado)}`;
-      let linkAmazon = loja === 'amazon' ? url : `https://www.amazon.com.br/s?k=${encodeURIComponent(tituloFormatado)}&tag=${cfg.amazon_tag || 'wilbade09-20'}`;
-      let linkAli = loja === 'aliexpress' ? url : `https://pt.aliexpress.com/wholesale?SearchText=${encodeURIComponent(tituloFormatado)}`;
+      // Links diretos ou de busca com tags de afiliado usando termos enxutos (Marca + Modelo)
+      const termoEnxuto = extrairTermoBuscaEnxuto(tituloFormatado);
+      const termoUrl = encodeURIComponent(termoEnxuto.toLowerCase().replace(/\s+/g, '-'));
+      const termoQuery = encodeURIComponent(termoEnxuto);
+
+      let linkML = loja === 'mercadolivre' 
+        ? url 
+        : `https://lista.mercadolivre.com.br/${termoUrl}_ITEM*CONDITION_2230284_OrderId_PRICE*ASC?matt_tool=${cfg.ml_id || '83539355'}&matt_word=wilbade`;
+      let linkShopee = loja === 'shopee' 
+        ? url 
+        : `https://shopee.com.br/search?keyword=${termoQuery}`;
+      let linkAmazon = loja === 'amazon' 
+        ? url 
+        : `https://www.amazon.com.br/s?k=${termoQuery}&tag=${cfg.amazon_tag || 'wilbade09-20'}`;
+      let linkAli = loja === 'aliexpress' 
+        ? url 
+        : `https://pt.aliexpress.com/wholesale?SearchText=${termoQuery}`;
 
       // Busca autônoma da chave Gemini no Supabase se ainda não estiver em memória
       if (!cfg.gemini_key && db) {
@@ -2091,6 +2214,77 @@ Regras:
       });
     }
 
+    // ── Upload Direto de Imagem de Oferta (Conversão para WebP e Storage Supabase) ──
+    const btnUploadFoto = document.getElementById('btnUploadFotoProduto');
+    const inputUploadFoto = document.getElementById('inputUploadFotoProduto');
+    if (btnUploadFoto && inputUploadFoto) {
+      btnUploadFoto.addEventListener('click', () => {
+        inputUploadFoto.click();
+      });
+
+      inputUploadFoto.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file || !rascunhoAtual) return;
+
+        const lblStatus = document.getElementById('lblStatusImagem');
+        if (lblStatus) {
+          lblStatus.textContent = "⏳ Otimizando foto para WebP...";
+          lblStatus.style.color = "#38bdf8";
+        }
+        showToast("Processando e otimizando imagem...", "📷");
+
+        try {
+          const webpDataUrl = await converterImagemParaWebp(file, 800, 800, 0.85);
+          let urlFinal = webpDataUrl;
+
+          // Se tiver cliente Supabase ativo, faz upload para o bucket fotos-os
+          if (db && db.storage) {
+            try {
+              const fileExt = 'webp';
+              const cleanSlug = (rascunhoAtual.slug || 'produto').replace(/[^a-z0-9_-]/gi, '');
+              const fileName = `ofertas/${cleanSlug}-${Date.now()}.${fileExt}`;
+              const resBlob = await fetch(webpDataUrl).then(r => r.blob());
+              const { data: upData, error: upErr } = await db.storage.from('fotos-os').upload(fileName, resBlob, {
+                contentType: 'image/webp',
+                upsert: true
+              });
+              if (!upErr && upData) {
+                const { data: pubData } = db.storage.from('fotos-os').getPublicUrl(fileName);
+                if (pubData && pubData.publicUrl) {
+                  urlFinal = pubData.publicUrl;
+                }
+              }
+            } catch(eUp) {
+              console.warn("[WL TEC] Upload Supabase falhou, usando WebP local:", eUp);
+            }
+          }
+
+          rascunhoAtual.imagem_url = urlFinal;
+          rascunhoAtual.foto_original = urlFinal;
+          rascunhoAtual.galeria = [urlFinal];
+
+          const editImg = document.getElementById('editImagemUrl');
+          if (editImg) editImg.value = urlFinal;
+
+          const draftThumb = document.getElementById('draftImgThumb');
+          if (draftThumb) draftThumb.src = urlFinal;
+
+          if (lblStatus) {
+            lblStatus.textContent = "🟢 Foto Pronta (Carregada)";
+            lblStatus.style.color = "#10b981";
+          }
+          showToast("Foto da oferta atualizada com sucesso! 📷", "✅");
+        } catch (errConv) {
+          console.error("Erro ao converter foto:", errConv);
+          if (lblStatus) {
+            lblStatus.textContent = "🔴 Erro ao processar arquivo";
+            lblStatus.style.color = "#ef4444";
+          }
+          showToast("Erro ao processar imagem.", "⚠️");
+        }
+      });
+    }
+
     // Botão Refinar com IA (Chat Interativo)
     const btnRefinarIA = document.getElementById('btnRefinarIA');
     const txtRefinamentoIA = document.getElementById('txtRefinamentoIA');
@@ -2135,14 +2329,30 @@ Regras:
           rascunhoAtual.categoria = inpCategoria.value;
         }
 
-        // 2. Validação e Fallback de Foto Oficial (Elimina fotos erradas ou placeholders)
+        // 2. Trava Inviolável de Validação de Foto Oficial (Zero Produtos Sem Imagem)
         const inpImgUrl = document.getElementById('editImagemUrl');
-        if (inpImgUrl && inpImgUrl.value.trim()) {
-          rascunhoAtual.imagem_url = inpImgUrl.value.trim();
+        let fotoCandidata = (inpImgUrl && inpImgUrl.value.trim()) 
+          ? inpImgUrl.value.trim() 
+          : rascunhoAtual.imagem_url;
+
+        showToast("🔍 Validando foto antes de publicar...", "📷");
+        const imagemValida = await testarCarregamentoImagem(fotoCandidata);
+        if (!imagemValida) {
+          alert(
+            "⛔ PUBLICAÇÃO BLOQUEADA (TRAVA DE SEGURANÇA DE IMAGEM):\n\n" +
+            "A imagem informada para esta oferta é inválida, quebrada ou inacessível no navegador.\n" +
+            "Não é permitido publicar anúncios sem foto oficial visível no site.\n\n" +
+            "Como resolver agora:\n" +
+            "1. Clique no botão '📁 Upload Imagem' e selecione uma foto real salva no seu PC/celular; OU\n" +
+            "2. Cole uma URL direta de imagem funcional (PNG, JPG ou WebP) no campo de imagem."
+          );
+          if (inpImgUrl) inpImgUrl.focus();
+          return;
         }
-        rascunhoAtual.imagem_url = obterFotoCatalogoFallback(rascunhoAtual.titulo, rascunhoAtual.imagem_url);
-        rascunhoAtual.galeria = [rascunhoAtual.imagem_url];
-        if (inpImgUrl) inpImgUrl.value = rascunhoAtual.imagem_url;
+
+        rascunhoAtual.imagem_url = fotoCandidata;
+        rascunhoAtual.galeria = [fotoCandidata];
+        if (inpImgUrl) inpImgUrl.value = fotoCandidata;
 
         // Captura os valores editados nos inputs das 4 lojas
         const inpML = document.getElementById('editPrecoML');

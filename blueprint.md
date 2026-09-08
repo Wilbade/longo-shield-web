@@ -34,13 +34,21 @@ Este arquivo (`blueprint.md`) é a **Fonte Única e Soberana da Verdade (SSOT)**
    - Se as lojas estiverem vazias ou zeradas, o preenchimento automático das cotações é realizado diretamente.
 3. **Trava Anti-Acessórios Obrigatória na IA:**
    - Os motores de re-escaneamento e mineração com Gemini devem instruir explicitamente: *"DESCONSIDERE rigorosamente anúncios de peças avulsas, estojos/cases de carregamento usados, cabos ou acessórios isolados. O preço coletado deve ser exclusivamente do produto completo, novo e lacrado."*
-4. **Refinamento de Links de Marketplace (Filtro "Novo" & "Menor Preço"):**
-   - Links de busca ampla do Mercado Livre devem ser automaticamente refinados com os parâmetros de condição "Novo" e ordenação por menor preço (`_ITEM*CONDITION_2230284_OrderId_PRICE*ASC`). Isso garante que o usuário seja direcionado aos menores preços reais de produtos novos, eliminando o risco de cair em anúncios de peças usadas (ex: estojos de R$ 39) ou anúncios pagos superfaturados.
-5. **Transparência de Links & Exibição Obrigatória de Preços:**
+4. **Trava Inviolável de Publicação (Zero Ofertas Sem Imagem):**
+   - É terminantemente proibido aprovar ou publicar ofertas cuja imagem oficial esteja quebrada, vazia ou inacessível no navegador.
+   - O botão "Aprovar e Publicar" executa pré-validação assíncrona mandatória (`testarCarregamentoImagem`) e bloqueia imediatamente a submissão se a imagem falhar, exigindo upload de foto real ou inserção de URL válida.
+5. **Upload Direto de Imagens & Otimização WebP:**
+   - A Mesa de Operações possui botão de upload direto de imagens (`#btnUploadFotoProduto`) que converte fotos para WebP otimizado (< 90KB via HTML5 Canvas) e faz upload automático para o bucket `fotos-os` do Supabase Storage.
+6. **Higienização Cirúrgica de Queries de Busca (`extrairTermoBuscaEnxuto`):**
+   - É proibido injetar títulos completos com palavras de marketing ("projetor portátil smart", "fone bluetooth", "original", etc.) nas buscas dos marketplaces parceiros, pois isso confunde o algoritmo do Mercado Livre e Shopee e faz retornar marcas genéricas (ex: Blulory).
+   - O sistema isola cirurgicamente a `[Marca + Modelo]` (ex: `Wanbo T2 Max`) através de `extrairTermoBuscaEnxuto()`, garantindo que os links de cotação tragam exclusivamente o produto correto.
+7. **Refinamento de Links de Marketplace (Filtro "Novo" & "Menor Preço"):**
+   - Links de busca ampla do Mercado Livre devem ser automaticamente refinados com os parâmetros de condição "Novo" e ordenação por menor preço (`_ITEM*CONDITION_2230284_OrderId_PRICE*ASC`).
+8. **Transparência de Links & Exibição Obrigatória de Preços:**
    - **Exibição de Preços Existentes:** Se a loja possui um preço cadastrado e válido (ex: `preco_mercadolivre`, `preco_shopee`, etc.), o valor em Reais (R$) DEVE ser exibido claramente em destaque para permitir a comparação pelo usuário, acompanhado do selo "Cotação de Referência" quando o link for de busca.
-   - Links de listagem ampla (`lista.mercadolivre.com.br/...`, `shopee.com.br/search?...`, `amazon.com.br/s?...`, `/wholesale...`) exibem o botão transparente **`[🔍 Consultar Cotação ➜]`**.
-   - O menor preço na sidebar sticky deve refletir fidedignamente o menor valor real válido entre as lojas ativas cadastradas, sem alucinar ou manter valores mínimos desatualizados.
-6. **Prevenção de XSS e Sanitização Contínua:**
+   - Links de listagem ampla exibem o botão transparente **`[🔍 Consultar Cotação ➜]`**.
+   - O menor preço na sidebar sticky deve refletir fidedignamente o menor valor real válido entre as lojas ativas cadastradas.
+9. **Prevenção de XSS e Sanitização Contínua:**
    - Todo dado dinâmico injetado no DOM a partir do Supabase ou parâmetros de URL (`location.search`) deve passar obrigatoriamente por `escapeHtml()`.
 
 ### 3. Autonomia por Agentes para Tarefas Complexas
@@ -393,3 +401,10 @@ ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
     - **Refinamento de Links de Busca do Mercado Livre (`refinarLinkMercadoLivre`)**: Injeção automática dos parâmetros de produto novo e ordenação por menor preço (`_ITEM*CONDITION_2230284_OrderId_PRICE*ASC`) em `admin-app.js`, `ofertas-app.js` e `produtos-data.js`, eliminando descompassos de anúncios usados na experiência do usuário.
     - **Gestão Inteligente de Preços**: Ao re-escanear produtos já auditados, o sistema oferece diálogo de confirmação claro ao operador para aceitar as novas cotações da IA ou manter os preços auditados, garantindo autonomia sem surpresas.
     - **Cache Busting**: Versionamento avançado para `v=2.6` nos scripts de `afiliados.html`, `produto.html` e `index.html`.
+14. **Trava Inviolável de Publicação, Upload Direto de Fotos & Higienização de Busca (2026-09-08):**
+    - **Trava Inviolável de Publicação**: Bloqueio obrigatório no botão "Aprovar e Publicar" via `testarCarregamentoImagem` para impedir aprovação de produtos com fotos vazias ou URLs quebradas.
+    - **Upload Direto de Fotos no Painel**: Integração de upload direto com conversão client-side via HTML5 Canvas para WebP otimizado (< 90KB) e persistência no Supabase Storage (`fotos-os`).
+    - **Higienização Cirúrgica de Termos de Busca (`extrairTermoBuscaEnxuto`)**: Remoção de ruídos de marketing ("projetor portátil smart", "original", etc.), isolando a Marca + Modelo exatos para links do Mercado Livre e Shopee, eliminando exibição de produtos genéricos como Blulory.
+    - **Correção Definitiva de Fallback no Hero (`produto.html`)**: O método `obterFotoSeguraProduto` com flag de erro garante que falhas de imagem remota carreguem o SVG Dark Tech temático ou packshot oficial, sem loop infinito de URLs quebradas.
+    - **Cache Busting**: Elevação de versão para `v=2.7` em `afiliados.html`, `produto.html` e `index.html`.
+

@@ -81,22 +81,76 @@
       return 'img/suporte_moto.jpg';
     }
 
-    // Se já tiver uma URL remota válida que não seja a foto genérica da moto do Unsplash
-    if (produto.imagem_url && typeof produto.imagem_url === 'string') {
+    // Se já tiver uma URL remota válida e não estivermos no modo de recuperação de erro (ignorarImagemUrl = false)
+    if (!ignorarImagemUrl && produto.imagem_url && typeof produto.imagem_url === 'string') {
       const url = produto.imagem_url.trim();
       if (url.startsWith('http') && !url.includes('1558981806-ec527fa84c39') && !url.includes('placeholder')) {
         return url;
       }
-      if (url.startsWith('img/')) {
+      if (url.startsWith('img/') || url.startsWith('data:image/')) {
         return url;
       }
     }
 
-    // Fallback elegante com SVG Dark Tech temático da categoria (nunca moto ou escudo alheio)
+    // Fallback elegante com SVG Dark Tech temático da categoria (nunca foto de moto ou escudo alheio)
     const cat = (produto.categoria || 'tecnologia').toUpperCase();
     const tit = escapeHtml((produto.titulo || 'WL TEC Ofertas').substring(0, 30));
     return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="100%" height="100%" fill="%230b0f19"/><rect x="20" y="20" width="560" height="560" rx="16" fill="none" stroke="%231e293b" stroke-width="2"/><circle cx="300" cy="260" r="80" fill="%23151d2f" stroke="%2300ffff" stroke-width="2" stroke-dasharray="4,4"/><text x="300" y="275" font-family="system-ui,sans-serif" font-size="42" text-anchor="middle" fill="%2300ffff">📦</text><text x="300" y="380" font-family="system-ui,sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="%23ffffff">${tit}</text><text x="300" y="415" font-family="system-ui,sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="%2310b981">WL TEC • ${cat}</text></svg>`;
   }
+
+  /**
+   * Extrai apenas os termos essenciais (Marca + Modelo) para as buscas nos marketplaces.
+   * Remove stop-words, categorias e adjetivos de marketing que poluem a busca do ML e Shopee.
+   */
+  function extrairTermoBuscaEnxuto(titulo) {
+    if (!titulo || typeof titulo !== 'string') return '';
+    let t = titulo.trim();
+
+    const stopWords = [
+      /projetor\s+port[aá]til\s+smart/gi,
+      /projetor\s+port[aá]til/gi,
+      /projetor\s+smart/gi,
+      /fone\s+(de\s+ouvido\s+)?bluetooth/gi,
+      /fone\s+de\s+ouvido/gi,
+      /fone\s+tws/gi,
+      /smartwatch\s+relogio\s+inteligente/gi,
+      /relogio\s+inteligente/gi,
+      /caixa\s+de\s+som\s+bluetooth/gi,
+      /carregador\s+r[aá]pido/gi,
+      /original/gi,
+      /lacrado/gi,
+      /lan[cç]amento/gi,
+      /novo/gi,
+      /new/gi,
+      /promoc[aã]o/gi,
+      /oferta/gi,
+      /oficial/gi,
+      /frete\s+gr[aá]tis/gi,
+      /entrega\s+full/gi,
+      /pronta\s+entrega/gi,
+      /envio\s+imediato/gi,
+      /bivolt/gi,
+      /110v/gi,
+      /220v/gi,
+      /global\s+version/gi,
+      /vers[aã]o\s+global/gi,
+      /\b(branco|preta|preto|azul|rosa|cinza|dourado)\b/gi
+    ];
+
+    let limpo = t;
+    stopWords.forEach(regex => {
+      limpo = limpo.replace(regex, ' ');
+    });
+
+    limpo = limpo.replace(/[-–—/|:,()]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const tokens = limpo.split(' ').filter(w => w.length >= 2);
+    if (tokens.length >= 2) {
+      return tokens.slice(0, 4).join(' ');
+    }
+    return t.split(' ').slice(0, 3).join(' ');
+  }
+  window.extrairTermoBuscaEnxuto = extrairTermoBuscaEnxuto;
 
   /**
    * Detecta se o link é uma busca genérica/listagem ampla de marketplace
@@ -619,8 +673,8 @@
     const lblTotalAvaliacoes = document.getElementById('lblTotalAvaliacoes');
     if (lblTotalAvaliacoes) lblTotalAvaliacoes.textContent = `(${Number(produto.total_avaliacoes || 120).toLocaleString('pt-BR')} avaliações reais)`;
 
-    // Fallback de imagem rigoroso: usa packshot oficial correspondente ao produto
-    const fotoSeguraHero = obterFotoSeguraProduto(produto);
+    // Fallback de imagem rigoroso: usa packshot oficial correspondente ou SVG temático da categoria
+    const fotoSeguraHero = obterFotoSeguraProduto(produto, true);
     const imgProdutoHero = document.getElementById('imgProdutoHero');
     if (imgProdutoHero) {
       imgProdutoHero.src = (produto.imagem_url && produto.imagem_url.trim() !== '') ? produto.imagem_url : fotoSeguraHero;
