@@ -740,78 +740,73 @@
 
       /**
        * Comparador de Preços 4 em 1:
-       * Distingue Oferta Direta (com preço fixo verificado) de Link de Busca/Cotação Geral.
+       * Calcula o menor preço real entre as lojas cadastradas e exibe os valores com transparência.
        */
+      const lojasComPreco = lojasConfig.filter(l => l.link && l.preco && Number(l.preco) > 0);
       let menorPreco = Infinity;
       let melhorLoja = null;
 
-      // 1. Identifica o menor preço prioritariamente entre lojas com LINK DIRETO verificado
-      lojasConfig.forEach(loja => {
-        const isBusca = isLinkBuscaGenerica(loja.link);
-        if (!isBusca && loja.preco && Number(loja.preco) > 0 && loja.link) {
-          if (loja.preco < menorPreco) {
-            menorPreco = loja.preco;
-            melhorLoja = loja;
-          }
-        }
-      });
-
-      // 2. Se nenhuma loja tiver link direto com preço, usa a melhor cotação entre as lojas com link
-      if (!melhorLoja) {
-        lojasConfig.forEach(loja => {
-          if (loja.preco && Number(loja.preco) > 0 && loja.link) {
-            if (loja.preco < menorPreco) {
-              menorPreco = loja.preco;
-              melhorLoja = loja;
-            }
-          }
-        });
+      if (lojasComPreco.length > 0) {
+        lojasComPreco.sort((a, b) => Number(a.preco) - Number(b.preco));
+        melhorLoja = lojasComPreco[0];
+        menorPreco = Number(melhorLoja.preco);
+      } else if (produto.preco_estimado && Number(produto.preco_estimado) > 0) {
+        menorPreco = Number(produto.preco_estimado);
+        melhorLoja = lojasConfig.find(l => l.link) || lojasConfig[0];
       }
 
-      // 3. Fallback de referência caso nenhuma loja tenha preço preenchido
-      if (!melhorLoja && lojasConfig.length > 0) {
-        melhorLoja = lojasConfig.find(l => l.link) || lojasConfig[0];
-        menorPreco = produto.preco_estimado || 0;
+      // Auto-cura: se o preço estimado salvo estiver descompassado/alucinado em relação ao menor preço real das lojas:
+      if (menorPreco && menorPreco !== Infinity && menorPreco > 0 && (!produto.preco_estimado || produto.preco_estimado < menorPreco)) {
+        produto.preco_estimado = menorPreco;
       }
 
       listaLojas.innerHTML = lojasConfig.map(loja => {
         const isBusca = isLinkBuscaGenerica(loja.link);
         const hasLink = !!loja.link;
         const hasPreco = loja.preco && Number(loja.preco) > 0;
-        const isMenor = hasPreco && loja.preco === menorPreco && !isBusca;
+        const isMenor = hasPreco && Number(loja.preco) === Number(menorPreco);
 
         let precoHtml = '';
         let btnHtml = '';
 
-        if (hasLink && isBusca) {
-          // Link de listagem de busca: exibe cotação transparente sem forjar preço travado
+        if (hasLink && hasPreco) {
+          // Preço sempre visível em Reais (R$) para o usuário comparar com clareza
+          const precoFormatado = Number(loja.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+          const badgeRef = isBusca 
+            ? '<span style="display: block; font-size: 0.68rem; color: #38bdf8; font-weight: 600; margin-top: 0.15rem;">Cotação de Referência</span>' 
+            : '<span style="display: block; font-size: 0.68rem; color: #10b981; font-weight: 600; margin-top: 0.15rem;">Preço Direto</span>';
+
           precoHtml = `
             <div>
-              <div style="font-size: 0.84rem; color: #38bdf8; font-weight: 700;">Cotação ao Vivo</div>
-              <div style="font-size: 0.72rem; color: var(--text-dim);">Listagem de vendedores</div>
+              <div style="font-weight: 800; font-size: 1.05rem; ${isMenor ? 'color: var(--primary-green);' : 'color: #ffffff;'}">
+                ${precoFormatado}
+              </div>
+              ${badgeRef}
             </div>
           `;
-          btnHtml = `
-            <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.92; padding: 0.55rem 0.85rem; font-size: 0.82rem;" onclick="window.trackClique('${loja.id}', '${produto.slug}', 0)">
-              <span>🔍</span> Consultar Cotação ➜
-            </a>
-          `;
-        } else if (hasLink && hasPreco) {
-          // Link direto verificado com preço unitário auditado
-          precoHtml = `
-            <div style="${isMenor ? 'color: var(--primary-green);' : ''}">
-              ${Number(loja.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </div>
-          `;
-          btnHtml = `
-            <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" onclick="window.trackClique('${loja.id}', '${produto.slug}', ${loja.preco})">
-              Ver Oferta ➜
-            </a>
-          `;
+
+          if (isBusca) {
+            btnHtml = `
+              <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.95; padding: 0.55rem 0.85rem; font-size: 0.82rem;" onclick="window.trackClique('${loja.id}', '${produto.slug}', ${loja.preco})">
+                <span>🔍</span> Consultar Cotação ➜
+              </a>
+            `;
+          } else {
+            btnHtml = `
+              <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" onclick="window.trackClique('${loja.id}', '${produto.slug}', ${loja.preco})">
+                Ver Oferta ➜
+              </a>
+            `;
+          }
         } else if (hasLink) {
-          precoHtml = `<span style="font-size: 0.82rem; color: var(--text-dim); font-weight: 500;">Consultar na Loja</span>`;
+          precoHtml = `
+            <div>
+              <div style="font-size: 0.84rem; color: var(--text-dim); font-weight: 600;">Sob Consulta</div>
+              <span style="display: block; font-size: 0.68rem; color: var(--text-muted); margin-top: 0.15rem;">Conferir na loja</span>
+            </div>
+          `;
           btnHtml = `
-            <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.85;" onclick="window.trackClique('${loja.id}', '${produto.slug}', 0)">
+            <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.85; padding: 0.55rem 0.85rem; font-size: 0.82rem;" onclick="window.trackClique('${loja.id}', '${produto.slug}', 0)">
               Consultar ➜
             </a>
           `;
@@ -826,7 +821,7 @@
               <span class="store-icon-badge ${loja.badgeClass}">${loja.icon}</span>
               <div>
                 <div style="font-weight: 700;">${loja.nome}</div>
-                ${isMenor ? '<span style="font-size: 0.65rem; color: #10b981; font-weight: 800;">★ MENOR PREÇO DIRETO</span>' : (isBusca && hasLink ? '<span style="font-size: 0.65rem; color: #38bdf8; font-weight: 600;">🔎 Cotação Aberta</span>' : '')}
+                ${isMenor ? '<span style="font-size: 0.65rem; color: #10b981; font-weight: 800;">★ MENOR COTAÇÃO</span>' : (isBusca && hasLink ? '<span style="font-size: 0.65rem; color: #38bdf8; font-weight: 600;">🔎 Cotação Aberta</span>' : '')}
               </div>
             </div>
 
@@ -845,17 +840,17 @@
         `;
       }).join('');
 
-      // Atualizar Sidebar Sticky
+      // Atualizar Sidebar Sticky com o menor preço real verificado
       const lblPrecoSticky = document.getElementById('lblPrecoSticky');
       const btnMelhorLoja = document.getElementById('btnMelhorLoja');
       const lblMenorPrecoTag = document.getElementById('lblMenorPrecoTag');
 
       if (melhorLoja && lblPrecoSticky && btnMelhorLoja) {
         const isMelhorBusca = isLinkBuscaGenerica(melhorLoja.link);
-        const precoDisplay = (menorPreco && menorPreco !== Infinity && menorPreco > 0) ? menorPreco : produto.preco_estimado;
+        const precoDisplay = (menorPreco && menorPreco !== Infinity && menorPreco > 0) ? menorPreco : (produto.preco_estimado || 0);
 
         if (lblMenorPrecoTag) {
-          lblMenorPrecoTag.textContent = isMelhorBusca ? 'Cotação Recomendada' : 'Menor Preço Verificado';
+          lblMenorPrecoTag.textContent = isMelhorBusca ? 'Melhor Cotação Encontrada' : 'Menor Preço Verificado';
         }
 
         lblPrecoSticky.textContent = Number(precoDisplay).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -863,11 +858,11 @@
         btnMelhorLoja.className = `sticky-btn-buy btn-buy-store ${melhorLoja.btnClass}`;
         
         if (isMelhorBusca) {
-          btnMelhorLoja.innerHTML = `<span>🔍</span> Consultar Cotação no ${melhorLoja.nome}`;
+          btnMelhorLoja.innerHTML = `<span>🔍</span> Consultar no ${melhorLoja.nome}`;
         } else {
           btnMelhorLoja.innerHTML = `<span>🛒</span> Comprar no ${melhorLoja.nome}`;
         }
-        btnMelhorLoja.onclick = () => window.trackClique(melhorLoja.id, produto.slug, isMelhorBusca ? 0 : menorPreco);
+        btnMelhorLoja.onclick = () => window.trackClique(melhorLoja.id, produto.slug, menorPreco);
       }
     }
 

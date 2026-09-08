@@ -31,15 +31,21 @@ Este arquivo (`blueprint.md`) é a **Fonte Única e Soberana da Verdade (SSOT)**
 2. **Soberania Absoluta dos Preços do Operador Humano:**
    - O motor de IA (re-escaneamento) NUNCA deve sobrescrever preços já auditados pelo operador (`preco_mercadolivre`, `preco_shopee`, `preco_amazon`, `preco_aliexpress`, `preco_estimado`).
    - O preço informado/auditado pelo operador humano é soberano. A IA preenche exclusivamente lojas que estiverem com valores nulos ou zerados.
-3. **Transparência de Links (Oferta Direta vs Cotação de Busca):**
-   - Links de listagem ampla (`lista.mercadolivre.com.br/...`, `shopee.com.br/search?...`, `amazon.com.br/s?...`, `/wholesale...`) NÃO devem ser apresentados como preços fixos travados de produto unitário.
-   - No Comparador 4 em 1, essas lojas devem ser renderizadas com clareza como **"Cotação ao Vivo / Listagem de vendedores"** e botão **`[🔍 Consultar Cotação ➜]`**.
-   - Apenas links diretos de anúncios de produto único (`/p/MLB...`, `/dp/...`, etc.) com preço confirmado participam do selo `★ MENOR PREÇO DIRETO`.
-   - O botão da barra sticky adapta-se dinamicamente entre `[🛒 Comprar no X]` (para oferta direta) e `[🔍 Consultar Cotação no X]` (para busca).
+3. **Transparência de Links & Exibição Obrigatória de Preços:**
+   - **Exibição de Preços Existentes:** Se a loja possui um preço cadastrado e válido (ex: `preco_mercadolivre`, `preco_shopee`, etc.), o valor em Reais (R$) DEVE ser exibido claramente em destaque para permitir a comparação pelo usuário, acompanhado do selo "Cotação de Referência" quando o link for de busca.
+   - Links de listagem ampla (`lista.mercadolivre.com.br/...`, `shopee.com.br/search?...`, `amazon.com.br/s?...`, `/wholesale...`) exibem o botão transparente **`[🔍 Consultar Cotação ➜]`**.
+   - O menor preço na sidebar sticky deve refletir fidedignamente o menor valor real válido entre as lojas ativas cadastradas, sem alucinar ou manter valores mínimos desatualizados.
 4. **Prevenção de XSS e Sanitização Contínua:**
    - Todo dado dinâmico injetado no DOM a partir do Supabase ou parâmetros de URL (`location.search`) deve passar obrigatoriamente por `escapeHtml()`.
 
-### 3. Regra de Atualização Obrigatória do `blueprint.md`
+### 3. Autonomia por Agentes para Tarefas Complexas
+- Para tarefas complexas, refatorações amplas, auditorias de segurança ou validações estruturais, a IA tem total autonomia para orquestrar sub-agentes ou fluxos orientados a tarefas dentro do workspace, operando de forma assíncrona e modular sem sobrecarregar o chat principal.
+
+### 4. PROIBIÇÃO DE USO DO NAVEGADOR DO USUÁRIO
+- A IA está **estritamente proibida** de abrir, acionar ou tentar realizar testes visuais utilizando o navegador web pessoal do usuário.
+- Quaisquer testes de interface, validações de rotas, verificação de DOM, scripts ou testes unitários devem ser executados **exclusivamente via linha de comando (CLI)**, scripts Node.js headless, análise de código estática ou simulações automatizadas no ambiente de desenvolvimento do workspace.
+
+### 5. Regra de Atualização Obrigatória do `blueprint.md`
 - Qualquer agente de IA ou desenvolvedor atuando neste repositório DEVE:
   1. Consultar este `blueprint.md` antes de iniciar qualquer implementação para entender a arquitetura vigente.
   2. Atualizar este `blueprint.md` ao finalizar cada ciclo de mudanças, registrando as novas funcionalidades, regras de negócio ou refatorações aplicadas.

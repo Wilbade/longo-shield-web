@@ -983,17 +983,19 @@ Retorne ESTRITAMENTE um JSON puro sem markdown e sem crases:
       prod.foto_original = prod.imagem_url;
     }
 
-    // Calcula menor preço verificado APENAS se o operador não tiver definido um preço estimado positivo
-    if (!prod.preco_estimado || prod.preco_estimado <= 0) {
-      const precosValidos = [
-        prod.preco_mercadolivre,
-        prod.preco_shopee,
-        prod.preco_amazon,
-        prod.preco_aliexpress
-      ].filter(p => typeof p === 'number' && !isNaN(p) && p > 0);
+    // Calcula menor preço verificado alinhando com o menor valor real das lojas ativas
+    const precosValidos = [
+      prod.preco_mercadolivre,
+      prod.preco_shopee,
+      prod.preco_amazon,
+      prod.preco_aliexpress
+    ].filter(p => typeof p === 'number' && !isNaN(p) && p > 0);
 
-      if (precosValidos.length > 0) {
-        prod.preco_estimado = Math.min(...precosValidos);
+    if (precosValidos.length > 0) {
+      const menorReal = Math.min(...precosValidos);
+      // Se não houver preço estimado ou se o preço estimado for menor do que qualquer loja cadastrada (alucinação antiga)
+      if (!prod.preco_estimado || prod.preco_estimado <= 0 || prod.preco_estimado < menorReal) {
+        prod.preco_estimado = menorReal;
       }
     }
 

@@ -155,10 +155,18 @@ The AI's workflow is iterative, transparent, modular, and strictly governed by `
   * **XSS Prevention:** All dynamic content inserted into the DOM must be sanitized via `escapeHtml()`.
 
 * **Prompt Understanding & Contextual Responses:** The AI will interpret user prompts to understand the desired changes. It will ask clarifying questions if the prompt is ambiguous and provide concise, professional responses.
+
+* **Autonomous Multi-Agent Orchestration:**
+  * For complex tasks, deep refactoring, or multi-step validations, the AI has full autonomy to spawn subagents or task-oriented workflows within the workspace without cluttering the primary conversation.
+
+* **STRICT PROHIBITION OF USER BROWSER ACCESS:**
+  * The AI is **strictly forbidden** from launching, manipulating, or performing visual testing with the user's personal web browser.
+  * All interface checks, route validations, DOM tests, scripts, or unit validations must be performed exclusively via command-line interface (CLI), headless scripts, static code analysis, or automated workspace simulations.
+
 * **Error Checking Flow:**
   1. **Code Change:** AI applies a code modification.
   2. **Dependency Check:** If a `package.json` was modified, AI runs `npm install`.
-  3. **Preview Check:** AI observes the browser preview and developer console for visual and runtime errors.
+  3. **Verification:** Automated tests via CLI, headless runs, or static syntax checks (NEVER personal browser).
   4. **Documentation Sync:** AI updates `blueprint.md`.
   5. **Remediation/Report:** If errors are found, AI attempts automatic fixes. If unsuccessful, it reports details to the user.
 
