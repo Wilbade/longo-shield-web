@@ -385,15 +385,20 @@
     if (editImagemUrl) editImagemUrl.value = rascunhoAtual.imagem_url || '';
 
     const draftImgThumb = document.getElementById('draftImgThumb');
-    if (draftImgThumb && rascunhoAtual.imagem_url) {
-      draftImgThumb.src = rascunhoAtual.imagem_url;
-      draftImgThumb.onerror = () => { draftImgThumb.src = 'img/suporte_moto.jpg'; };
+    const fotoSeguraRascunho = obterFotoCatalogoFallback(rascunhoAtual.titulo, rascunhoAtual.imagem_url);
+    if (draftImgThumb) {
+      draftImgThumb.src = rascunhoAtual.imagem_url || fotoSeguraRascunho;
+      draftImgThumb.onerror = () => {
+        draftImgThumb.onerror = null;
+        draftImgThumb.src = fotoSeguraRascunho;
+      };
     }
 
     if (editImagemUrl && draftImgThumb) {
       editImagemUrl.oninput = () => {
-        draftImgThumb.src = editImagemUrl.value || 'img/suporte_moto.jpg';
-        rascunhoAtual.imagem_url = editImagemUrl.value;
+        const val = editImagemUrl.value.trim();
+        draftImgThumb.src = val || fotoSeguraRascunho;
+        rascunhoAtual.imagem_url = val || fotoSeguraRascunho;
       };
     }
 
@@ -678,7 +683,7 @@
       mobileList.innerHTML = produtos.map(p => `
         <div class="mobile-product-card">
           <div class="mobile-product-header">
-            <img src="${p.imagem_url || 'img/suporte_moto.jpg'}" class="mobile-product-thumb" alt="${p.titulo}" onerror="this.src='img/suporte_moto.jpg'">
+            <img src="${p.imagem_url || obterFotoCatalogoFallback(p.titulo, p.imagem_url)}" class="mobile-product-thumb" alt="${escapeHtml(p.titulo)}" onerror="this.onerror=null; this.src='${obterFotoCatalogoFallback(p.titulo, '')}'">
             <div class="mobile-product-info">
               <div class="mobile-product-title">${p.titulo}</div>
               <div class="mobile-product-price">${Number(p.preco_estimado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</div>
@@ -761,36 +766,30 @@
   };
 
   // ── Função de Segurança: Validação e Fallback de Fotos Oficiais de Catálogo ──
-  // Impede que fotos incorretas (ex: foto de moto em suporte de celular ou unsplash aleatório) vão para o site
+  // Impede que fotos incorretas (ex: foto de moto em fone/creatina) vão para o site
   function obterFotoCatalogoFallback(titulo, fotoAtual) {
-    const t = (titulo || '').toLowerCase();
+    const t = (titulo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-    // Mapeamento fidedigno de fotos de estúdio locais em /ofertas/img/
-    if (t.includes('suporte') && (t.includes('moto') || t.includes('celular') || t.includes('guidão') || t.includes('retrovisor') || t.includes('antivibra'))) {
-      return 'img/suporte_moto.jpg';
-    }
-    if (t.includes('qcy') || (t.includes('fone') && (t.includes('t13') || t.includes('bluetooth') || t.includes('sem fio')))) {
-      return 'img/fone_qcy.jpg';
-    }
-    if (t.includes('lenovo') || t.includes('lp40')) {
+    // Mapeamento fidedigno dos 12 packshots locais de alta resolução em /ofertas/img/
+    if (t.includes('lenovo') || t.includes('lp40') || t.includes('thinkplus')) {
       return 'img/fone_lenovo.jpg';
     }
-    if (t.includes('insensatez') || t.includes('boticario') || t.includes('boticário') || t.includes('colonia') || t.includes('colônia')) {
-      return 'img/boticario_insensatez.jpg';
+    if (t.includes('qcy') || t.includes('t13') || (t.includes('fone') && !t.includes('lenovo'))) {
+      return 'img/fone_qcy.jpg';
     }
-    if (t.includes('creatina') || t.includes('soldiers')) {
+    if (t.includes('creatina') || t.includes('soldiers') || t.includes('suplemento')) {
       return 'img/creatina_soldiers.jpg';
-    }
-    if (t.includes('colmi') || t.includes('smartwatch') || t.includes('relogio inteligente') || t.includes('relógio')) {
-      return 'img/smartwatch_colmi.jpg';
     }
     if (t.includes('ssd') || t.includes('nvme') || t.includes('kingston') || t.includes('m.2')) {
       return 'img/ssd_nvme.jpg';
     }
-    if (t.includes('balanca') || t.includes('balança') || t.includes('bioimpedancia')) {
+    if (t.includes('colmi') || t.includes('p28') || t.includes('smartwatch') || t.includes('relogio')) {
+      return 'img/smartwatch_colmi.jpg';
+    }
+    if (t.includes('balanca') || t.includes('bioimpedancia')) {
       return 'img/balanca_digital.jpg';
     }
-    if (t.includes('compressor') || t.includes('bomba de ar') || t.includes('pneu')) {
+    if (t.includes('compressor') || t.includes('bomba de ar') || t.includes('calibrador')) {
       return 'img/mini_compressor.jpg';
     }
     if (t.includes('baseus') || t.includes('carregador') || t.includes('gan')) {
@@ -799,21 +798,60 @@
     if (t.includes('meia') || t.includes('meias')) {
       return 'img/kit_meias.jpg';
     }
-    if (t.includes('camiseta') || t.includes('algodao') || t.includes('algodão')) {
+    if (t.includes('camiseta') || t.includes('algodao') || t.includes('camisa')) {
       return 'img/camiseta_algodao.jpg';
     }
-
-    // Se for a foto da moto do Unsplash (1558981806-ec527fa84c39) em produto que não seja moto:
-    if (fotoAtual && fotoAtual.includes('1558981806-ec527fa84c39') && !t.includes('moto')) {
+    if (t.includes('insensatez') || t.includes('boticario') || t.includes('colonia') || t.includes('perfume')) {
+      return 'img/boticario_insensatez.jpg';
+    }
+    if ((t.includes('suporte') && (t.includes('moto') || t.includes('guidao') || t.includes('retrovisor') || t.includes('antivibra'))) || (t.includes('moto') && t.includes('celular'))) {
       return 'img/suporte_moto.jpg';
     }
 
-    // Se já tiver uma URL válida de CDN oficial, preserva
-    if (fotoAtual && fotoAtual.trim().startsWith('http') && !fotoAtual.includes('placeholder')) {
-      return fotoAtual.trim();
+    // Se já tiver uma URL remota válida que não seja a foto genérica da moto do Unsplash
+    if (fotoAtual && typeof fotoAtual === 'string') {
+      const url = fotoAtual.trim();
+      if (url.startsWith('http') && !url.includes('1558981806-ec527fa84c39') && !url.includes('placeholder')) {
+        return url;
+      }
+      if (url.startsWith('img/')) {
+        return url;
+      }
     }
 
-    return 'img/suporte_moto.jpg';
+    // Fallback elegante com SVG Dark Tech temático da categoria (nunca moto alheia)
+    const titEsc = (titulo || 'WL TEC Ofertas').substring(0, 30).replace(/"/g, '&quot;');
+    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="100%" height="100%" fill="%230b0f19"/><rect x="20" y="20" width="560" height="560" rx="16" fill="none" stroke="%231e293b" stroke-width="2"/><circle cx="300" cy="260" r="80" fill="%23151d2f" stroke="%2300ffff" stroke-width="2" stroke-dasharray="4,4"/><text x="300" y="275" font-family="system-ui,sans-serif" font-size="42" text-anchor="middle" fill="%2300ffff">📦</text><text x="300" y="380" font-family="system-ui,sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="%23ffffff">${titEsc}</text><text x="300" y="415" font-family="system-ui,sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="%2310b981">WL TEC • OFERTA</text></svg>`;
+  }
+
+  // Pré-carregamento assíncrono para testar URLs de imagens antes de aprovar
+  function testarCarregamentoImagem(url, timeoutMs = 3500) {
+    return new Promise((resolve) => {
+      if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+        return resolve(false);
+      }
+      if (url.includes('1558981806-ec527fa84c39')) {
+        return resolve(false);
+      }
+      const img = new Image();
+      let timer = setTimeout(() => {
+        img.src = '';
+        resolve(false);
+      }, timeoutMs);
+      img.onload = () => {
+        clearTimeout(timer);
+        if (img.naturalWidth > 60 && img.naturalHeight > 60) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      };
+      img.onerror = () => {
+        clearTimeout(timer);
+        resolve(false);
+      };
+      img.src = url;
+    });
   }
 
   // ── Função Global: Re-escanear com IA (Atualiza Foto Oficial, Preços das 4 Lojas, Vendas e Avaliações) ──
@@ -901,17 +939,36 @@ Retorne ESTRITAMENTE um JSON puro sem markdown e sem crases:
           if (Array.isArray(parsed.contras) && parsed.contras.length > 0) prod.contras = parsed.contras;
           if (Array.isArray(parsed.fontes_citadas) && parsed.fontes_citadas.length > 0) prod.fontes_citadas = parsed.fontes_citadas;
 
-          if (parsed.preco_mercadolivre !== undefined) prod.preco_mercadolivre = parsed.preco_mercadolivre;
-          if (parsed.preco_shopee !== undefined) prod.preco_shopee = parsed.preco_shopee;
-          if (parsed.preco_amazon !== undefined) prod.preco_amazon = parsed.preco_amazon;
-          if (parsed.preco_aliexpress !== undefined) prod.preco_aliexpress = parsed.preco_aliexpress;
-          if (parsed.preco_antigo) prod.preco_antigo = parsed.preco_antigo;
+          // SOBERANIA DOS PREÇOS DO OPERADOR:
+          // O re-escaneamento com IA NUNCA sobrescreve preços já auditados pelo operador humano.
+          // Apenas preenche lojas que estiverem sem cotação cadastrada (nulas ou zeradas).
+          if ((prod.preco_mercadolivre === undefined || prod.preco_mercadolivre === null || prod.preco_mercadolivre === 0) && parsed.preco_mercadolivre) {
+            prod.preco_mercadolivre = Number(parsed.preco_mercadolivre);
+          }
+          if ((prod.preco_shopee === undefined || prod.preco_shopee === null || prod.preco_shopee === 0) && parsed.preco_shopee) {
+            prod.preco_shopee = Number(parsed.preco_shopee);
+          }
+          if ((prod.preco_amazon === undefined || prod.preco_amazon === null || prod.preco_amazon === 0) && parsed.preco_amazon) {
+            prod.preco_amazon = Number(parsed.preco_amazon);
+          }
+          if ((prod.preco_aliexpress === undefined || prod.preco_aliexpress === null || prod.preco_aliexpress === 0) && parsed.preco_aliexpress) {
+            prod.preco_aliexpress = Number(parsed.preco_aliexpress);
+          }
+          if ((!prod.preco_antigo || prod.preco_antigo <= 0) && parsed.preco_antigo) {
+            prod.preco_antigo = Number(parsed.preco_antigo);
+          }
 
-          // Validação e resolução rigorosa da foto oficial
-          if (parsed.imagem_url && parsed.imagem_url.startsWith('http') && !parsed.imagem_url.includes('unsplash.com/photo-1558981806-ec527fa84c39')) {
+          // Validação e pré-carregamento assíncrono da foto oficial (testa Image.onload)
+          let fotoValida = false;
+          if (parsed.imagem_url && parsed.imagem_url.startsWith('http') && !parsed.imagem_url.includes('1558981806-ec527fa84c39')) {
+            fotoValida = await testarCarregamentoImagem(parsed.imagem_url);
+          }
+
+          if (fotoValida) {
             prod.imagem_url = parsed.imagem_url;
             prod.foto_original = parsed.imagem_url;
           } else {
+            // Mantém packshot oficial local correspondente ao produto
             prod.imagem_url = obterFotoCatalogoFallback(prod.titulo, prod.imagem_url);
             prod.foto_original = prod.imagem_url;
           }
@@ -926,16 +983,18 @@ Retorne ESTRITAMENTE um JSON puro sem markdown e sem crases:
       prod.foto_original = prod.imagem_url;
     }
 
-    // Calcula menor preço verificado entre as lojas
-    const precosValidos = [
-      prod.preco_mercadolivre,
-      prod.preco_shopee,
-      prod.preco_amazon,
-      prod.preco_aliexpress
-    ].filter(p => typeof p === 'number' && !isNaN(p) && p > 0);
+    // Calcula menor preço verificado APENAS se o operador não tiver definido um preço estimado positivo
+    if (!prod.preco_estimado || prod.preco_estimado <= 0) {
+      const precosValidos = [
+        prod.preco_mercadolivre,
+        prod.preco_shopee,
+        prod.preco_amazon,
+        prod.preco_aliexpress
+      ].filter(p => typeof p === 'number' && !isNaN(p) && p > 0);
 
-    if (precosValidos.length > 0) {
-      prod.preco_estimado = Math.min(...precosValidos);
+      if (precosValidos.length > 0) {
+        prod.preco_estimado = Math.min(...precosValidos);
+      }
     }
 
     // Garante 100% dos 4 links com tags de afiliados válidas

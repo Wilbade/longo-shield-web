@@ -35,6 +35,86 @@
   }
 
   /**
+   * Resolve de forma blindada a foto oficial de catálogo correspondente ao nicho do produto.
+   * NUNCA cruza fotos de motos, escudos ou itens não relacionados em outros produtos.
+   */
+  function obterFotoSeguraProduto(produto) {
+    if (!produto) return 'img/fone_lenovo.jpg';
+    const t = ((produto.titulo || '') + ' ' + (produto.slug || '') + ' ' + (produto.categoria || '')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Mapeamento rigoroso dos 12 packshots locais de alta resolução em /ofertas/img/
+    if (t.includes('lenovo') || t.includes('lp40') || t.includes('thinkplus')) {
+      return 'img/fone_lenovo.jpg';
+    }
+    if (t.includes('qcy') || t.includes('t13') || (t.includes('fone') && !t.includes('lenovo'))) {
+      return 'img/fone_qcy.jpg';
+    }
+    if (t.includes('creatina') || t.includes('soldiers') || t.includes('suplemento')) {
+      return 'img/creatina_soldiers.jpg';
+    }
+    if (t.includes('ssd') || t.includes('nvme') || t.includes('kingston') || t.includes('m.2')) {
+      return 'img/ssd_nvme.jpg';
+    }
+    if (t.includes('colmi') || t.includes('p28') || t.includes('smartwatch') || t.includes('relogio')) {
+      return 'img/smartwatch_colmi.jpg';
+    }
+    if (t.includes('balanca') || t.includes('bioimpedancia')) {
+      return 'img/balanca_digital.jpg';
+    }
+    if (t.includes('compressor') || t.includes('bomba de ar') || t.includes('calibrador')) {
+      return 'img/mini_compressor.jpg';
+    }
+    if (t.includes('baseus') || t.includes('carregador') || t.includes('gan')) {
+      return 'img/carregador_baseus.jpg';
+    }
+    if (t.includes('meia') || t.includes('meias')) {
+      return 'img/kit_meias.jpg';
+    }
+    if (t.includes('camiseta') || t.includes('algodao') || t.includes('camisa')) {
+      return 'img/camiseta_algodao.jpg';
+    }
+    if (t.includes('insensatez') || t.includes('boticario') || t.includes('colonia') || t.includes('perfume')) {
+      return 'img/boticario_insensatez.jpg';
+    }
+    if ((t.includes('suporte') && (t.includes('moto') || t.includes('guidao') || t.includes('retrovisor') || t.includes('antivibra'))) || (t.includes('moto') && t.includes('celular'))) {
+      return 'img/suporte_moto.jpg';
+    }
+
+    // Se já tiver uma URL remota válida que não seja a foto genérica da moto do Unsplash
+    if (produto.imagem_url && typeof produto.imagem_url === 'string') {
+      const url = produto.imagem_url.trim();
+      if (url.startsWith('http') && !url.includes('1558981806-ec527fa84c39') && !url.includes('placeholder')) {
+        return url;
+      }
+      if (url.startsWith('img/')) {
+        return url;
+      }
+    }
+
+    // Fallback elegante com SVG Dark Tech temático da categoria (nunca moto ou escudo alheio)
+    const cat = (produto.categoria || 'tecnologia').toUpperCase();
+    const tit = escapeHtml((produto.titulo || 'WL TEC Ofertas').substring(0, 30));
+    return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="100%" height="100%" fill="%230b0f19"/><rect x="20" y="20" width="560" height="560" rx="16" fill="none" stroke="%231e293b" stroke-width="2"/><circle cx="300" cy="260" r="80" fill="%23151d2f" stroke="%2300ffff" stroke-width="2" stroke-dasharray="4,4"/><text x="300" y="275" font-family="system-ui,sans-serif" font-size="42" text-anchor="middle" fill="%2300ffff">📦</text><text x="300" y="380" font-family="system-ui,sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="%23ffffff">${tit}</text><text x="300" y="415" font-family="system-ui,sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="%2310b981">WL TEC • ${cat}</text></svg>`;
+  }
+
+  /**
+   * Detecta se o link é uma busca genérica/listagem ampla de marketplace
+   * em vez de um anúncio direto com preço unitário fixo.
+   */
+  function isLinkBuscaGenerica(url) {
+    if (!url || typeof url !== 'string') return false;
+    const u = url.toLowerCase();
+    return u.includes('lista.mercadolivre.com.br') ||
+           u.includes('shopee.com.br/search') ||
+           u.includes('amazon.com.br/s?') ||
+           u.includes('amazon.com.br/s/') ||
+           u.includes('aliexpress.com/w/wholesale') ||
+           u.includes('aliexpress.com/wholesale') ||
+           u.includes('/search?') ||
+           u.includes('searchtext=');
+  }
+
+  /**
    * Retorna a lista de slugs que o admin excluiu permanentemente.
    * Atua como barreira dupla: filtro local + filtro na sincronização da nuvem.
    */
@@ -271,7 +351,7 @@
           <article class="product-card" data-slug="${p.slug}">
             <div class="card-media">
               <span class="${badgeClass}">${p.badge || 'Verificado'}</span>
-              <img src="${p.imagem_url}" alt="${p.titulo}" loading="lazy">
+              <img src="${p.imagem_url || obterFotoSeguraProduto(p)}" alt="${escapeHtml(p.titulo)}" loading="lazy" onerror="this.onerror=null; this.src='${obterFotoSeguraProduto(p)}'">
             </div>
 
             <div class="card-body">
@@ -517,27 +597,29 @@
     const lblTotalAvaliacoes = document.getElementById('lblTotalAvaliacoes');
     if (lblTotalAvaliacoes) lblTotalAvaliacoes.textContent = `(${Number(produto.total_avaliacoes || 120).toLocaleString('pt-BR')} avaliações reais)`;
 
-    // Fallback de imagem: usa escudo institucional se a URL da imagem falhar
+    // Fallback de imagem rigoroso: usa packshot oficial correspondente ao produto
+    const fotoSeguraHero = obterFotoSeguraProduto(produto);
     const imgProdutoHero = document.getElementById('imgProdutoHero');
     if (imgProdutoHero) {
-      imgProdutoHero.src = produto.imagem_url;
+      imgProdutoHero.src = (produto.imagem_url && produto.imagem_url.trim() !== '') ? produto.imagem_url : fotoSeguraHero;
       imgProdutoHero.alt = escapeHtml(produto.titulo);
       imgProdutoHero.onerror = () => {
-        imgProdutoHero.onerror = null; // Evita loop infinito se o fallback também falhar
-        imgProdutoHero.src = 'https://wl.tec.br/img/escudo_shiel.png';
+        imgProdutoHero.onerror = null; // Evita loop infinito
+        imgProdutoHero.src = fotoSeguraHero;
       };
     }
 
-    // Renderizar Galeria Interativa com Múltiplas Fotos Reais
+    // Renderizar Galeria Interativa com Múltiplas Fotos Reais do Produto
     const galeriaThumbs = document.getElementById('galeriaThumbs');
     if (galeriaThumbs) {
-      const fotos = (Array.isArray(produto.galeria) && produto.galeria.length > 0)
-        ? produto.galeria 
-        : [produto.imagem_url];
+      const fotosValidas = (Array.isArray(produto.galeria) && produto.galeria.length > 0)
+        ? produto.galeria.filter(f => f && typeof f === 'string' && f.trim() !== '')
+        : [produto.imagem_url || fotoSeguraHero];
+      const fotos = fotosValidas.length > 0 ? fotosValidas : [fotoSeguraHero];
 
       galeriaThumbs.innerHTML = fotos.map((f, idx) => `
         <div class="thumb-item ${idx === 0 ? 'active' : ''}" data-src="${f}" title="Ver foto ${idx + 1}">
-          <img src="${f}" alt="${produto.titulo} - Foto ${idx + 1}" loading="lazy" onerror="this.src='img/suporte_moto.jpg'">
+          <img src="${f}" alt="${escapeHtml(produto.titulo)} - Foto ${idx + 1}" loading="lazy" onerror="this.onerror=null; this.src='${fotoSeguraHero}'">
         </div>
       `).join('');
 
@@ -657,15 +739,16 @@
       ];
 
       /**
-       * Comparador de Preços 4 em 1: detecta o menor preço entre as lojas disponíveis.
-       * Lojas sem link ou sem preço são exibidas como "Indispónível" sem suprimir as demais.
+       * Comparador de Preços 4 em 1:
+       * Distingue Oferta Direta (com preço fixo verificado) de Link de Busca/Cotação Geral.
        */
       let menorPreco = Infinity;
       let melhorLoja = null;
 
+      // 1. Identifica o menor preço prioritariamente entre lojas com LINK DIRETO verificado
       lojasConfig.forEach(loja => {
-        // Considera apenas lojas com preço positivo para o cálculo do menor preço
-        if (loja.preco && Number(loja.preco) > 0) {
+        const isBusca = isLinkBuscaGenerica(loja.link);
+        if (!isBusca && loja.preco && Number(loja.preco) > 0 && loja.link) {
           if (loja.preco < menorPreco) {
             menorPreco = loja.preco;
             melhorLoja = loja;
@@ -673,20 +756,77 @@
         }
       });
 
+      // 2. Se nenhuma loja tiver link direto com preço, usa a melhor cotação entre as lojas com link
+      if (!melhorLoja) {
+        lojasConfig.forEach(loja => {
+          if (loja.preco && Number(loja.preco) > 0 && loja.link) {
+            if (loja.preco < menorPreco) {
+              menorPreco = loja.preco;
+              melhorLoja = loja;
+            }
+          }
+        });
+      }
+
+      // 3. Fallback de referência caso nenhuma loja tenha preço preenchido
+      if (!melhorLoja && lojasConfig.length > 0) {
+        melhorLoja = lojasConfig.find(l => l.link) || lojasConfig[0];
+        menorPreco = produto.preco_estimado || 0;
+      }
+
       listaLojas.innerHTML = lojasConfig.map(loja => {
-        const hasPreco = loja.preco && Number(loja.preco) > 0 && loja.link;
-        const precoStr = hasPreco 
-          ? Number(loja.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) 
-          : (loja.link ? '<span style="font-size: 0.82rem; color: var(--text-dim); font-weight: 500;">Ver no site</span>' : 'Indisponível');
-        const isMenor = hasPreco && loja.preco === menorPreco;
+        const isBusca = isLinkBuscaGenerica(loja.link);
+        const hasLink = !!loja.link;
+        const hasPreco = loja.preco && Number(loja.preco) > 0;
+        const isMenor = hasPreco && loja.preco === menorPreco && !isBusca;
+
+        let precoHtml = '';
+        let btnHtml = '';
+
+        if (hasLink && isBusca) {
+          // Link de listagem de busca: exibe cotação transparente sem forjar preço travado
+          precoHtml = `
+            <div>
+              <div style="font-size: 0.84rem; color: #38bdf8; font-weight: 700;">Cotação ao Vivo</div>
+              <div style="font-size: 0.72rem; color: var(--text-dim);">Listagem de vendedores</div>
+            </div>
+          `;
+          btnHtml = `
+            <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.92; padding: 0.55rem 0.85rem; font-size: 0.82rem;" onclick="window.trackClique('${loja.id}', '${produto.slug}', 0)">
+              <span>🔍</span> Consultar Cotação ➜
+            </a>
+          `;
+        } else if (hasLink && hasPreco) {
+          // Link direto verificado com preço unitário auditado
+          precoHtml = `
+            <div style="${isMenor ? 'color: var(--primary-green);' : ''}">
+              ${Number(loja.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </div>
+          `;
+          btnHtml = `
+            <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" onclick="window.trackClique('${loja.id}', '${produto.slug}', ${loja.preco})">
+              Ver Oferta ➜
+            </a>
+          `;
+        } else if (hasLink) {
+          precoHtml = `<span style="font-size: 0.82rem; color: var(--text-dim); font-weight: 500;">Consultar na Loja</span>`;
+          btnHtml = `
+            <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.85;" onclick="window.trackClique('${loja.id}', '${produto.slug}', 0)">
+              Consultar ➜
+            </a>
+          `;
+        } else {
+          precoHtml = `<span style="font-size: 0.82rem; color: var(--text-dim);">Indisponível</span>`;
+          btnHtml = `<span style="font-size: 0.78rem; color: var(--text-dim);">Sem estoque</span>`;
+        }
 
         return `
           <div class="store-row" style="${isMenor ? 'border-color: var(--primary-green); background: rgba(16, 185, 129, 0.06);' : ''}">
             <div class="store-identity">
               <span class="store-icon-badge ${loja.badgeClass}">${loja.icon}</span>
               <div>
-                <div>${loja.nome}</div>
-                ${isMenor ? '<span style="font-size: 0.65rem; color: #10b981; font-weight: 800;">★ MENOR PREÇO</span>' : ''}
+                <div style="font-weight: 700;">${loja.nome}</div>
+                ${isMenor ? '<span style="font-size: 0.65rem; color: #10b981; font-weight: 800;">★ MENOR PREÇO DIRETO</span>' : (isBusca && hasLink ? '<span style="font-size: 0.65rem; color: #38bdf8; font-weight: 600;">🔎 Cotação Aberta</span>' : '')}
               </div>
             </div>
 
@@ -694,22 +834,12 @@
               ${loja.destaque}
             </div>
 
-            <div class="store-price" style="${isMenor ? 'color: var(--primary-green);' : ''}">
-              ${precoStr}
+            <div class="store-price">
+              ${precoHtml}
             </div>
 
             <div>
-              ${hasPreco ? `
-                <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" onclick="window.trackClique('${loja.id}', '${produto.slug}', ${loja.preco})">
-                  Ver Oferta ➜
-                </a>
-              ` : (loja.link ? `
-                <a href="${loja.link}" target="_blank" rel="noopener" class="btn-buy-store ${loja.btnClass}" style="opacity: 0.85; filter: saturate(0.8);" onclick="window.trackClique('${loja.id}', '${produto.slug}', 0)">
-                  Consultar ➜
-                </a>
-              ` : `
-                <span style="font-size: 0.78rem; color: var(--text-dim);">Indisponível</span>
-              `)}
+              ${btnHtml}
             </div>
           </div>
         `;
@@ -718,12 +848,26 @@
       // Atualizar Sidebar Sticky
       const lblPrecoSticky = document.getElementById('lblPrecoSticky');
       const btnMelhorLoja = document.getElementById('btnMelhorLoja');
+      const lblMenorPrecoTag = document.getElementById('lblMenorPrecoTag');
+
       if (melhorLoja && lblPrecoSticky && btnMelhorLoja) {
-        lblPrecoSticky.textContent = Number(menorPreco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const isMelhorBusca = isLinkBuscaGenerica(melhorLoja.link);
+        const precoDisplay = (menorPreco && menorPreco !== Infinity && menorPreco > 0) ? menorPreco : produto.preco_estimado;
+
+        if (lblMenorPrecoTag) {
+          lblMenorPrecoTag.textContent = isMelhorBusca ? 'Cotação Recomendada' : 'Menor Preço Verificado';
+        }
+
+        lblPrecoSticky.textContent = Number(precoDisplay).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         btnMelhorLoja.href = melhorLoja.link;
         btnMelhorLoja.className = `sticky-btn-buy btn-buy-store ${melhorLoja.btnClass}`;
-        btnMelhorLoja.innerHTML = `<span>🛒</span> Comprar no ${melhorLoja.nome}`;
-        btnMelhorLoja.onclick = () => window.trackClique(melhorLoja.id, produto.slug, menorPreco);
+        
+        if (isMelhorBusca) {
+          btnMelhorLoja.innerHTML = `<span>🔍</span> Consultar Cotação no ${melhorLoja.nome}`;
+        } else {
+          btnMelhorLoja.innerHTML = `<span>🛒</span> Comprar no ${melhorLoja.nome}`;
+        }
+        btnMelhorLoja.onclick = () => window.trackClique(melhorLoja.id, produto.slug, isMelhorBusca ? 0 : menorPreco);
       }
     }
 
@@ -733,9 +877,10 @@
     const schemaScript = document.getElementById('schemaProductJson');
     if (schemaScript) {
       const cleanUrl = `https://wl.tec.br/ofertas/produto.html?slug=${encodeURIComponent(produto.slug)}`;
-      const imgUrl   = produto.imagem_url
-        ? (produto.imagem_url.startsWith('http') ? produto.imagem_url : `https://wl.tec.br/ofertas/${produto.imagem_url}`)
-        : 'https://wl.tec.br/img/escudo_shiel.png';
+      const fotoUrlSegura = obterFotoSeguraProduto(produto);
+      const imgUrl   = (produto.imagem_url && produto.imagem_url.startsWith('http'))
+        ? produto.imagem_url
+        : `https://wl.tec.br/ofertas/${fotoUrlSegura}`;
 
       // Constrói array de ofertas por loja com availability e url individuais
       const ofertasLojas = [];
