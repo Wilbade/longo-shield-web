@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS afiliados_config (
     aliexpress_id TEXT DEFAULT 'wilbade',
     telegram_bot_token TEXT,
     telegram_chat_id TEXT,
-    whatsapp_grupo_link TEXT DEFAULT 'https://chat.whatsapp.com/exemplo-wltec',
+    whatsapp_grupo_link TEXT DEFAULT 'https://chat.whatsapp.com/LxGlzba3wtfAQesw21Ujqh',
     dias_poda_algoritmica INT DEFAULT 45,
     atualizado_em TIMESTAMPTZ DEFAULT NOW()
 );

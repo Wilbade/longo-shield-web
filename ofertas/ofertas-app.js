@@ -39,7 +39,7 @@
    * Resolve de forma blindada a foto oficial de catálogo correspondente ao nicho do produto.
    * NUNCA cruza fotos de motos, escudos ou itens não relacionados em outros produtos.
    */
-  function obterFotoSeguraProduto(produto) {
+  function obterFotoSeguraProduto(produto, ignorarImagemUrl = false) {
     if (!produto) return 'img/fone_lenovo.jpg';
     const t = ((produto.titulo || '') + ' ' + (produto.slug || '') + ' ' + (produto.categoria || '')).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -97,6 +97,7 @@
     const tit = escapeHtml((produto.titulo || 'WL TEC Ofertas').substring(0, 30));
     return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="100%" height="100%" fill="%230b0f19"/><rect x="20" y="20" width="560" height="560" rx="16" fill="none" stroke="%231e293b" stroke-width="2"/><circle cx="300" cy="260" r="80" fill="%23151d2f" stroke="%2300ffff" stroke-width="2" stroke-dasharray="4,4"/><text x="300" y="275" font-family="system-ui,sans-serif" font-size="42" text-anchor="middle" fill="%2300ffff">📦</text><text x="300" y="380" font-family="system-ui,sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="%23ffffff">${tit}</text><text x="300" y="415" font-family="system-ui,sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="%2310b981">WL TEC • ${cat}</text></svg>`;
   }
+  window.obterFotoSeguraProduto = obterFotoSeguraProduto;
 
   /**
    * Extrai apenas os termos essenciais (Marca + Modelo) para as buscas nos marketplaces.
@@ -427,7 +428,7 @@
           <article class="product-card" data-slug="${p.slug}">
             <div class="card-media">
               <span class="${badgeClass}">${p.badge || 'Verificado'}</span>
-              <img src="${p.imagem_url || obterFotoSeguraProduto(p)}" alt="${escapeHtml(p.titulo)}" loading="lazy" onerror="this.onerror=null; this.src='${obterFotoSeguraProduto(p)}'">
+              <img src="${p.imagem_url || obterFotoSeguraProduto(p)}" alt="${escapeHtml(p.titulo)}" loading="lazy" onerror="this.onerror=null; this.src='${obterFotoSeguraProduto(p, true)}'">
             </div>
 
             <div class="card-body">

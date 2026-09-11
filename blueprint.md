@@ -408,3 +408,9 @@ ON afiliados_produtos FOR SELECT TO anon, authenticated USING (true);
     - **Correção Definitiva de Fallback no Hero (`produto.html`)**: O método `obterFotoSeguraProduto` com flag de erro garante que falhas de imagem remota carreguem o SVG Dark Tech temático ou packshot oficial, sem loop infinito de URLs quebradas.
     - **Cache Busting**: Elevação de versão para `v=2.7` em `afiliados.html`, `produto.html` e `index.html`.
 
+15. **Correção Crítica de Renderização da Vitrine Pública & Resolução de Escopo (2026-09-11):**
+    - **Diagnóstico do Travamento da Vitrine**: Na vitrine pública (`index.html`), o contador exibia "Exibindo 14 ofertas verificadas", porém nenhum card de produto era renderizado no DOM.
+    - **Causa Raiz**: A função `obterFotoSeguraProduto(produto)` em `ofertas-app.js` utilizava a variável `!ignorarImagemUrl` na linha de verificação da foto, mas o parâmetro havia sido omitido na assinatura da função. Em modo estrito (`'use strict'`), isso disparava `Uncaught ReferenceError: ignorarImagemUrl is not defined` na primeira iteração de `.map()`, abortando imediatamente a renderização da vitrine e deixando o container `#gridProdutos` vazio.
+    - **Correção Aplicada**: Parâmetro devidamente declarado como `obterFotoSeguraProduto(produto, ignorarImagemUrl = false)`, exportação explícita para `window.obterFotoSeguraProduto` e ajuste do fallback `onerror` dos cards para invocar `obterFotoSeguraProduto(p, true)`.
+    - **Cache Busting**: Elevação de versão para `v=2.8` em `index.html`, `produto.html` e `afiliados.html`.
+    - **Integração do Grupo VIP Oficial do WhatsApp**: Atualização universal dos links de retenção e botões "Canal VIP / Alertas" para o endereço oficial do grupo ativo (`https://chat.whatsapp.com/LxGlzba3wtfAQesw21Ujqh`), substituindo o placeholder `exemplo-wltec` em todas as vitrines e templates estáticos.

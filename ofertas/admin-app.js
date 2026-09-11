@@ -147,7 +147,7 @@
       shopee_id: '18349700720',
       ml_id: 'wilbade',
       ali_id: 'wilbade',
-      zap_link: 'https://chat.whatsapp.com/exemplo-wltec',
+      zap_link: 'https://chat.whatsapp.com/LxGlzba3wtfAQesw21Ujqh',
       tg_token: '',
       tg_chat_id: '',
       gemini_key: ''
